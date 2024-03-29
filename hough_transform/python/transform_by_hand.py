@@ -15,12 +15,9 @@ edges = cv2.Canny(gray, 100, 150, apertureSize=3)
 
 cv2.imwrite('edges.png', edges)
 
-# Use HoughLinesP to detect lines
-# Parameters: image, rho accuracy, theta accuracy, threshold
-# rho and theta are in pixel and radian units respectively, threshold is the minimum vote for it to be considered a line
+
 img_height, img_width = edges.shape
-# theta_resolution = 1
-# rho_resolution = 1
+
 theta_max = 90
 theta_min = -90
 thetas = np.deg2rad(np.arange(theta_min, theta_max))
