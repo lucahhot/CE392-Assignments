@@ -1,1 +1,0 @@
-gcc -o motion_detect motion_detect.c

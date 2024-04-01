@@ -16,14 +16,14 @@ module fifo #(
 
     function automatic logic [FIFO_DATA_WIDTH-1:0] to01( input logic [FIFO_DATA_WIDTH-1:0] data );
         logic [FIFO_DATA_WIDTH-1:0] result;
-		for ( int i=0; i < $bits(data); i++ ) begin
-			case ( data[i] )  
-				0: result[i] = 1'b0;
+        for ( int i=0; i < $bits(data); i++ ) begin
+            case ( data[i] )  
+                0: result[i] = 1'b0;
                 1: result[i] = 1'b1;
                 default: result[i] = 1'b0;
-			endcase;
-		end;
-		return result;
+            endcase;
+        end;
+        return result;
     endfunction
 
     localparam FIFO_ADDR_WIDTH = $clog2(FIFO_BUFFER_SIZE) + 1;
@@ -68,11 +68,11 @@ module fifo #(
             empty <= (wr_addr == rd_addr_t) ? 1'b1 : 1'b0;
     end
 
-	assign rd_addr_t = (rd_en == 1'b1 && empty_t == 1'b0) ? ($unsigned(rd_addr) + 'h1) : rd_addr;
-	assign wr_addr_t = (wr_en == 1'b1 && full_t == 1'b0) ? ($unsigned(wr_addr) + 'h1) : wr_addr;
-	assign empty_t = (wr_addr == rd_addr) ? 1'b1 : 1'b0;
-	assign full_t = (wr_addr[FIFO_ADDR_WIDTH-2:0] == rd_addr[FIFO_ADDR_WIDTH-2:0]) &&
+    assign rd_addr_t = (rd_en == 1'b1 && empty_t == 1'b0) ? ($unsigned(rd_addr) + 'h1) : rd_addr;
+    assign wr_addr_t = (wr_en == 1'b1 && full_t == 1'b0) ? ($unsigned(wr_addr) + 'h1) : wr_addr;
+    assign empty_t = (wr_addr == rd_addr) ? 1'b1 : 1'b0;
+    assign full_t = (wr_addr[FIFO_ADDR_WIDTH-2:0] == rd_addr[FIFO_ADDR_WIDTH-2:0]) &&
                     (wr_addr[FIFO_ADDR_WIDTH-1] != rd_addr[FIFO_ADDR_WIDTH-1]) ? 1'b1 : 1'b0;
-	assign full = full_t;
+    assign full = full_t;
 
 endmodule
