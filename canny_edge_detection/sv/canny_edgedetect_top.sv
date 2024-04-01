@@ -1,4 +1,4 @@
-module edgedetect_top #(
+module canny_edgedetect_top #(
     parameter WIDTH = 720,
     parameter HEIGHT = 540,
     parameter FIFO_BUFFER_SIZE = 8
