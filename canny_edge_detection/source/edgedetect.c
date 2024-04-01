@@ -29,6 +29,8 @@ int read_bmp(FILE *f, unsigned char* header, int *height, int *width, struct pix
    int w = (int)(header[19] << 8) | header[18];
    int h = (int)(header[23] << 8) | header[22];
 
+   printf("width: %d, height: %d\n", w, h);
+
    // Read in the image
    int size = w * h;
    if (fread(data, sizeof(struct pixel), size, f) != size){
