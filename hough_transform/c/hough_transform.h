@@ -7,6 +7,7 @@
 #define Theta_range 180
 #define PI 3.1415926
 #define HOUGH_TRANSFORM_THRESHOLD 300
+#define LINE_LENGTH 3000
 
 int is_edge(struct pixel point);
 

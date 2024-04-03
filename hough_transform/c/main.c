@@ -1,7 +1,7 @@
 #include "hough_transform.h"
 #include "common.h"
 
-#define ORIGIN_IMAGE_PATH "/home/uko9054/ce392/CE392-Assignments/hough_transform/c/1.bmp"
+#define ORIGIN_IMAGE_PATH "/home/uko9054/ce392/CE392-Assignments/hough_transform/c/img_out.bmp"
 #define EDGE_IMAGE_PATH "/home/uko9054/ce392/CE392-Assignments/hough_transform/c/edges.bmp"
 
 int main(){
@@ -22,7 +22,9 @@ int main(){
   read_bmp(base_file, header_base, &height, &width, &base_frame);
   read_bmp(edge_file, header_edge, &height, &width, &edge_frame);
 
-  hough_transform(height, width, edge_frame, base_frame);
+  // draw_a_line(height, width, 100, 0, 1, edge_frame, base_frame);
+
+  // hough_transform(height, width, edge_frame, base_frame);
 
   write_bmp("img_out.bmp", header_base, base_frame);
 

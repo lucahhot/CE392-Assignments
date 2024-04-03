@@ -17,7 +17,7 @@ int read_bmp(FILE *f, unsigned char* header, int *height, int *width, struct pix
 
 
    *data = (struct pixel *)malloc(w*h*sizeof(struct pixel));
-   // printf("%d, %d\n", w, h);
+   printf("%d, %d\n", w, h);
 
    // Read in the image
    int size = w * h;
