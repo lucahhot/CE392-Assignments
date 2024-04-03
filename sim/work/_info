@@ -1,0 +1,181 @@
+m255
+K4
+z2
+!s11f vlog 2020.1 2020.01, Jan 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/home/mwp8699/CE392-Assignments/sim
+T_opt
+!s110 1712158310
+VUAMe1Ej2Ub:AH4QEL[b192
+Z1 04 6 4 work nms_tb fast 0
+=1-a4bb6d3fef1e-660d7666-142a7-6d51
+Z2 o-quiet -auto_acc_if_foreign -work work -L work +acc
+Z3 tCvgOpt 0
+n@_opt
+Z4 OL;O;2020.1;71
+R0
+T_opt1
+!s110 1712095423
+V6Ah_HcLFF^=^o7_M4b8PD0
+R1
+=1-a4bb6d3fef1e-660c80bf-bd62e-7b65f
+R2
+R3
+n@_opt1
+R4
+R0
+vfifo
+Z5 DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
+Z6 !s110 1712158948
+!i10b 1
+!s100 JJ9WTn?^46FJn6Sib6ECo1
+Z7 !s11b Dg1SIo80bB@j0V0VzS_@n1
+Ij:[k:a4XRZ6Im<1oU4m=41
+Z8 VDg1SIo80bB@j0V0VzS_@n1
+S1
+R0
+w1712008799
+8../sv/fifo.sv
+F../sv/fifo.sv
+!i122 49
+L0 2 77
+Z9 OL;L;2020.1;71
+r1
+!s85 0
+31
+Z10 !s108 1712158948.000000
+!s107 ../sv/fifo.sv|
+!s90 -reportprogress|300|-work|work|../sv/fifo.sv|
+!i113 0
+Z11 o-work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R3
+vnms
+R5
+R6
+!i10b 1
+!s100 Kl8Cfe;o4FbObZ9jUPNYE0
+R7
+I<eN`=BEngdaU^35Tj<2RZ0
+R8
+S1
+R0
+w1712095397
+8../sv/nms.sv
+F../sv/nms.sv
+!i122 50
+L0 1 190
+R9
+r1
+!s85 0
+31
+R10
+!s107 ../sv/nms.sv|
+!s90 -reportprogress|300|-work|work|../sv/nms.sv|
+!i113 0
+R11
+R3
+vnms_tb
+R5
+R6
+!i10b 1
+!s100 Yf81Zm`:M3S?]aJ7M7VNF2
+R7
+I]JlWFAYn093Ro8F_b>ng[0
+R8
+S1
+R0
+w1712158272
+Z12 8../sv/nms_tb.sv
+Z13 F../sv/nms_tb.sv
+!i122 52
+Z14 L0 4 164
+R9
+r1
+!s85 0
+31
+R10
+Z15 !s107 ../sv/nms_tb.sv|
+!s90 -reportprogress|300|-work|work|../sv/nms_tb.sv|
+!i113 0
+R11
+R3
+vnms_top
+R5
+R6
+!i10b 1
+!s100 24VRWPHGZ6<[;]Nk9zi?90
+R7
+I3?FzV=zQP7aRQ5n=6`9UP2
+R8
+S1
+R0
+w1712094199
+8../sv/nms_top.sv
+F../sv/nms_top.sv
+!i122 51
+L0 1 76
+R9
+r1
+!s85 0
+31
+R10
+!s107 ../sv/nms_top.sv|
+!s90 -reportprogress|300|-work|work|../sv/nms_top.sv|
+!i113 0
+R11
+R3
+vnon_maximum_suppressor
+R5
+!s110 1712094150
+!i10b 1
+!s100 oVm4R2Q]z:<K>AVzco`A22
+R7
+In2XEU;C414:4Z=Ikbd=7C0
+R8
+S1
+R0
+w1712094023
+8../sv/non_maximum_suppressor.sv
+F../sv/non_maximum_suppressor.sv
+!i122 14
+L0 1 153
+R9
+r1
+!s85 0
+31
+!s108 1712094150.000000
+!s107 ../sv/non_maximum_suppressor.sv|
+!s90 -work|work|../sv/non_maximum_suppressor.sv|
+!i113 0
+R11
+R3
+vnon_maximum_suppressor_tb
+R5
+!s110 1712094100
+!i10b 1
+!s100 a4P@2dHeCXed_K?Vh9?ce1
+R7
+IDG31g6EN0f6MI4kQGTnk90
+R8
+S1
+R0
+w1712009285
+R12
+R13
+!i122 12
+R14
+R9
+r1
+!s85 0
+31
+!s108 1712094100.000000
+R15
+!s90 -work|work|../sv/nms_tb.sv|
+!i113 0
+R11
+R3

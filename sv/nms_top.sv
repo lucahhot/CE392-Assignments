@@ -47,7 +47,7 @@ fifo #(
     .empty(image_empty)
 );
 
-nms non_maximum_suppressor(
+nms nms_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(image_rd_en),
