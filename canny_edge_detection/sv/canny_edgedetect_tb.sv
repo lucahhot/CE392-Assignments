@@ -5,7 +5,7 @@ module edgedetect_tb;
 
 localparam string IMG_IN_NAME  = "../images/copper_720_540.bmp";
 localparam string IMG_OUT_NAME = "../images/output.bmp";
-localparam string IMG_CMP_NAME = "../images/copper_sobel.bmp";
+localparam string IMG_CMP_NAME = "../images/stage1_gaussian.bmp";
 localparam CLOCK_PERIOD = 10;
 
 logic clock = 1'b1;
@@ -148,7 +148,7 @@ initial begin : img_write_process
 
             if (cmp_dout != {3{out_dout}}) begin
                 out_errors += 1;
-                // $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{out_dout}}, cmp_dout, i);
+                $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{out_dout}}, cmp_dout, i);
             end
             out_rd_en = 1'b1;
             i += BYTES_PER_PIXEL;

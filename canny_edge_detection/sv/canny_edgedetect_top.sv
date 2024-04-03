@@ -30,7 +30,17 @@ logic [7:0]     sobel_dout;
 logic           sobel_empty;
 logic           sobel_rd_en;
 
-// Output wires from sobel function to output FIFO
+// Output wires from sobel function to gaussian_blur FIFO
+logic           gaussian_wr_en;
+logic           gaussian_full;
+logic [7:0]     gaussian_din;
+
+// Input wires to gaussian_blur function
+logic [7:0]     gaussian_dout;
+logic           gaussian_empty;
+logic           gaussian_rd_en;
+
+// Output wires from gaussian function to output FIFO
 logic           img_out_wr_en;
 logic           img_out_full;
 logic [7:0]     img_out_din;
@@ -76,12 +86,44 @@ fifo #(
     .empty(sobel_empty)
 );
 
-sobel sobel_inst(
+sobel #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) sobel_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(sobel_rd_en),
     .in_empty(sobel_empty),
     .in_dout(sobel_dout),
+    .out_wr_en(img_out_wr_en),
+    .out_full(img_out_full),
+    .out_din(img_out_din)
+);
+
+fifo #(
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
+    .FIFO_DATA_WIDTH(8)
+) fifo_gaussian_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(gaussian_wr_en),
+    .din(gaussian_din),
+    .full(gaussian_full),
+    .rd_clk(clock),
+    .rd_en(gaussian_rd_en),
+    .dout(gaussian_dout),
+    .empty(gaussian_empty)
+);
+
+gaussian_blur #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) gaussian_inst(
+    .clock(clock),
+    .reset(reset),
+    .in_rd_en(gaussian_rd_en),
+    .in_empty(gaussian_empty),
+    .in_dout(gaussian_dout),
     .out_wr_en(img_out_wr_en),
     .out_full(img_out_full),
     .out_din(img_out_din)

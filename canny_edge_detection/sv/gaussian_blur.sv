@@ -6,19 +6,19 @@ module gaussian_blur #(
     input  logic        reset,
     output logic        in_rd_en,
     input  logic        in_empty,
-    input  logic [7:0] in_dout,
+    input  logic [7:0]  in_dout,
     output logic        out_wr_en,
     input  logic        out_full,
     output logic [7:0]  out_din
 );
 
 // The sum of the Gaussian matrix
-parameter integer DENOMINATOR = 159;
-parameter ingeger gaussian_filter[5][5] = {{2,4,5,4,2},
-                                           {4,9,912,9,4},
-                                           {5,12,15,12,5},
-                                           {4,9,912,9,4},
-                                           {2,4,5,4,2}};
+parameter DENOMINATOR = 159;
+parameter gaussian_filter[5][5] = '{'{2,4,5,4,2},
+                                            '{4,9,912,9,4},
+                                            '{5,12,15,12,5},
+                                            '{4,9,912,9,4},
+                                            '{2,4,5,4,2}};
 
 typedef enum logic [1:0] {S0, S1, S2} state_types;
 state_types state, next_state;
@@ -45,16 +45,15 @@ logic [23:0] numerator, numerator_c;
 logic [23:0] gaussian_blur;
 
 // Wires to hold temporary pixel values
-logic [7:0] pixel1, pixel2, pixel3, pixel4, pixel5,
-            pixel6, pixel7, pixel8, pixel9, pixel10,
-            pixel11, pixel12, pixel13, pixel14, pixel15,
-            pixel16, pixel17, pixel18, pixel19, pixel20,
-            pixel21, pixel22, pixel23, pixel24, pixel25;
+logic [24:0][7:0] pixel_values;
+
+// Pixel counter
+logic [4:0] pixel_counter;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         state <= S0;
-        shift_reg <= '{default: '{default; '0}};
+        shift_reg <= '{default: '{default: '0}};
         counter <= '0;
         col <= '0;
         row <= '0;
@@ -64,7 +63,7 @@ always_ff @(posedge clock or posedge reset) begin
         shift_reg <= shift_reg_c;
         col <= col_c;
         row <= row_c;
-        temp_value_c;
+        counter <= counter_c;
         numerator <= numerator_c;
     end
 end
@@ -75,6 +74,7 @@ always_comb begin
     col_c = col;
     row_c = row;
     shift_reg_c = shift_reg;
+    numerator_c = numerator;
     in_rd_en = 1'b0;
     out_wr_en = 1'b0;
     out_din = '0;
@@ -97,6 +97,7 @@ always_comb begin
     end
 
     case(state)
+
         // Prologue
         S0: begin
             // Waiting for shift register to fill up enough to start gaussian filter
@@ -107,42 +108,46 @@ always_comb begin
                 next_state = S1;
         end
 
-        // If we are on an edge pixel, the sobel value will be zero
+        // Gaussian blurring
+        S1: begin
+            // If we are on an edge pixel, the sobel value will be zero
             if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                 // Grabbing correct pixel values from the shift register
-                pixel1 = shift_reg[0];
-                pixel2 = shift_reg[1];
-                pixel3 = shift_reg[2];
-                pixel4 = shift_reg[3];
-                pixel5 = shift_reg[4];
-                pixel6 = shift_reg[WIDTH];
-                pixel7 = shift_reg[WIDTH+1];
-                pixel8 = shift_reg[WIDTH+2];
-                pixel9 = shift_reg[WIDTH+3];
-                pixel10 = shift_reg[WIDTH+4];
-                pixel11 = shift_reg[WIDTH*2];
-                pixel12 = shift_reg[WIDTH*2+1];
-                pixel13 = shift_reg[WIDTH*2+2];
-                pixel14 = shift_reg[WIDTH*2+3];
-                pixel15 = shift_reg[WIDTH*2+4];
-                pixel16 = shift_reg[WIDTH*3];
-                pixel17 = shift_reg[WIDTH*3+1];
-                pixel18 = shift_reg[WIDTH*3+2];
-                pixel19 = shift_reg[WIDTH*3+3];
-                pixel20 = shift_reg[WIDTH*3+4];
-                pixel21 = shift_reg[WIDTH*4];
-                pixel22 = shift_reg[WIDTH*4+1];
-                pixel23 = shift_reg[WIDTH*4+2];
-                pixel24 = shift_reg[WIDTH*4+3];
-                pixel25 = shift_reg[WIDTH*4+4];
-                // Calculate MAC for the numerator
-                for (int i = 0; i < 4; i++) begin
-                    for (int j = 0; j < 4; j++) begin
+                pixel_values[0] = shift_reg[0];
+                pixel_values[1] = shift_reg[1];
+                pixel_values[2] = shift_reg[2];
+                pixel_values[3] = shift_reg[3];
+                pixel_values[4] = shift_reg[4];
+                pixel_values[5] = shift_reg[WIDTH];
+                pixel_values[6] = shift_reg[WIDTH+1];
+                pixel_values[7] = shift_reg[WIDTH+2];
+                pixel_values[8] = shift_reg[WIDTH+3];
+                pixel_values[9] = shift_reg[WIDTH+4];
+                pixel_values[10] = shift_reg[WIDTH*2];
+                pixel_values[11] = shift_reg[WIDTH*2+1];
+                pixel_values[12] = shift_reg[WIDTH*2+2];
+                pixel_values[13] = shift_reg[WIDTH*2+3];
+                pixel_values[14] = shift_reg[WIDTH*2+4];
+                pixel_values[15] = shift_reg[WIDTH*3];
+                pixel_values[16] = shift_reg[WIDTH*3+1];
+                pixel_values[17] = shift_reg[WIDTH*3+2];
+                pixel_values[18] = shift_reg[WIDTH*3+3];
+                pixel_values[19] = shift_reg[WIDTH*3+4];
+                pixel_values[20] = shift_reg[WIDTH*4];
+                pixel_values[21] = shift_reg[WIDTH*4+1];
+                pixel_values[22] = shift_reg[WIDTH*4+2];
+                pixel_values[23] = shift_reg[WIDTH*4+3];
+                pixel_values[24] = shift_reg[WIDTH*4+4];
+
+                pixel_counter = 0;
+
+                // Calculate MAC for the numerator (might need to separate to speed up this cycle)
+                for (int i = -2; i <= 2; i++) begin
+                    for (int j = -2; j <= 2; j++) begin
+                        numerator_c = numerator_c + pixel_values[pixel_counter] * gaussian_filter[i+2][j+2];
+                        pixel_counter = pixel_counter + 1;
                     end
                 end
-                // Using the absolute value
-                cx_c = ($signed(cx_c) < 0) ? -cx_c : cx_c;
-                cy_c = ($signed(cy_c) < 0) ? -cy_c : cy_c;
             end else begin
                 numerator_c = '0;
             end
@@ -157,10 +162,32 @@ always_comb begin
 
         end
 
+        // Division and writing to FIFO
+        S2: begin
+            if (out_full == 1'b0) begin
+                gaussian_blur = numerator / DENOMINATOR;
+                // Accounting for saturation
+                gaussian_blur = ($signed(gaussian_blur) > 8'hff) ? 8'hff : gaussian_blur;
+                out_din = 8'(gaussian_blur);
+                out_wr_en = 1'b1;
+                next_state = S0;
+            end
+        end
+
+        default: begin
+            next_state = S0;
+            in_rd_en = 1'b0;
+            out_wr_en = 1'b0;
+            out_din = '0;
+            shift_reg_c = '{default: '{default: '0}};
+            counter_c = 'X;
+            col_c = 'X;
+            row_c = 'X;
+            numerator_c = 'X;
+        end
+
     endcase
 
 end
- 
-
 
 endmodule
