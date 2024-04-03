@@ -98,6 +98,7 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
          denominator = 0;
          for (j = -2; j <= 2; j++) {
             for (i = -2; i <= 2; i++) {
+               // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
                if ( (x+i) >= 0 && (x+i) < width && (y+j) >= 0 && (y+j) < height) {
 				   unsigned char d = in_data[(y+j)*width + (x+i)];
                    numerator_r += d * gaussian_filter[i+2][j+2];
@@ -287,7 +288,7 @@ int main(int argc, char *argv[]) {
 	write_grayscale_bmp("../images/stage1_gaussian.bmp", header, gb_data);
 
 	/// Sobel operator
-	sobel_filter(gs_data, height, width, sobel_data);
+	sobel_filter(gb_data, height, width, sobel_data);
 	write_grayscale_bmp("../images/stage2_sobel.bmp", header, sobel_data);
 
 	/// Non-maximum suppression
