@@ -1,6 +1,7 @@
 module div #(
     parameter DIVIDEND_WIDTH = 32,
-    parameter DIVISOR_WIDTH = 32
+    parameter DIVISOR_WIDTH = 32,
+    parameter DATA_SIZE = 32
 ) (
     input  logic                        clk,
     input  logic                        reset,
@@ -12,8 +13,6 @@ module div #(
     output logic                        valid_out,
     output logic                        overflow
 );
-
-    parameter DATA_SIZE = 24;
 
     // Define the state machine states
     typedef enum logic [2:0] {
@@ -201,7 +200,10 @@ module div #(
                 msb_a_c = 'X;
                 msb_b_c = 'X;
                 p_c = 'X;
+                dividend_temp_c = 'X;
+                divisor_temp_c = 'X;
             end
+
         endcase
     end
 

@@ -12,6 +12,8 @@ module gaussian_blur #(
     output logic [7:0]  out_din
 );
 
+parameter DATA_SIZE = 16;
+
 // The sum of the Gaussian matrix
 parameter logic [3:0] gaussian_filter[5][5] = '{'{2,4,5,4,2},
                                                 '{4,9,12,9,4},
@@ -19,13 +21,13 @@ parameter logic [3:0] gaussian_filter[5][5] = '{'{2,4,5,4,2},
                                                 '{4,9,12,9,4},
                                                 '{2,4,5,4,2}};
 
-typedef enum logic [1:0] {PROLOGUE,FILTER,DIVIDE,OUTPUT} state_types;
+typedef enum logic [1:0] {PROLOGUE,FILTER,OUTPUT} state_types;
 state_types state, next_state;
 parameter SHIFT_REG_LEN = 4*WIDTH+5;
 parameter PIXEL_COUNT = WIDTH*HEIGHT;
 
 // Shift register
-logic [0:SHIFT_REG_LEN-1] [7:0] shift_reg;
+logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue (to get the first pixel in the center of the 5x5 filter box)
@@ -38,10 +40,10 @@ logic [$clog2(WIDTH)-1:0] col, col_c;
 logic [$clog2(HEIGHT)-1:0] row, row_c;
 
 // Numerator and denominator values 
-logic [23:0] numerator, numerator_c, denominator, denominator_c;
+logic [DATA_SIZE-1:0] numerator, numerator_c, denominator, denominator_c;
 
 // Gaussian blur value
-logic [23:0] gaussian_blur;
+logic [DATA_SIZE-1:0] gaussian_blur;
 
 // Wires to hold temporary pixel values
 logic [24:0][7:0] pixel_values;
@@ -50,23 +52,24 @@ logic [24:0][7:0] pixel_values;
 logic [4:0] pixel_counter;
 
 // Divider signals
-logic start_div, div_overflow_out, div_valid_out;
-logic [23:0] dividend, divisor, div_quotient_out, div_remainder_out;
+// logic start_div, div_overflow_out, div_valid_out;
+// logic [DATA_SIZE-1:0] dividend, divisor, div_quotient_out, div_remainder_out;
 
-div #(
-    .DIVIDEND_WIDTH(24),
-    .DIVISOR_WIDTH(24)
-) divider_inst (
-    .clk(clock),
-    .reset(reset),
-    .valid_in(start_div),
-    .dividend(dividend),
-    .divisor(divisor),
-    .quotient(div_quotient_out),
-    .remainder(div_remainder_out),
-    .overflow(div_overflow_out),
-    .valid_out(div_valid_out)
-);
+// div #(
+//     .DIVIDEND_WIDTH(DATA_SIZE),
+//     .DIVISOR_WIDTH(DATA_SIZE),
+//     .DATA_SIZE(DATA_SIZE)
+// ) divider_inst (
+//     .clk(clock),
+//     .reset(reset),
+//     .valid_in(start_div),
+//     .dividend(dividend),
+//     .divisor(divisor),
+//     .quotient(div_quotient_out),
+//     .remainder(div_remainder_out),
+//     .overflow(div_overflow_out),
+//     .valid_out(div_valid_out)
+// );
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -100,14 +103,14 @@ always_comb begin
     out_wr_en = 1'b0;
     out_din = '0;
 
-    start_div = 1'b0;
-    dividend = 0;
-    divisor = 0;
+    // start_div = 1'b0;
+    // dividend = 0;
+    // divisor = 0;
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // gaussian_blur function can go through every single pixel
     // Only shift a new value in if state is not in S2 (writing gaussian blur value to FIFO)
-    if (state != OUTPUT && state != DIVIDE) begin
+    if (state != OUTPUT) begin
         if (in_empty == 1'b0) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
@@ -186,9 +189,9 @@ always_comb begin
             end else
                 col_c++;
 
-            start_div = 1'b1;
-            dividend = numerator_c;
-            divisor = denominator_c;
+            // start_div = 1'b1;
+            // dividend = numerator_c;
+            // divisor = denominator_c;
             next_state = OUTPUT;
             
         end
@@ -196,9 +199,10 @@ always_comb begin
         // Waiting for division and writing to FIFO
         OUTPUT: begin
             // Wait for division to complete
-            if (div_valid_out == 1'b1) begin
+            // if (div_valid_out == 1'b1) begin
                 if (out_full == 1'b0) begin
-                    gaussian_blur = div_quotient_out;
+                    // gaussian_blur = div_quotient_out;
+                    gaussian_blur = numerator / denominator;
                     // Accounting for saturation
                     gaussian_blur = (gaussian_blur > 8'hff) ? 8'hff : gaussian_blur;
                     out_din = 8'(gaussian_blur);
@@ -215,10 +219,10 @@ always_comb begin
                         shift_reg_c = '{default: '{default: '0}};
                     end
                 end
-            end else begin
-                // Cycle through this state
-                next_state = OUTPUT;
-            end
+            // end else begin
+            //     // Cycle through this state
+            //     next_state = OUTPUT;
+            // end
         end
 
         default: begin
@@ -232,7 +236,9 @@ always_comb begin
             row_c = 'X;
             numerator_c = 'X;
             denominator_c = 'X;
-            start_div = 1'b0;
+            // start_div = 1'b0;
+            // dividend = 'X;
+            // divisor = 'X;
         end
 
     endcase
