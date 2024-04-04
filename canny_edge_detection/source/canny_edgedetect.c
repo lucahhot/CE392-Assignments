@@ -91,6 +91,12 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
    };
    int x, y, i, j;
    unsigned int numerator_r, denominator;
+
+   FILE * test_inputs_file = fopen("test_inputs.txt", "w");
+   if (test_inputs_file == NULL) {
+      printf("Error opening file for writing.\n");
+      return;
+   }
   
    for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
@@ -102,13 +108,22 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
                if ( (x+i) >= 0 && (x+i) < width && (y+j) >= 0 && (y+j) < height) {
 				   unsigned char d = in_data[(y+j)*width + (x+i)];
                    numerator_r += d * gaussian_filter[i+2][j+2];
+                   if (y > 537 && x > 717) {
+                     fprintf(test_inputs_file, "row: %d (%d) col: %d (%d) %d * %d = %d\n",y,j,x,i,d,gaussian_filter[i+2][j+2],d*gaussian_filter[i+2][j+2]);
+                   }
                    denominator += gaussian_filter[i+2][j+2];
                }
             }
          }
 		 out_data[y*width + x] = numerator_r / denominator;
+       if (y > 537 && x > 717) {
+         fprintf(test_inputs_file,"Numerator sum = %d\n",numerator_r);
+         fprintf(test_inputs_file,"Gaussian blur value = %d\n",out_data[y*width + x]);
+       }
       }
    }
+
+   fclose(test_inputs_file);
 }
 
 void sobel(unsigned char in_data[3][3], unsigned char *out_data) 
