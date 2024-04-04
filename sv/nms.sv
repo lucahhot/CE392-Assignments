@@ -38,8 +38,8 @@ logic [$clog2(HEIGHT)-1:0] row, row_c;
 // consider storing them as unsigned
 // wire width of 9 to account for overflow addition
 logic unsigned [7:0] pixel5;
-logic unsigned [7:0] pixel1, pixel2, pixel3, pixel4, pixel6, pixel7, pixel8, pixel9;
-logic unsigned [7:0] north_south, east_west, north_west, north_east;
+logic unsigned [8:0] pixel1, pixel2, pixel3, pixel4, pixel6, pixel7, pixel8, pixel9;
+logic unsigned [8:0] north_south, east_west, north_west, north_east;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -86,12 +86,13 @@ always_comb begin
             shift_reg_c[SHIFT_REG_LEN-2:0] = shift_reg[SHIFT_REG_LEN-1:1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
+        out_wr_en = 1'b0;
     end
 
     case (state)
         S0: begin
             // Waiting for shift register to fill up enough to start sobel filter
-            if (counter < WIDTH + 2) begin
+            if (counter < WIDTH + 1) begin
                 if (in_empty == 1'b0)
                     counter_c++;
             end else 
@@ -103,25 +104,25 @@ always_comb begin
             // If we are on an edge pixel, the sobel value will be zero
             if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                 // Grabbing correct pixel values from the shift register
-                // pixel1 = {1'b0, shift_reg[0]}; // top left
-                // pixel2 = {1'b0, shift_reg[1]};
-                // pixel3 = {1'b0, shift_reg[2]};
-                // pixel4 = {1'b0, shift_reg[WIDTH]};
-                // pixel5 = shift_reg[WIDTH+1]; // pixel being operated on
-                // pixel6 = {1'b0, shift_reg[WIDTH+2]};
-                // pixel7 = {1'b0, shift_reg[WIDTH*2]};
-                // pixel8 = {1'b0, shift_reg[WIDTH*2+1]};
-                // pixel9 = {1'b0, shift_reg[WIDTH*2+2]}; // bottom right
+                pixel1 = {1'b0, shift_reg[0]}; // top left
+                pixel2 = {1'b0, shift_reg[1]};
+                pixel3 = {1'b0, shift_reg[2]};
+                pixel4 = {1'b0, shift_reg[WIDTH]};
+                pixel5 = shift_reg[WIDTH+1]; // pixel being operated on
+                pixel6 = {1'b0, shift_reg[WIDTH+2]};
+                pixel7 = {1'b0, shift_reg[WIDTH*2]};
+                pixel8 = {1'b0, shift_reg[WIDTH*2+1]};
+                pixel9 = {1'b0, shift_reg[WIDTH*2+2]}; // bottom right
 
-                pixel1 = shift_reg[0];
-                pixel2 = shift_reg[1];
-                pixel3 = shift_reg[2];
-                pixel4 = shift_reg[WIDTH];
-                pixel5 = shift_reg[WIDTH+1];
-                pixel6 = shift_reg[WIDTH+2];
-                pixel7 = shift_reg[WIDTH*2];
-                pixel8 = shift_reg[WIDTH*2+1];
-                pixel9 = shift_reg[WIDTH*2+2];
+                // pixel1 = shift_reg[0];
+                // pixel2 = shift_reg[1];
+                // pixel3 = shift_reg[2];
+                // pixel4 = shift_reg[WIDTH];
+                // pixel5 = shift_reg[WIDTH+1];
+                // pixel6 = shift_reg[WIDTH+2];
+                // pixel7 = shift_reg[WIDTH*2];
+                // pixel8 = shift_reg[WIDTH*2+1];
+                // pixel9 = shift_reg[WIDTH*2+2];
 
                 north_south = pixel2 + pixel8;
                 east_west = pixel4 + pixel6;
@@ -145,7 +146,7 @@ always_comb begin
                         out_c = pixel5;
                     end
                 end else begin
-                    if (pixel5 > pixel1 ** pixel5 >= pixel9) begin
+                    if (pixel5 > pixel1 && pixel5 >= pixel9) begin
                         out_c = pixel5;
                     end
                 end
