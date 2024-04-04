@@ -40,7 +40,9 @@ logic [$clog2(WIDTH)-1:0] col, col_c;
 logic [$clog2(HEIGHT)-1:0] row, row_c;
 
 // Numerator and denominator values 
-logic [DATA_SIZE-1:0] numerator, numerator_c, denominator, denominator_c;
+logic [DATA_SIZE-1:0] numerator, numerator_c;
+
+logic [7:0] denominator, denominator_c;
 
 // Gaussian blur value
 logic [DATA_SIZE-1:0] gaussian_blur;
