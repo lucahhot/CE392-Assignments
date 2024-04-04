@@ -5,7 +5,7 @@ module canny_edgedetect_tb;
 
 localparam string IMG_IN_NAME  = "../images/copper_720_540.bmp";
 localparam string IMG_OUT_NAME = "../images/output.bmp";
-localparam string IMG_CMP_NAME = "../images/stage1_gaussian.bmp";
+localparam string IMG_CMP_NAME = "../images/stage2_sobel.bmp";
 localparam CLOCK_PERIOD = 10;
 
 logic clock = 1'b1;

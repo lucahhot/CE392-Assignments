@@ -1,6 +1,6 @@
 module div #(
-    parameter DIVIDEND_WIDTH = 16,
-    parameter DIVISOR_WIDTH = 8
+    parameter DIVIDEND_WIDTH = 24,
+    parameter DIVISOR_WIDTH = 16
 ) (
     input  logic                        clk,
     input  logic                        reset,

@@ -55,12 +55,12 @@ logic [4:0] pixel_counter;
 
 // Divider signals
 // logic start_div, div_overflow_out, div_valid_out;
-// logic [DATA_SIZE-1:0] dividend, divisor, div_quotient_out, div_remainder_out;
+// logic [DATA_SIZE-1:0] dividend, div_quotient_out;
+// logic [15:0] divisor, div_remainder_out;
 
 // div #(
 //     .DIVIDEND_WIDTH(DATA_SIZE),
-//     .DIVISOR_WIDTH(DATA_SIZE),
-//     .DATA_SIZE(DATA_SIZE)
+//     .DIVISOR_WIDTH(16)
 // ) divider_inst (
 //     .clk(clock),
 //     .reset(reset),

@@ -12,14 +12,14 @@ module sobel #(
     output logic [7:0]  out_din
 );
 
-typedef enum logic [1:0] {S0, S1, S2} state_types;
+typedef enum logic [1:0] {PROLOGUE, FILTER, OUTPUT} state_types;
 state_types state, next_state;
 parameter SHIFT_REG_LEN = 2*WIDTH+3;
 parameter PIXEL_COUNT = WIDTH*HEIGHT;
 
 // Shift register
-logic [7:0] shift_reg [SHIFT_REG_LEN-1:0];
-logic [7:0] shift_reg_c [SHIFT_REG_LEN-1:0];
+logic [0:SHIFT_REG_LEN-1][7:0] shift_reg ;
+logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue
 logic [$clog2(WIDTH+2)-1:0] counter, counter_c;
@@ -41,7 +41,7 @@ logic [7:0] pixel1, pixel2, pixel3, pixel4, pixel5, pixel6, pixel7, pixel8, pixe
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
-        state <= S0;
+        state <= PROLOGUE;
         shift_reg <= '{default: '{default: '0}};
         counter <= '0;
         col <= '0;
@@ -73,32 +73,32 @@ always_comb begin
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // sobel function can go through every single pixel
-    // Only shift a new value in if state is not in S2 (writing sobel value to FIFO)
-    if (state != S2) begin
+    // Only shift a new value in if state is not in OUTPUT (writing sobel value to FIFO)
+    if (state != OUTPUT) begin
         if (in_empty == 1'b0) begin
             // Implementing a shift right register
-            shift_reg_c[SHIFT_REG_LEN-2:0] = shift_reg[SHIFT_REG_LEN-1:1];
+            shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        end else if ((row*HEIGHT) + col > (PIXEL_COUNT-1) - (WIDTH+2)) begin
-            shift_reg_c[SHIFT_REG_LEN-2:0] = shift_reg[SHIFT_REG_LEN-1:1];
+        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2)) begin
+            shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
     end
     
     case(state) 
         // Prologue
-        S0: begin
+        PROLOGUE: begin
             // Waiting for shift register to fill up enough to start sobel filter
             if (counter < WIDTH + 2) begin
                 if (in_empty == 1'b0)
                     counter_c++;
             end else 
-                next_state = S1;
+                next_state = FILTER;
         end
         // Sobel filtering
-        S1: begin
+        FILTER: begin
             // If we are on an edge pixel, the sobel value will be zero
             if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                 // Grabbing correct pixel values from the shift register
@@ -127,22 +127,22 @@ always_comb begin
             end else
                 col_c++;
 
-            next_state = S2;
+            next_state = OUTPUT;
 
         end
         // Writing to FIFO
-        S2: begin
+        OUTPUT: begin
             if (out_full == 1'b0) begin
                 sobel = $unsigned((cx + cy)) >> 1;
                 // Accounting for saturation
                 sobel = ($signed(sobel) > 8'hff) ? 8'hff : sobel;
                 out_din = 8'(sobel);
                 out_wr_en = 1'b1;
-                next_state = S1;
+                next_state = FILTER;
             end
         end
         default: begin
-            next_state = S0;
+            next_state = PROLOGUE;
             in_rd_en = 1'b0;
             out_wr_en = 1'b0;
             out_din = 8'h00;
