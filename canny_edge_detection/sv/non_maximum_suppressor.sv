@@ -98,60 +98,62 @@ always_comb begin
 
         // non_maximum suppressor
         SUPPRESSION: begin
-            // If we are on an edge pixel, the NMS value will be zero
-            if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
-                
-                // Grabbing pixel values from the shift register
-                pixel1 = shift_reg[0];
-                pixel2 = shift_reg[1];
-                pixel3 = shift_reg[2];
-                pixel4 = shift_reg[WIDTH];
-                pixel5 = shift_reg[WIDTH+1];
-                pixel6 = shift_reg[WIDTH+2];
-                pixel7 = shift_reg[WIDTH*2];
-                pixel8 = shift_reg[WIDTH*2+1];
-                pixel9 = shift_reg[WIDTH*2+2];
+            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2))) begin
+                // If we are on an edge pixel, the NMS value will be zero
+                if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
+                    
+                    // Grabbing pixel values from the shift register
+                    pixel1 = shift_reg[0];
+                    pixel2 = shift_reg[1];
+                    pixel3 = shift_reg[2];
+                    pixel4 = shift_reg[WIDTH];
+                    pixel5 = shift_reg[WIDTH+1];
+                    pixel6 = shift_reg[WIDTH+2];
+                    pixel7 = shift_reg[WIDTH*2];
+                    pixel8 = shift_reg[WIDTH*2+1];
+                    pixel9 = shift_reg[WIDTH*2+2];
 
-                // Calculate the gradient values
-                north_south = pixel2 + pixel8;
-                east_west = pixel4 + pixel6;
-                north_west = pixel1 + pixel9;
-                north_east = pixel3 + pixel7;
+                    // Calculate the gradient values
+                    north_south = pixel2 + pixel8;
+                    east_west = pixel4 + pixel6;
+                    north_west = pixel1 + pixel9;
+                    north_east = pixel3 + pixel7;
 
-                out_c = '0;
+                    out_c = '0;
 
-                // if statements for non_maximum_suppressor
-                // consider if having multiple states instead of nested loops will impact performance
-                if (north_south >= east_west && north_south >= north_west && north_south >= north_east) begin
-                    if (pixel5 > pixel4 && pixel5 >= pixel6) begin
-                        out_c = pixel5;
+                    // if statements for non_maximum_suppressor
+                    // consider if having multiple states instead of nested loops will impact performance
+                    if (north_south >= east_west && north_south >= north_west && north_south >= north_east) begin
+                        if (pixel5 > pixel4 && pixel5 >= pixel6) begin
+                            out_c = pixel5;
+                        end
+                    end else if (east_west >= north_west && east_west >= north_east) begin
+                        if (pixel5 > pixel2 && pixel5 >= pixel8) begin
+                            out_c = pixel5;
+                        end
+                    end else if (north_west >= north_east) begin
+                        if (pixel5 > pixel3 && pixel5 >= pixel7) begin
+                            out_c = pixel5;
+                        end
+                    end else begin
+                        if (pixel5 > pixel1 && pixel5 >= pixel9) begin
+                            out_c = pixel5;
+                        end
                     end
-                end else if (east_west >= north_west && east_west >= north_east) begin
-                    if (pixel5 > pixel2 && pixel5 >= pixel8) begin
-                        out_c = pixel5;
-                    end
-                end else if (north_west >= north_east) begin
-                    if (pixel5 > pixel3 && pixel5 >= pixel7) begin
-                        out_c = pixel5;
-                    end
+
+
                 end else begin
-                    if (pixel5 > pixel1 && pixel5 >= pixel9) begin
-                        out_c = pixel5;
-                    end
+                    out_c = '0;
                 end
+                // Increment col and row trackers
+                if (col == WIDTH - 1) begin
+                    col_c = 0;
+                    row_c++;
+                end else
+                    col_c++;
 
-
-            end else begin
-                out_c = '0;
+                next_state = OUTPUT;
             end
-            // Increment col and row trackers
-            if (col == WIDTH - 1) begin
-                col_c = 0;
-                row_c++;
-            end else
-                col_c++;
-
-            next_state = OUTPUT;
         end
 
         OUTPUT: begin

@@ -34,7 +34,7 @@ logic [$clog2(HEIGHT)-1:0] row, row_c;
 logic [15:0] sobel;
 
 // Horizontal and vertical gradient values
-logic [15:0] cx, cx_c, cy, cy_c;
+logic [15:0] cx, cx_c, cy, cy_c, cx_temp, cy_temp;
 
 // Wires to hold temporary pixel values
 logic [8:0][7:0] pixel_values;
@@ -99,41 +99,47 @@ always_comb begin
         end
         // Sobel filtering
         FILTER: begin
-            // If we are on an edge pixel, the sobel value will be zero
-            if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
-                // Grabbing correct pixel values from the shift register
-                pixel_values[0] = shift_reg[0];
-                pixel_values[1] = shift_reg[1];
-                pixel_values[2] = shift_reg[2];
-                pixel_values[3] = shift_reg[WIDTH];
-                pixel_values[4] = shift_reg[WIDTH+1];
-                pixel_values[5] = shift_reg[WIDTH+2];
-                pixel_values[6] = shift_reg[WIDTH*2];
-                pixel_values[7] = shift_reg[WIDTH*2+1];
-                pixel_values[8] = shift_reg[WIDTH*2+2];
-                cx_c = $signed(pixel_values[2] + 2*pixel_values[5] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[3] + pixel_values[6]);
-                cy_c = $signed(pixel_values[6] + 2*pixel_values[7] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[1] + pixel_values[2]);
-                // Using the absolute value
-                cx_c = ($signed(cx_c) < 0) ? -cx_c : cx_c;
-                cy_c = ($signed(cy_c) < 0) ? -cy_c : cy_c;
-            end else begin
-                cx_c = '0;
-                cy_c = '0;
-            end
-            // Increment col and row trackers
-            if (col == WIDTH - 1) begin
-                col_c = 0;
-                row_c++;
-            end else
-                col_c++;
+            // Only calculate sobel value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in ie. 
+            // if the previous stage is still running (gaussian blur), then don't do any sobel calculations)
+            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2))) begin
+                // If we are on an edge pixel, the sobel value will be zero
+                if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
+                    // Grabbing correct pixel values from the shift register
+                    pixel_values[0] = shift_reg[0];
+                    pixel_values[1] = shift_reg[1];
+                    pixel_values[2] = shift_reg[2];
+                    pixel_values[3] = shift_reg[WIDTH];
+                    pixel_values[4] = shift_reg[WIDTH+1];
+                    pixel_values[5] = shift_reg[WIDTH+2];
+                    pixel_values[6] = shift_reg[WIDTH*2];
+                    pixel_values[7] = shift_reg[WIDTH*2+1];
+                    pixel_values[8] = shift_reg[WIDTH*2+2];
+                    cx_c = $signed(pixel_values[2] + 2*pixel_values[5] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[3] + pixel_values[6]);
+                    cy_c = $signed(pixel_values[6] + 2*pixel_values[7] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[1] + pixel_values[2]);
+                    // Using the absolute value
+                    // cx_c = ($signed(cx_c) < 0) ? -cx_c : cx_c;
+                    // cy_c = ($signed(cy_c) < 0) ? -cy_c : cy_c;
+                end else begin
+                    cx_c = '0;
+                    cy_c = '0;
+                end
+                // Increment col and row trackers
+                if (col == WIDTH - 1) begin
+                    col_c = 0;
+                    row_c++;
+                end else
+                    col_c++;
 
-            next_state = OUTPUT;
+                next_state = OUTPUT;
+            end
 
         end
         // Writing to FIFO
         OUTPUT: begin
             if (out_full == 1'b0) begin
-                sobel = $unsigned((cx + cy)) >> 1;
+                cx_temp = ($signed(cx) < 0) ? -cx : cx;
+                cy_temp = ($signed(cy) < 0) ? -cy : cy;
+                sobel = $unsigned((cx_temp + cy_temp)) >> 1;
                 // Accounting for saturation
                 sobel = ($signed(sobel) > 8'hff) ? 8'hff : sobel;
                 out_din = 8'(sobel);

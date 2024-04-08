@@ -1,3 +1,5 @@
+// Adapted for UNSIGNED division for the Canny Edge Detection project (gaussian_blur module)
+
 module div #(
     parameter DIVIDEND_WIDTH = 24,
     parameter DIVISOR_WIDTH = 16
@@ -20,20 +22,17 @@ module div #(
     state_t state, next_state;
 
     // Define internal signals
-    logic signed [DIVIDEND_WIDTH-1:0] a, a_c;
-    logic signed [DIVISOR_WIDTH-1:0] b, b_c;
-    logic signed [DIVIDEND_WIDTH-1:0] q, q_c;
-    logic signed [DIVIDEND_WIDTH-1:0] p;
-    logic internal_sign;
+    logic [DIVIDEND_WIDTH-1:0] a, a_c;
+    logic [DIVISOR_WIDTH-1:0] b, b_c;
+    logic [DIVIDEND_WIDTH-1:0] q, q_c;
+    logic [DIVIDEND_WIDTH-1:0] p;
 
-    logic signed [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
-    logic signed [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
+    logic [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
+    logic [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
 
     // Wires for msb_a and msb_b
     logic [$clog2(DIVIDEND_WIDTH)-1:0] msb_a;
     logic [$clog2(DIVIDEND_WIDTH)-1:0] msb_b;
-
-    logic signed [DIVIDEND_WIDTH-1:0] remainder_condition;
 
     // State machine and calculation logic
     always_ff @(posedge clk or posedge reset) begin
@@ -98,8 +97,8 @@ module div #(
                 // Only assign stuff is valid_in is high
                 if (valid_in == 1'b1) begin
                     overflow = 1'b0;
-                    a_c = (dividend[DIVIDEND_WIDTH-1] == 1'b0) ? dividend : -dividend;
-                    b_c = (divisor[DIVISOR_WIDTH-1] == 1'b0) ? divisor : -divisor;
+                    a_c = dividend;
+                    b_c = divisor;
                     q_c = '0;
                     
                     // Set temp dividend and divisor registers
@@ -146,10 +145,8 @@ module div #(
             end
 
             EPILOGUE: begin
-                internal_sign = dividend_temp[DIVIDEND_WIDTH-1] ^ divisor_temp[DIVISOR_WIDTH-1];
-                quotient = (internal_sign == 1'b0) ? q : -q;
-                remainder_condition = dividend_temp[DIVIDEND_WIDTH-1];
-                remainder = (remainder_condition == 1'b0) ? a : -a;
+                quotient = q;
+                remainder = a;
                 valid_out = 1'b1;
                 next_state = INIT;
             end
