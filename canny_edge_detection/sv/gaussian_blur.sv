@@ -210,7 +210,7 @@ always_comb begin
                     out_din = 8'(gaussian_blur);
                     out_wr_en = 1'b1;
                     next_state = FILTER;
-                    // If we have reached the last pixel of the entire image, go back to S0 and reset everything
+                    // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
                     if (row == HEIGHT && col == WIDTH) begin
                         next_state = PROLOGUE;
                         row_c = 0;
