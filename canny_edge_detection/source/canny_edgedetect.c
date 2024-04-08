@@ -254,14 +254,14 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 			// neighbouring pixel is strong, keep it. Otherwise zero it.
 			if (in_data[y*width + x] > high_threshold || 
 				 (in_data[y*width + x] > low_threshold &&
-				  (in_data[(y-1)*width + x - 1] > high_threshold ||
-				  in_data[(y-1)*width + x] > high_threshold ||
-				  in_data[(y-1)*width + x + 1] > high_threshold ||
-				  in_data[y*width + x - 1] > high_threshold ||
-				  in_data[y*width + x + 1] > high_threshold ||
-				  in_data[(y+1)*width + x - 1] > high_threshold ||
-				  in_data[(y+1)*width + x] > high_threshold ||
-				  in_data[(y+1)*width + x + 1] > high_threshold))
+				  (in_data[(y-1)*width + x - 1] > high_threshold || // top-left
+				  in_data[(y-1)*width + x] > high_threshold || // top
+				  in_data[(y-1)*width + x + 1] > high_threshold || // top right
+				  in_data[y*width + x - 1] > high_threshold || // left
+				  in_data[y*width + x + 1] > high_threshold || // right
+				  in_data[(y+1)*width + x - 1] > high_threshold || // bottom left
+				  in_data[(y+1)*width + x] > high_threshold || // bottom
+				  in_data[(y+1)*width + x + 1] > high_threshold)) // bottom right
 			){
 				out_data[y*width + x] = in_data[y*width + x];
 			} else {

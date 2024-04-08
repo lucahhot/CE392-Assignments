@@ -37,7 +37,7 @@ logic [15:0] sobel;
 logic [15:0] cx, cx_c, cy, cy_c, cx_temp, cy_temp;
 
 // Wires to hold temporary pixel values
-logic [8:0][7:0] pixel_values;
+logic [7:0] pixel1,pixel2,pixel3,pixel4,pixel5,pixel6,pixel7,pixel8,pixel9;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -105,17 +105,17 @@ always_comb begin
                 // If we are on an edge pixel, the sobel value will be zero
                 if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                     // Grabbing correct pixel values from the shift register
-                    pixel_values[0] = shift_reg[0];
-                    pixel_values[1] = shift_reg[1];
-                    pixel_values[2] = shift_reg[2];
-                    pixel_values[3] = shift_reg[WIDTH];
-                    pixel_values[4] = shift_reg[WIDTH+1];
-                    pixel_values[5] = shift_reg[WIDTH+2];
-                    pixel_values[6] = shift_reg[WIDTH*2];
-                    pixel_values[7] = shift_reg[WIDTH*2+1];
-                    pixel_values[8] = shift_reg[WIDTH*2+2];
-                    cx_c = $signed(pixel_values[2] + 2*pixel_values[5] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[3] + pixel_values[6]);
-                    cy_c = $signed(pixel_values[6] + 2*pixel_values[7] + pixel_values[8]) - $signed(pixel_values[0] + 2*pixel_values[1] + pixel_values[2]);
+                    pixel1 = shift_reg[0];
+                    pixel2 = shift_reg[1];
+                    pixel3 = shift_reg[2];
+                    pixel4 = shift_reg[WIDTH];
+                    pixel5 = shift_reg[WIDTH+1];
+                    pixel6 = shift_reg[WIDTH+2];
+                    pixel7 = shift_reg[WIDTH*2];
+                    pixel8 = shift_reg[WIDTH*2+1];
+                    pixel9 = shift_reg[WIDTH*2+2];
+                    cx_c = $signed(pixel3 + 2*pixel6 + pixel9) - $signed(pixel1 + 2*pixel4 + pixel7);
+                    cy_c = $signed(pixel7 + 2*pixel8 + pixel9) - $signed(pixel1 + 2*pixel2 + pixel3);
                     // Using the absolute value
                     // cx_c = ($signed(cx_c) < 0) ? -cx_c : cx_c;
                     // cy_c = ($signed(cy_c) < 0) ? -cy_c : cy_c;

@@ -21,6 +21,9 @@ add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/sobel_inst -
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/nms_inst
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/nms_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/nms_inst/*
 
+add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/hysteresis_inst
+add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/hysteresis_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/hysteresis_inst/*
+
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_image_inst
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_image_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/fifo_image_inst/*
 
@@ -32,6 +35,9 @@ add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_sobel_i
 
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_nms_inst
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_nms_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/fifo_nms_inst/*
+
+add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_hysteresis_inst
+add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_hysteresis_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/fifo_hysteresis_inst/*
 
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_img_out_inst
 add wave -noupdate -group canny_edgedetect_tb/canny_edgedetect_inst/fifo_img_out_inst -radix hexadecimal /canny_edgedetect_tb/canny_edgedetect_inst/fifo_img_out_inst/*

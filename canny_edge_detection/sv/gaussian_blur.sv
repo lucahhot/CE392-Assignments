@@ -238,7 +238,7 @@ always_comb begin
                         counter_c = 0;
                         numerator_c = 0;
                         denominator_c = 0;
-                        shift_reg_c = '{default: '{default: '0}};
+                        // shift_reg_c = '{default: '{default: '0}};
                     end
                 end
             // end else begin

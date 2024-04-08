@@ -50,10 +50,22 @@ logic [7:0]     nms_dout;
 logic           nms_empty;
 logic           nms_rd_en;
 
-// Output wires from NMS function to output FIFO
+// Output wires from NMS function to hysteresis FIFO
+logic           hysteresis_wr_en;
+logic           hysteresis_full;
+logic [7:0]     hysteresis_din;
+
+// Input wires to hysteresis function
+logic [7:0]     hysteresis_dout;
+logic           hysteresis_empty;
+logic           hysteresis_rd_en;
+
+// Output wires from hysteresis function to output FIFO
 logic           img_out_wr_en;
 logic           img_out_full;
 logic [7:0]     img_out_din;
+
+
 
 fifo #(
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
@@ -163,6 +175,35 @@ non_maximum_suppressor #(
     .in_rd_en(nms_rd_en),
     .in_empty(nms_empty),
     .in_dout(nms_dout),
+    .out_wr_en(hysteresis_wr_en),
+    .out_full(hysteresis_full),
+    .out_din(hysteresis_din)
+);
+
+fifo #(
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
+    .FIFO_DATA_WIDTH(8)
+) fifo_hysteresis_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(hysteresis_wr_en),
+    .din(hysteresis_din),
+    .full(hysteresis_full),
+    .rd_clk(clock),
+    .rd_en(hysteresis_rd_en),
+    .dout(hysteresis_dout),
+    .empty(hysteresis_empty)
+);
+
+hysteresis #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) hysteresis_inst(
+    .clock(clock),
+    .reset(reset),
+    .in_rd_en(hysteresis_rd_en),
+    .in_empty(hysteresis_empty),
+    .in_dout(hysteresis_dout),
     .out_wr_en(img_out_wr_en),
     .out_full(img_out_full),
     .out_din(img_out_din)
