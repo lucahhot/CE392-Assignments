@@ -47,7 +47,10 @@ fifo #(
     .empty(image_empty)
 );
 
-nms nms_inst(
+nms #(
+    .WIDTH(720),
+    .HEIGHT(540)
+) nms_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(image_rd_en),
