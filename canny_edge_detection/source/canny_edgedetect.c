@@ -8,7 +8,7 @@
 #define low_threshold 12
 #define Theta_range 180
 #define PI 3.1415926
-#define HOUGH_TRANSFORM_THRESHOLD 200
+#define HOUGH_TRANSFORM_THRESHOLD 150
 #define LINE_LENGTH 3000
 
 
@@ -285,7 +285,7 @@ void draw_a_line(int height, int width, int rho, double sin_theta, double cos_th
       int y1 = (int)(y0 + k *(cos_theta));
 
       // int index = y1*width + x1;
-      if(x1>=0 && x1<width && y1>=0 && y1<height) {
+      if(x1>=0 && x1<width && y1>=0 && y1<height && edge[y1*width + x1] > 0) {
          // printf("%d, %d, %d\n", x1, y1, y1*width + x1);
          origin_image[y1*width + x1] = (struct pixel){0, 255, 0};
       }
@@ -373,12 +373,12 @@ void write_bmp(const char *filename, unsigned char* header, struct pixel* data)
 }
 
 int main(int argc, char *argv[]) {
-	struct pixel *rgb_data = (struct pixel *)malloc(720*540*sizeof(struct pixel));
-	unsigned char *gs_data = (unsigned char *)malloc(720*540*sizeof(unsigned char));
-	unsigned char *gb_data = (unsigned char *)malloc(720*540*sizeof(unsigned char));
-	unsigned char *sobel_data = (unsigned char *)malloc(720*540*sizeof(unsigned char));
-	unsigned char *nms_data = (unsigned char *)malloc(720*540*sizeof(unsigned char));
-	unsigned char *h_data = (unsigned char *)malloc(720*540*sizeof(unsigned char));
+	struct pixel *rgb_data = (struct pixel *)malloc(720*720*sizeof(struct pixel));
+	unsigned char *gs_data = (unsigned char *)malloc(720*720*sizeof(unsigned char));
+	unsigned char *gb_data = (unsigned char *)malloc(720*720*sizeof(unsigned char));
+	unsigned char *sobel_data = (unsigned char *)malloc(720*720*sizeof(unsigned char));
+	unsigned char *nms_data = (unsigned char *)malloc(720*720*sizeof(unsigned char));
+	unsigned char *h_data = (unsigned char *)malloc(720*720*sizeof(unsigned char));
 	unsigned char header[64];
 	int height, width;
 
