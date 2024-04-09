@@ -288,6 +288,19 @@ void draw_a_line(int height, int width, int rho, double sin_theta, double cos_th
       if(x1>=0 && x1<width && y1>=0 && y1<height && edge[y1*width + x1] > 0) {
          // printf("%d, %d, %d\n", x1, y1, y1*width + x1);
          origin_image[y1*width + x1] = (struct pixel){0, 255, 0};
+         if(x1+1<width)origin_image[y1*width + x1 + 1] = (struct pixel){0, 255, 0};
+         if(x1+2<width)origin_image[y1*width + x1 + 2] = (struct pixel){0, 255, 0};
+         if(x1-2>=0)origin_image[y1*width + x1 - 2] = (struct pixel){0, 255, 0};
+         if(x1-1>=0)origin_image[y1*width + x1 - 1] = (struct pixel){0, 255, 0};
+         if(y1-1>=0)origin_image[(y1-1)*width + x1] = (struct pixel){0, 255, 0};
+         if(y1-2>=0)origin_image[(y1-2)*width + x1] = (struct pixel){0, 255, 0};
+         if(y1+1<height)origin_image[(y1+1)*width + x1] = (struct pixel){0, 255, 0};
+         if(y1+2<height)origin_image[(y1+2)*width + x1] = (struct pixel){0, 255, 0};
+         if(y1+2<height && x1+2<width)origin_image[(y1+2)*width + x1+2] = (struct pixel){0, 255, 0};
+         if(y1+1<height && x1+1<width)origin_image[(y1+1)*width + x1+1] = (struct pixel){0, 255, 0};
+         if(y1+1<height && x1+2<width)origin_image[(y1+1)*width + x1+2] = (struct pixel){0, 255, 0};
+         if(y1+2<height && x1+1<width)origin_image[(y1+2)*width + x1+1] = (struct pixel){0, 255, 0};
+
       }
       // if(x1>=0 && x1<width - 1 && y1>=0 && y1<height) {origin_image[y1*width + x1 +1 ] = (struct pixel){0, 255, 0};}
    }
