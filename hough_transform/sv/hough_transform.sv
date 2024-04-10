@@ -12,6 +12,8 @@ module hough_transform #(
     output  logic [7:0]     out_din
 );
 
+localparam IMG_BITS = $clog2(WIDTH);
+localparam THETA_BITS = $clog2(THETAS);
 
 // May need to be changed to logic signed later to be synthesizable
 localparam X_START = -WIDTH >>> 1;
