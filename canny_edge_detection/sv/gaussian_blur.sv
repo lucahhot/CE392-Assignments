@@ -14,6 +14,9 @@ module gaussian_blur #(
 
 parameter DATA_SIZE = 16;
 
+// To unroll the MAC operation in the FILTER stage
+parameter UNROLL = 5;
+
 // The sum of the Gaussian matrix
 parameter logic [3:0] gaussian_filter[5][5] = '{'{2,4,5,4,2},
                                                 '{4,9,12,9,4},
@@ -39,10 +42,13 @@ logic [$clog2(WIDTH)-1:0] col, col_c;
 // Row counter to know when we need to enter epilogue and push more zeros
 logic [$clog2(HEIGHT)-1:0] row, row_c;
 
-// Numerator and denominator values 
-logic [DATA_SIZE-1:0] numerator, numerator_c;
+// Numerator and denominator values (adapted for unroll function)
+logic [0:UNROLL-1][DATA_SIZE-1:0] numerator, numerator_c;
+logic [0:UNROLL-1][7:0] denominator, denominator_c;
 
-logic [7:0] denominator, denominator_c;
+// Summed numerator and denominator values
+logic [DATA_SIZE-1:0] numerator_sum;
+logic [7:0] denominator_sum;
 
 // Gaussian blur value
 logic [DATA_SIZE-1:0] gaussian_blur;
@@ -53,14 +59,14 @@ logic [24:0][7:0] pixel_values;
 // Pixel counter
 logic [4:0] pixel_counter;
 
-// Divider signals
+// // Divider signals
 // logic start_div, div_overflow_out, div_valid_out;
 // logic [DATA_SIZE-1:0] dividend, div_quotient_out;
-// logic [15:0] divisor, div_remainder_out;
+// logic [7:0] divisor, div_remainder_out;
 
 // div #(
 //     .DIVIDEND_WIDTH(DATA_SIZE),
-//     .DIVISOR_WIDTH(16)
+//     .DIVISOR_WIDTH(8)
 // ) divider_inst (
 //     .clk(clock),
 //     .reset(reset),
@@ -80,8 +86,8 @@ always_ff @(posedge clock or posedge reset) begin
         counter <= '0;
         col <= '0;
         row <= '0;
-        numerator <= '0;
-        denominator <= '0;
+        numerator <= '{default: '{default: '0}};;
+        denominator <= '{default: '{default: '0}};;
     end else begin
         state <= next_state;
         shift_reg <= shift_reg_c;
@@ -177,8 +183,9 @@ always_comb begin
                 for (int j = -2; j <= 2; j++) begin
                     // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
                     if ((row+i) >= 0 && (row+i) < HEIGHT && (col+j) >= 0 && (col+j) < WIDTH) begin
-                        numerator_c = numerator_c + pixel_values[pixel_counter] * gaussian_filter[i+2][j+2];
-                        denominator_c = denominator_c + gaussian_filter[i+2][j+2];
+                        // Calculate the numerator and denominator values for the gaussian blur in an unrolled fashion (5 MACs can be parallelized)
+                        numerator_c[j+2] = numerator_c[j+2] + pixel_values[pixel_counter] * gaussian_filter[i+2][j+2];
+                        denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
                     end
                     pixel_counter = pixel_counter + 1;
                 end
@@ -192,8 +199,14 @@ always_comb begin
                 col_c++;
 
             // start_div = 1'b1;
-            // dividend = numerator_c;
-            // divisor = denominator_c;
+            // numerator_sum = 0;
+            // denominator_sum = 0;
+            // for (int i = 0; i < UNROLL; i++) begin
+            //     numerator_sum = numerator_sum + numerator_c[i];
+            //     denominator_sum = denominator_sum + denominator_c[i];
+            // end
+            // dividend = numerator_sum;
+            // divisor = denominator_sum;
             next_state = OUTPUT;
             
         end
@@ -203,14 +216,21 @@ always_comb begin
             // Wait for division to complete
             // if (div_valid_out == 1'b1) begin
                 if (out_full == 1'b0) begin
+                    numerator_sum = 0;
+                    denominator_sum = 0;
+                    // Sum up the numerator and denominator values
+                    for (int i = 0; i < UNROLL; i++) begin
+                        numerator_sum = numerator_sum + numerator[i];
+                        denominator_sum = denominator_sum + denominator[i];
+                    end
                     // gaussian_blur = div_quotient_out;
-                    gaussian_blur = numerator / denominator;
+                    gaussian_blur = numerator_sum / denominator_sum;
                     // Accounting for saturation
                     gaussian_blur = (gaussian_blur > 8'hff) ? 8'hff : gaussian_blur;
                     out_din = 8'(gaussian_blur);
                     out_wr_en = 1'b1;
                     next_state = FILTER;
-                    // If we have reached the last pixel of the entire image, go back to S0 and reset everything
+                    // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
                     if (row == HEIGHT && col == WIDTH) begin
                         next_state = PROLOGUE;
                         row_c = 0;
@@ -218,12 +238,13 @@ always_comb begin
                         counter_c = 0;
                         numerator_c = 0;
                         denominator_c = 0;
-                        shift_reg_c = '{default: '{default: '0}};
+                        // shift_reg_c = '{default: '{default: '0}};
                     end
                 end
             // end else begin
             //     // Cycle through this state
             //     next_state = OUTPUT;
+            //     out_wr_en = 1'b0;
             // end
         end
 
@@ -236,8 +257,8 @@ always_comb begin
             counter_c = 'X;
             col_c = 'X;
             row_c = 'X;
-            numerator_c = 'X;
-            denominator_c = 'X;
+            numerator_c = '{default: '{default: '0}};;
+            denominator_c = '{default: '{default: '0}};;
             // start_div = 1'b0;
             // dividend = 'X;
             // divisor = 'X;
