@@ -307,6 +307,8 @@ int main(int argc, char *argv[]) {
 	FILE * f = fopen(argv[1],"rb");
 	if ( f == NULL ) return 0;
 
+   print(argv[2],argv[3]);
+
 	// read the bitmap
 	read_bmp(f, header, &height, &width, rgb_data);
 
