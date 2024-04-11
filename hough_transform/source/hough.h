@@ -1,19 +1,33 @@
 #ifndef HOUGH_H
 #define HOUGH_H
 
-#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <math.h>
 
-#define HOUGH_TRANSFORM_THRESHOLD 50
+#define HOUGH_TRANSFORM_THRESHOLD 100
 #define LINE_LENGTH 500
 
-struct pixel {
-   unsigned char b;
-   unsigned char g;
-   unsigned char r;
+#define high_threshold 48
+#define low_threshold 12
+
+struct pixel24 {
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+};
+
+struct pixel32 {
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+    unsigned char a;
 };
 
 // Function declaration for houghline
-void hough_transform(unsigned char *hysteresis_data, struct pixel *image_in, int height, int width, struct pixel *image_out);
+void hough_transform24(unsigned char *hysteresis_data, int height, int width, struct pixel24 *image_out);
+void hough_transform32(unsigned char *hysteresis_data, int height, int width, struct pixel32 *image_out);
 
 #endif // HOUGH_H
