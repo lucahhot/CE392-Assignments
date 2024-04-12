@@ -1,49 +1,52 @@
 #include "helper_functions.h"
 
 // Read BMP file to extract offset value from the header
-int read_offset(FILE* f, unsigned char* header_until_offset, int *offset){
+int read_bmp_until_image_size(FILE* f, unsigned char* header_until_image_size, int *offset, int *bits_per_pixel, int *height, int *width){
 
    printf("Reading BMP file...\n");
-   // read the first 14 bytes into the header
-   if (fread(header_until_offset, sizeof(unsigned char), 14, f) != 14)
+   // read the first 38 bytes into the header
+   if (fread(header_until_image_size, sizeof(unsigned char), 38, f) != 38)
    {
       printf("Error reading BMP header for offset value\n");
       return -1;
    }   
 
-   // get offset value
-   *offset = (int)(header_until_offset[13] << 24) | header_until_offset[12] << 16 | header_until_offset[11] << 8 | header_until_offset[10];
-
-   return 0;
-}
-
-// Read BMP file to extract bits per pixel value from the header (to determine our struct pixel )
-int read_bits_per_pixel(FILE* f, unsigned char* header_until_bits_per_pixel, int *bits_per_pixel, int *height, int *width){
-
-   // read the next 16 bytes into the header
-   if (fread(header_until_bits_per_pixel, sizeof(unsigned char), 16, f) != 16)
-   {
-      printf("Error reading BMP header for bits per pixel value\n");
-      return -1;
-   }   
-
    // get height and width of image
-   *width = (int)(header_until_bits_per_pixel[7] << 24) | header_until_bits_per_pixel[6] << 16 | header_until_bits_per_pixel[5] << 8 | header_until_bits_per_pixel[4];
-   *height = (int)(header_until_bits_per_pixel[11] << 24) | header_until_bits_per_pixel[10] << 16 | header_until_bits_per_pixel[9] << 8 | header_until_bits_per_pixel[8];
+   int w = (int)(header_until_image_size[21] << 24) | header_until_image_size[20] << 16 | header_until_image_size[19] << 8 | header_until_image_size[18];
+   int h = (int)(header_until_image_size[25] << 24) | header_until_image_size[24] << 16 | header_until_image_size[23] << 8 | header_until_image_size[22];
 
+   // Making sure that the image dimensions are positive
+   if (w < 0)
+      *width = -w;
+   else
+      *width = w;
+    if (h < 0)
+      *height = -h;
+   else
+      *height = h;
+    
    // get bits per pixel value
-   *bits_per_pixel = (int)(header_until_bits_per_pixel[15] << 8) | header_until_bits_per_pixel[14];
+   *bits_per_pixel = (int)(header_until_image_size[29] << 8) | header_until_image_size[28];
+
+   // To get offset, we get the image size (only the pixel bytes), and subtract that from the file size which includes the header data
+   // Doing this because sometimes the "offset" value in the header is actually not the right size and this causes problems when re-writing the image in BMP format
+   int image_size = (int)(header_until_image_size[37] << 24) | header_until_image_size[36] << 16 | header_until_image_size[35] << 8 | header_until_image_size[34];
+   int file_size = (int)(header_until_image_size[5] << 24) | header_until_image_size[4] << 16 | header_until_image_size[3] << 8 | header_until_image_size[2];
+
+   *offset = file_size - image_size;
+
+   printf("Header length is %d bytes\n", *offset);
+
    return 0;
 }
-
 
 // Read the rest of the header and the data for pixel24
 int read_bmp_data24(FILE *f, unsigned char* header_remaining, int offset, int *height, int *width, struct pixel24* data) 
 {
-	// read offset - 14 - 16 bytes into header_remaining
-   if (fread(header_remaining, sizeof(unsigned char), offset-14-16, f) != offset-14-16)
+	// read offset - 38 bytes into header_remaining
+   if (fread(header_remaining, sizeof(unsigned char), offset-38, f) != offset-38)
    {
-		printf("Error reading the remaining BMP header\n");
+		printf("Error reading the remaining BMP header (24-bits)\n");
 		return -1;
    }   
 
@@ -53,7 +56,7 @@ int read_bmp_data24(FILE *f, unsigned char* header_remaining, int offset, int *h
    int size = *width * *height;
 
    if (fread(data, sizeof(struct pixel24), size, f) != size){
-		printf("Error reading BMP image data\n");
+		printf("Error reading BMP image data (24-bits)\n");
 		return -1;
    }   
 
@@ -64,10 +67,10 @@ int read_bmp_data24(FILE *f, unsigned char* header_remaining, int offset, int *h
 // Read the rest of the header and the data for pixel32
 int read_bmp_data32(FILE *f, unsigned char* header_remaining, int offset, int *height, int *width, struct pixel32* data) 
 {
-	// read offset - 14 - 16 bytes into header_remaining
-   if (fread(header_remaining, sizeof(unsigned char), offset-14-16, f) != offset-14-16)
+	// read offset - 38 bytes into header_remaining
+   if (fread(header_remaining, sizeof(unsigned char), offset-38, f) != offset-38)
    {
-		printf("Error reading the remaining BMP header\n");
+		printf("Error reading the remaining BMP header (32-bits)\n");
 		return -1;
    }   
 
@@ -77,21 +80,62 @@ int read_bmp_data32(FILE *f, unsigned char* header_remaining, int offset, int *h
    int size = *width * *height;
 
    if (fread(data, sizeof(struct pixel32), size, f) != size){
-		printf("Error reading BMP image data\n");
+		printf("Error reading BMP image data (32-bits)\n");
 		return -1;
-   }   
+   } 
 
    return 0;
 }
 
+// Reading entire mask image for pixel24
+int read_entire_bmp24(FILE *f, unsigned char* header, struct pixel24* data, int offset, int height, int width){
+   
+   // read the first offset bytes into the header
+   if (fread(header, sizeof(unsigned char), offset, f) != offset)
+   {
+      printf("Error reading BMP header for mask image\n");
+      return -1;
+   }   
+    
+   // Read in the image
+   int size = width * height;
+
+   if (fread(data, sizeof(struct pixel24), size, f) != size){
+      printf("Error reading mask image data\n");
+      return -1;
+   }   
+
+   return 0;
+
+}
+
+// Reading entire mask image for pixel32
+int read_entire_bmp32(FILE *f, unsigned char* header, struct pixel32* data, int offset, int height, int width){
+   
+   // read the first offset bytes into the header
+   if (fread(header, sizeof(unsigned char), offset, f) != offset)
+   {
+      printf("Error reading BMP header for mask image\n");
+      return -1;
+   }   
+    
+   // Read in the image
+   int size = width * height;
+
+   if (fread(data, sizeof(struct pixel32), size, f) != size){
+      printf("Error reading mask image data\n");
+      return -1;
+   }   
+
+   return 0;
+
+}
+
 // Write the grayscale image to disk for pixel24
-void write_bmp24(const char *filename, unsigned char* header, int offset, struct pixel24* data) 
+void write_bmp24(const char *filename, unsigned char* header, int offset, int height, int width, struct pixel24* data) 
 {
    FILE* file = fopen(filename, "wb");
 
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
    int size = width * height;
    
    // write the offset-byte header
@@ -102,13 +146,10 @@ void write_bmp24(const char *filename, unsigned char* header, int offset, struct
 }
 
 // Write the grayscale image to disk for pixel32
-void write_bmp32(const char *filename, unsigned char* header, int offset, struct pixel32* data) 
+void write_bmp32(const char *filename, unsigned char* header, int offset, int height, int width, struct pixel32* data) 
 {
    FILE* file = fopen(filename, "wb");
 
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
    int size = width * height;
    
    // write the offset-byte header
@@ -119,12 +160,9 @@ void write_bmp32(const char *filename, unsigned char* header, int offset, struct
 }
 
 // Write the grayscale image to disk for pixel24
-void write_grayscale_bmp24(const char *filename, unsigned char* header, int offset, unsigned char* data) {
+void write_grayscale_bmp24(const char *filename, unsigned char* header, int offset, int height, int width, unsigned char* data) {
    FILE* file = fopen(filename, "wb");
 
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
    int size = width * height;
 
    // printf("Writing an image of dimensions: width = %d, height = %d\n", width, height);
@@ -144,7 +182,6 @@ void write_grayscale_bmp24(const char *filename, unsigned char* header, int offs
       }
    }
 
-   size = width * height;
    fwrite(data_temp, sizeof(struct pixel24), size, file); 
    
    free(data_temp);
@@ -152,12 +189,9 @@ void write_grayscale_bmp24(const char *filename, unsigned char* header, int offs
 }
 
 // Write the grayscale image to disk for pixel32
-void write_grayscale_bmp32(const char *filename, unsigned char* header, int offset, unsigned char* data) {
+void write_grayscale_bmp32(const char *filename, unsigned char* header, int offset, int height, int width, unsigned char* data) {
    FILE* file = fopen(filename, "wb");
 
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
    int size = width * height;
 
    // printf("Writing an image of dimensions: width = %d, height = %d\n", width, height);
@@ -188,9 +222,8 @@ void write_grayscale_bmp32(const char *filename, unsigned char* header, int offs
 // Determine the grayscale 8 bit value by averaging the r, g, and b channel values for pixel24
 void convert_to_grayscale24(struct pixel24 * data, int height, int width, unsigned char *grayscale_data) 
 {
-   for (int i = 0; i < width*height; i++) {
-	   grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3;
-      //  printf("%3d: %02x %02x %02x  ->  %02x\n", i,data[i].r, data[i].g, data[i].b, grayscale_data[i]);
+   for (int i = 0; i < width*height; i++) { 
+      grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3;
    }
 }
 
@@ -198,14 +231,13 @@ void convert_to_grayscale24(struct pixel24 * data, int height, int width, unsign
 void convert_to_grayscale32(struct pixel32 * data, int height, int width, unsigned char *grayscale_data) 
 {
    for (int i = 0; i < width*height; i++) {
-	   grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3; // We ignore the data[i].a channel 
-      //  printf("%3d: %02x %02x %02x  ->  %02x\n", i,data[i].r, data[i].g, data[i].b, grayscale_data[i]);
+      grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3;
    }
 }
 
 void print_header_info(unsigned char* header){
    // Prints out header category and value to compare headers across BMP images
-   printf("\nHeader info (for 24-bit bitmaps): \n");
+   printf("\nHeader info: \n");
    printf("ID Field: %02x %02x\n", header[0], header[1]);
    int file_size =  (int)(header[5] << 24) | header[4] << 16 | header[3] << 8 | header[2];
    printf("File Size: %02x %02x %02x %02x (%d)\n", header[2], header[3], header[4], header[5], file_size);
@@ -215,10 +247,10 @@ void print_header_info(unsigned char* header){
    printf("Offset: %02x %02x %02x %02x (%d)\n", header[10], header[11], header[12], header[13], offset);
    int header_size = (int)(header[17] << 24) | header[16] << 16 | header[15] << 8 | header[14];
    printf("Header Size: %02x %02x %02x %02x (%d)\n", header[14], header[15], header[16], header[17], header_size);
-   int width = (int)(header[19] << 8) | header[18];
-   printf("Width: %02x %02x (%d)\n", header[18], header[19], width);
-   int height = (int)(header[23] << 8) | header[22];
-   printf("Height: %02x %02x (%d)\n", header[22], header[23], height);
+   int width = (int)(header[21] << 24) | header[20] << 16 | header[19] << 8 | header[18];
+   printf("Width: %02x %02x %02x %02x (%d)\n", header[18], header[19], header[20], header[21], width);
+   int height = (int)(header[25] << 24) | header[24] << 16 | header[23] << 8 | header[22];
+   printf("Height: %02x %02x %02x %02x (%d)\n", header[22], header[23], header[24], header[25], height);
    int planes = (int)(header[25] << 8) | header[24];
    printf("Planes: %02x %02x (%d)\n", header[24], header[25], planes);
    int bits_per_pixel = (int)(header[29] << 8) | header[28];
@@ -235,5 +267,15 @@ void print_header_info(unsigned char* header){
    printf("Total Colors: %02x %02x %02x %02x (%d)\n", header[46], header[47], header[48], header[49], total_colors);
    int important_colors = (int)(header[53] << 24) | header[52] << 16 | header[51] << 8 | header[50];
    printf("Important Colors: %02x %02x %02x %02x (%d)\n", header[50], header[51], header[52], header[53], important_colors);
-   printf("\n");
+   // If there are more header values, print them out
+   if (offset > 54){
+      printf("\nAdditional header values: \n");
+      printf("Red Mask: %02x %02x %02x %02x\n", header[54], header[55], header[56], header[57]);
+      printf("Green Mask: %02x %02x %02x %02x\n", header[58], header[59], header[60], header[61]);
+      printf("Blue Mask: %02x %02x %02x %02x\n", header[62], header[63], header[64], header[65]);
+      printf("Alpha Mask: %02x %02x %02x %02x\n", header[66], header[67], header[68], header[69]);
+      int color_space_type = (int)(header[73] << 24) | header[72] << 16 | header[71] << 8 | header[70];
+      printf("Color Space Type: %02x %02x %02x %02x (%d)\n", header[70], header[71], header[72], header[73], color_space_type);
+   }
+   
 }

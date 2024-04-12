@@ -178,29 +178,40 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 	}
 }
 
+void mask_canny(unsigned char *in_data, struct pixel24 * mask, int height, int width, unsigned char *out_data) {
+
+   for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+         if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+            out_data[y*width + x] = in_data[y*width + x];
+         } else {
+            out_data[y*width + x] = 0;
+         }
+      }
+   }
+}
+
 int main(int argc, char *argv[]) {
    
    // Check inputs (reject if not enough arguments)
-	if (argc < 2) {
-		printf("Usage: ./canny_hough <BMP filename>\n");
+	if (argc < 3) {
+		printf("Usage: ./canny_hough <BMP filename> <BMP mask filename>\n");
 		return 0;
 	}
 
 	FILE * f = fopen(argv[1],"rb");
 	if ( f == NULL ) return 0;
 
-   // Reading header to get offset value
-   unsigned char header_until_offset[14];
-   int offset;
+   FILE * f_mask = fopen(argv[2],"rb");
+   if ( f_mask == NULL ) return 0;
 
-   read_offset(f, header_until_offset, &offset);
-
-   // Reading header to get bits per pixel value
-   unsigned char header_until_bits_per_pixel[16];
+   // Reading header until image size
+   unsigned char header_until_image_size[38];
+   int offset; // Offset is the header size in bytes (called offset in the header)
    int bits_per_pixel;
    int height, width;
 
-   read_bits_per_pixel(f, header_until_bits_per_pixel, &bits_per_pixel, &height, &width);
+   read_bmp_until_image_size(f, header_until_image_size, &offset, &bits_per_pixel, &height, &width);
 
    // If bits_per_pixel != 24 && bits_per_pixel != 32, then return -1 and exit
    if (bits_per_pixel != 24 && bits_per_pixel != 32) {
@@ -212,32 +223,40 @@ int main(int argc, char *argv[]) {
    struct pixel24 *output_data24 = NULL;
    struct pixel32 *rgb_data32 = NULL;
    struct pixel32 *output_data32 = NULL;
+   struct pixel24 *mask_data24 = NULL;
+   struct pixel32 *mask_data32 = NULL;
 
    // Dynamically allocate memory for the pixel data based on the bits per pixel value
    if (bits_per_pixel == 24) {
       rgb_data24 = (struct pixel24 *)malloc(width * height * sizeof(struct pixel24));
       output_data24 = (struct pixel24 *)malloc(width * height *sizeof(struct pixel24));
+      mask_data24 = (struct pixel24 *)malloc(width * height *sizeof(struct pixel24));
+
    } else {
       rgb_data32 = (struct pixel32 *)malloc(width * height * sizeof(struct pixel32));
       output_data32 = (struct pixel32 *)malloc(width * height *sizeof(struct pixel32));
+      mask_data32 = (struct pixel32 *)malloc(width * height *sizeof(struct pixel32));
    }
 
    // Read the rest of the header
-   unsigned char header_remaining[offset-14-16];
-   if (bits_per_pixel == 24)
+   unsigned char header_remaining[offset-38];
+   if (bits_per_pixel == 24) {
       read_bmp_data24(f, header_remaining, offset, &height, &width, rgb_data24);
-   else
+      printf("Used 24-bit read_bmp_data\n");
+   }
+   else  {
       read_bmp_data32(f, header_remaining, offset, &height, &width, rgb_data32);
+      printf("Used 32-bit read_bmp_data\n");
+   }
 
    // Final complete header
    unsigned char header[offset];
 
    // Combine all 3 headers to get the full header
-   memcpy(header, header_until_offset, 14);  // Copy the first part of the header
-   memcpy(header + 14, header_until_bits_per_pixel, 16);  // Copy the second part of the header
-   memcpy(header + 14 + 16, header_remaining, offset - 14 - 16);  // Copy the third part of the header
+   memcpy(header, header_until_image_size, 38);  // Copy the first part of the header
+   memcpy(header + 38, header_remaining, offset-38);  // Copy the second part of the header
 
-   printf("Successfully read BMP file!\n");
+   printf("Finished reading BMP file\n");
 
    // Allocate memory for grayscale, gaussian, sobel, non-maximum suppression, and hysteresis data
 	unsigned char *gs_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
@@ -245,62 +264,86 @@ int main(int argc, char *argv[]) {
 	unsigned char *sobel_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
 	unsigned char *nms_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
 	unsigned char *h_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));	
+   unsigned char *mask_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
    
    // Print header data
    print_header_info(header);
 
+   printf("\nReading in mask image\n");
+
+   // Reading in mask header and data (we are assuming that the mask is the same dimensions as the image)
+   unsigned char mask_header[offset];
+
+    if (bits_per_pixel == 24) {
+      read_entire_bmp24(f_mask, mask_header, mask_data24, offset, height, width);
+      printf("Used 24-bit read_entire_bmp\n");
+   }
+   else  {
+      read_entire_bmp32(f_mask, mask_header, mask_data32, offset, height, width);
+      printf("Used 32-bit read_entire_bmp\n");
+   }
+
+
    if (bits_per_pixel == 24) {
       // Grayscale conversion
       convert_to_grayscale24(rgb_data24, height, width, gs_data);
-      write_grayscale_bmp24("../images/stage0_grayscale.bmp", header, offset, gs_data);
+      write_grayscale_bmp24("../images/stage0_grayscale.bmp", header, offset, height, width, gs_data);
 
       // Gaussian filter
       gaussian_blur(gs_data, height, width, gb_data);
-      write_grayscale_bmp24("../images/stage1_gaussian.bmp", header, offset, gb_data);
+      write_grayscale_bmp24("../images/stage1_gaussian.bmp", header, offset, height, width, gb_data);
 
       // Sobel operator
       sobel_filter(gb_data, height, width, sobel_data);
-      write_grayscale_bmp24("../images/stage2_sobel.bmp", header, offset, sobel_data);
+      write_grayscale_bmp24("../images/stage2_sobel.bmp", header, offset, height, width, sobel_data);
 
       // Non-maximum suppression
       non_maximum_suppressor(sobel_data, height, width, nms_data);
-      write_grayscale_bmp24("../images/stage3_nonmax_suppression.bmp", header, offset, nms_data);
+      write_grayscale_bmp24("../images/stage3_nonmax_suppression.bmp", header, offset, height, width, nms_data);
 
       // Hysteresis
       hysteresis_filter(nms_data, height, width, h_data);
-      write_grayscale_bmp24("../images/stage4_hysteresis.bmp", header, offset, h_data);
+      write_grayscale_bmp24("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
+
+      // Create the masked canny image
+      mask_canny(h_data, mask_data24, height, width, mask_data);
+      write_grayscale_bmp24("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
 
       // Setting output data to rgb_data to have the original pixel values in our final image output
       output_data24 = rgb_data24;
       // Hough Transform
-      hough_transform24(h_data, height, width, output_data24);
-      write_bmp24("../images/stage5_hough.bmp", header, offset, output_data24);
+      hough_transform24(h_data, mask_data24, height, width, output_data24);
+      write_bmp24("../images/stage5_hough.bmp", header, offset, height, width, output_data24);
    } else {
       /// Grayscale conversion
       convert_to_grayscale32(rgb_data32, height, width, gs_data);
-      write_grayscale_bmp32("../images/stage0_grayscale.bmp", header, offset, gs_data);
+      write_grayscale_bmp32("../images/stage0_grayscale.bmp", header, offset, height, width, gs_data);
 
       /// Gaussian filter
       gaussian_blur(gs_data, height, width, gb_data);
-      write_grayscale_bmp32("../images/stage1_gaussian.bmp", header, offset, gb_data);
+      write_grayscale_bmp32("../images/stage1_gaussian.bmp", header, offset, height, width, gb_data);
 
       /// Sobel operator
       sobel_filter(gb_data, height, width, sobel_data);
-      write_grayscale_bmp32("../images/stage2_sobel.bmp", header, offset, sobel_data);
+      write_grayscale_bmp32("../images/stage2_sobel.bmp", header, offset, height, width, sobel_data);
 
       /// Non-maximum suppression
       non_maximum_suppressor(sobel_data, height, width, nms_data);
-      write_grayscale_bmp32("../images/stage3_nonmax_suppression.bmp", header, offset, nms_data);
+      write_grayscale_bmp32("../images/stage3_nonmax_suppression.bmp", header, offset, height, width, nms_data);
 
       /// Hysteresis
       hysteresis_filter(nms_data, height, width, h_data);
-      write_grayscale_bmp32("../images/stage4_hysteresis.bmp", header, offset, h_data);
+      write_grayscale_bmp32("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
+
+      // Create the masked canny image
+      // mask_canny(h_data, mask_data32, height, width, mask_data);
+      // write_grayscale_bmp32("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
 
       // Setting output data to rgb_data to have the original pixel values in our final image output
       output_data32 = rgb_data32;
       // Hough Transform
-      hough_transform32(h_data, height, width, output_data32);
-      write_bmp32("../images/stage5_hough.bmp", header, offset, output_data32);
+      hough_transform32(h_data, mask_data32, height, width, output_data32);
+      write_bmp32("../images/stage5_hough.bmp", header, offset, height, width, output_data32);
    }
 	
 
