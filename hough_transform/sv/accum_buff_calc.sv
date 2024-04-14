@@ -9,13 +9,15 @@ module accum_buff_calc #(
 ) (
     input   logic                   clock,
     input   logic                   reset,
-    input   logic signed [15:0]            data_in_x,  
-    input   logic signed [15:0]            data_in_y,  
-    input   logic [15:0]  theta,
-    output  logic [IMG_BITS-1:0]  out_row
+    input   logic signed [15:0]     data_in_x,  
+    input   logic signed [15:0]     data_in_y,  
+    input   logic [15:0]            theta,
+    output  logic [IMG_BITS-1:0]    out_row,
+    input   logic                   row_out_full,
+    output  logic                   row_out_wr_en
 );
 
-localparam logic signed [31:0] RAD_RATIO = 32'h11e; //THIS IS QUANTIZED (I think)
+localparam logic signed [31:0] RAD_RATIO = 32'h11e; //THIS IS QUANTIZED (I think) pi/180
 
 // image_in[] != 0
 typedef enum logic [1:0] {COMPUTE_RADIANS, CORDIC, OUT} state_types;
@@ -62,6 +64,8 @@ end
 
 always_comb begin
     // RHORESOLUTION = 2 ==> arithmetic right shift 1
+    
+
     case (state) 
         COMPUTE_RADIANS: begin
             // compute radians
@@ -90,6 +94,7 @@ always_comb begin
 
         OUT: begin
             rho = (data_in_x >>> 1) * cos_dout + (data_in_y >>> 1) * sin_dout;
+            row_out_wr_en = 1'b1;
             out_row = rho + RHOS>>1;
             next_state = COMPUTE_RADIANS;
         end
@@ -99,6 +104,7 @@ always_comb begin
             cos_rd_en = 1'b0;
             radians_wr_en = 1'b0;
             radians_din_c = '0;
+            row_out_wr_en = 1'b0;
             out_row = 'X;
             next_state = COMPUTE_RADIANS;
             theta_quant = 'X;

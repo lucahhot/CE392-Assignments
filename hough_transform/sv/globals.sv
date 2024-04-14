@@ -8,6 +8,16 @@ localparam BITS = 14;
 localparam QUANT_VAL = (1 << BITS);
 localparam M_PI = 3.14159265358979323846;
 localparam RAD_RATIO = 0.01745329251;
+
+localparam RHO_RESOLUTION = 2;
+localparam RHOS = 900 >> 1;
+localparam THETAS = 180;
+localparam WIDTH = 720;
+localparam HEIGHT = 540;
+localparam IMG_BITS = $clog2(WIDTH);
+localparam THETA_BITS = $clog2(THETAS);
+localparam X_START = -WIDTH/2;
+localparam Y_START = -HEIGHT/2;
 // localparam string FILE_OUT_NAME = "../source/uvm_test_output.txt";
 
 // QUANTIZE_F function
