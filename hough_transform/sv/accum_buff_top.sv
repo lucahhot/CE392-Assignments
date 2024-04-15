@@ -14,12 +14,12 @@ module accum_buff_top #(
     output  logic                   x_in_full,
     output  logic                   y_in_full,
     input   logic                   in_wr_en,
-    input   logic [15:0]            theta_din,
-    input   logic [15:0]            data_in_x,
-    input   logic [15:0]            data_in_y,
+    input   logic [CORDIC_DATA_WIDTH-1:0]            theta_din,
+    input   logic [CORDIC_DATA_WIDTH-1:0]            data_in_x,
+    input   logic [CORDIC_DATA_WIDTH-1:0]            data_in_y,
     output  logic                   row_out_empty,
     input   logic                   row_out_rd_en,
-    output  logic [15:0]    row_out
+    output  logic [CORDIC_DATA_WIDTH-1:0]    row_out
 );
 
 logic theta_rd_en;

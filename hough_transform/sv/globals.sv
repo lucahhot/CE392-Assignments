@@ -17,9 +17,20 @@ localparam THETAS = 180;
 localparam WIDTH = 720;
 localparam HEIGHT = 540;
 localparam IMG_BITS = $clog2(WIDTH);
+localparam X_WIDTH = IMG_BITS;
+localparam Y_WIDTH = $clog2(HEIGHT/2)
 localparam THETA_BITS = $clog2(THETAS);
-localparam X_START = -WIDTH/2;
-localparam Y_START = -HEIGHT/2;
+
+//localparam X_START = -WIDTH/2;
+localparam X_START = 16'hFE98;
+// localparam Y_START = -HEIGHT/2;
+localparam Y_START = 16'hFEF2;
+localparam X_END = 16'h0168;
+localparam Y_END = 16'h0;
+
+localparam ACCUM_BUFF_SIZE = RHOS * THETAS;
+
+
 // localparam string FILE_OUT_NAME = "../source/uvm_test_output.txt";
 
 // QUANTIZE_F function
