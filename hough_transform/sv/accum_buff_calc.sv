@@ -7,14 +7,17 @@ module accum_buff_calc #(
     parameter CORDIC_DATA_WIDTH,
     parameter BITS  // for quantization
 ) (
-    input   logic                   clock,
-    input   logic                   reset,
-    input   logic signed [15:0]     data_in_x,  
-    input   logic signed [15:0]     data_in_y,  
-    input   logic [15:0]            theta,
-    output  logic [IMG_BITS-1:0]    out_row,
-    input   logic                   row_out_full,
-    output  logic                   row_out_wr_en
+    input   logic                                   clock,
+    input   logic                                   reset,
+    input   logic signed [CORDIC_DATA_WIDTH-1:0]    data_in_x,  
+    input   logic signed [CORDIC_DATA_WIDTH-1:0]    data_in_y,  
+    output  logic                                   x_rd_en,
+    output  logic                                   y_rd_en,
+    output  logic                                   theta_rd_en,           
+    input   logic [CORDIC_DATA_WIDTH-1:0]           theta,
+    output  logic [CORDIC_DATA_WIDTH-1:0]           row_out,
+    input   logic                                   row_out_full,
+    output  logic                                   row_out_wr_en
 );
 
 localparam logic signed [31:0] RAD_RATIO = 32'h11e; //THIS IS QUANTIZED (I think) pi/180
@@ -25,9 +28,11 @@ state_types state, next_state;
 
 // Cordic Wires
 logic radians_full, radians_wr_en;
-logic [CORDIC_DATA_WIDTH-1:0] radians_din, radians_din_c;
+logic [31:0] radians_din, radians_din_c;
 logic sin_empty, sin_rd_en;
 logic cos_empty, cos_rd_en;
+logic [CORDIC_DATA_WIDTH-1:0] sin_dout_c, sin_dout, cos_dout_c, cos_dout;
+logic [CORDIC_DATA_WIDTH-1:0] rho;
 
 // intermdiate wires
 logic signed [31:0] theta_quant;
@@ -57,7 +62,7 @@ always_ff @(posedge clock or posedge reset) begin
     end else begin
         sin_dout <= sin_dout_c;
         cos_dout <= cos_dout_c;
-        next_state <= state;
+        state <= next_state;
         radians_din <= radians_din_c;
     end
 end
@@ -69,20 +74,21 @@ always_comb begin
     case (state) 
         COMPUTE_RADIANS: begin
             // compute radians
-            theta_quant = QUANTIZE(theta << BITS);
+            theta_quant = QUANTIZE(theta);
             radians_din_c = DEQUANTIZE(theta_quant * RAD_RATIO)[15:0];       // do something about this calculation.
             next_state = CORDIC;
+            theta_rd_en = 1'b1;
         end
 
         CORDIC: begin
             if (radians_full == 1'b0) begin
-                radians_wr_en = 1'b1
+                radians_wr_en = 1'b1;
                 if (sin_empty == 1'b1 && cos_empty == 1'b1) begin
                     // if no output loop back to compute more inputs
                     next_state = COMPUTE_RADIANS;
+                end else begin
                     sin_rd_en = 1'b1; 
                     cos_rd_en = 1'b1;
-                end else begin
                     next_state = OUT;
                 end
             end else begin
@@ -93,9 +99,11 @@ always_comb begin
         end
 
         OUT: begin
+            x_rd_en = 1'b1;
+            y_rd_en = 1'b1;
             rho = (data_in_x >>> 1) * cos_dout + (data_in_y >>> 1) * sin_dout;
             row_out_wr_en = 1'b1;
-            out_row = rho + RHOS>>1;
+            row_out = rho + RHOS>>1;
             next_state = COMPUTE_RADIANS;
         end
 
@@ -105,9 +113,12 @@ always_comb begin
             radians_wr_en = 1'b0;
             radians_din_c = '0;
             row_out_wr_en = 1'b0;
-            out_row = 'X;
+            row_out = 'X;
             next_state = COMPUTE_RADIANS;
             theta_quant = 'X;
+            x_rd_en = 1'b0;
+            y_rd_en = 1'b0;
+            theta_rd_en = 1'b0;
         end
     endcase
     

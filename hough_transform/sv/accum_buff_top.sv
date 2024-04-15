@@ -5,7 +5,8 @@ module accum_buff_top #(
     parameter IMG_BITS,
     parameter THETA_BITS,
     parameter CORDIC_DATA_WIDTH,
-    parameter BITS  // for quantization
+    parameter BITS,
+    parameter FIFO_BUFFER_SIZE // for quantization
 ) (
     input   logic                   clock,
     input   logic                   reset,
@@ -18,7 +19,7 @@ module accum_buff_top #(
     input   logic [15:0]            data_in_y,
     output  logic                   row_out_empty,
     input   logic                   row_out_rd_en,
-    output  logic [IMG_BITS-1:0]    row_out
+    output  logic [15:0]    row_out
 );
 
 logic theta_rd_en;
@@ -32,7 +33,7 @@ logic x_out_empty, y_out_empty;
 
 
 fifo #(
-    .FIFO_BUFFER_SIZE(16),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
     .FIFO_DATA_WIDTH(16)
 ) fifo_theta_inst (
     .reset(reset),
@@ -47,9 +48,9 @@ fifo #(
 );
 
 fifo #(
-    .FIFO_BUFFER_SIZE(16),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
     .FIFO_DATA_WIDTH(16)
-) fifo_theta_inst (
+) fifo_x_inst (
     .reset(reset),
     .wr_clk(clock),
     .wr_en(in_wr_en),
@@ -62,9 +63,9 @@ fifo #(
 );
 
 fifo #(
-    .FIFO_BUFFER_SIZE(16),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
     .FIFO_DATA_WIDTH(16)
-) fifo_theta_inst (
+) fifo_y_inst (
     .reset(reset),
     .wr_clk(clock),
     .wr_en(in_wr_en),
@@ -94,15 +95,19 @@ accum_buff_calc #(
     .reset(reset),
     .data_in_x(x_out_din),
     .data_in_y(y_out_din),
+    .x_rd_en(x_rd_en),
+    .y_rd_en(y_rd_en),
+    .theta_rd_en(theta_rd_en),
     .theta(theta_out_din),
-    .out_row(row_out_din),
-    .row_out_full(row_out_full)
+    .row_out(row_out_din),
+    .row_out_full(row_out_full),
+    .row_out_wr_en(row_out_wr_en)
 );
 
 fifo #(
-    .FIFO_BUFFER_SIZE(16),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
     .FIFO_DATA_WIDTH(16)
-) fifo_theta_inst (
+) fifo_row_inst (
     .reset(reset),
     .wr_clk(clock),
     .wr_en(row_out_wr_en),

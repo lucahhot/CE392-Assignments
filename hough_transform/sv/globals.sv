@@ -8,6 +8,8 @@ localparam BITS = 14;
 localparam QUANT_VAL = (1 << BITS);
 localparam M_PI = 3.14159265358979323846;
 localparam RAD_RATIO = 0.01745329251;
+localparam DATA_SIZE = 32;
+localparam FIFO_BUFFER_SIZE = 32;
 
 localparam RHO_RESOLUTION = 2;
 localparam RHOS = 900 >> 1;

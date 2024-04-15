@@ -5,6 +5,9 @@ vmap work work
 
 # udp_reader architecture
 vlog -work work "../sv/fifo.sv"
+vlog -work work "../sv/cordic_stage.sv"
+vlog -work work "../sv/cordic.sv"
+vlog -work work "../sv/cordic_top.sv"
 vlog -work work "../sv/accum_buff_calc.sv"
 vlog -work work "../sv/accum_buff_top.sv"
 vlog -work work "../sv/accum_buff_tb.sv"
@@ -24,6 +27,15 @@ vsim -classdebug -voptargs=+acc +notimingchecks -L work work.accum_buff_tb -wlf 
 
 add wave -noupdate -group accum_buff_tb/accum_buff_inst
 add wave -noupdate -group accum_buff_tb/accum_buff_inst -radix hexadecimal /accum_buff_tb/accum_buff_inst/*
+
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/accum_buff_inst/cordic_top_inst
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/accum_buff_inst/cordic_top_inst -radix hexadecimal /accum_buff_tb/accum_buff_inst/accum_buff_inst/cordic_top_inst/*
+
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/fifo_theta_inst
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/fifo_theta_inst -radix hexadecimal /accum_buff_tb/accum_buff_inst/fifo_theta_inst/*
+
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/accum_buff_inst
+add wave -noupdate -group accum_buff_tb/accum_buff_inst/accum_buff_inst -radix hexadecimal /accum_buff_tb/accum_buff_inst/accum_buff_inst/*
 
 run -all
 #quit;

@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns/1ns
 
 module accum_buff_tb;
 
@@ -10,6 +10,7 @@ logic [15:0] theta_din, data_in_x, data_in_y;
 logic row_out_empty, row_out_rd_en;
 logic [15:0] row_out;
 
+logic out_rd_done, in_write_done;
 
 
 accum_buff_top #(
@@ -19,7 +20,8 @@ accum_buff_top #(
     .IMG_BITS(IMG_BITS),
     .THETA_BITS(THETA_BITS),
     .CORDIC_DATA_WIDTH(CORDIC_DATA_WIDTH),
-    .BITS(BITS)
+    .BITS(BITS),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) accum_buff_inst (
     .clock(clock),
     .reset(reset),
@@ -56,6 +58,10 @@ initial begin : tb_process
     @(negedge reset);
     @(posedge clock);
     start_time = $time;
+    
+    out_rd_done = 1'b0;
+    in_write_done = 1'b0;
+    row_out_rd_en = 1'b0;
 
     // start
     $display("@ %0t: Beginning simulation...", start_time);
@@ -67,41 +73,45 @@ initial begin : tb_process
     // report metrics
     $display("@ %0t: Simulation completed.", end_time);
     $display("Total simulation cycle count: %0d", (end_time-start_time)/CLOCK_PERIOD);
-    $display("Total error count: %0d", out_errors);
+    // $display("Total error count: %0d", out_errors);
 
     // end the simulation
     $finish;
 end
 
 initial begin : write_data
-    data_in_x = X_START;
-    data_in_y = Y_START;
-    shortint i ;
+    shortint i;
 
     i = 0;
 
     while (i < THETAS) begin
         @(negedge clock);
-        if (theta_in_full == 1'b0) begin
-            in_wr_en == 1'b1;
+        if (theta_in_full == 1'b0 && x_in_full == 1'b0 && y_in_full == 1'b0) begin
+            in_wr_en = 1'b1;
+            data_in_x = X_START;
+            data_in_y = Y_START;
             theta_din = i;
             i++;
         end
     end
+
+    in_write_done = 1'b1;
 end
 
 initial begin : read_data
     int j;
-    j = 0
+    j = 0;
 
     while (j < THETAS) begin
         @(negedge clock);
         if (row_out_empty == 1'b0) begin
-            row_out_rd_en == 1'b1;
+            row_out_rd_en = 1'b1;
             $display("@ %0t: (%0d): %x", $time, j, row_out);
             j++;
         end
     end
+
+    out_rd_done = 1'b1;
 end
 
 
