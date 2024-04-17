@@ -105,17 +105,30 @@ void hough_transform32(unsigned char *hysteresis_data, struct pixel32 * mask, in
 			accum_buff[j][i] = 0;
 	
 	#pragma ivdep
+	// for (int y = 0; y < height; y++){
+	// 	#pragma ivdep
+	// 	for (int x = 0; x < width; x++){
+	// 		// If the pixel is inside the mask only
+	// 		if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF){
+	// 			if (hysteresis_data[n++] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
+	// 				#pragma unroll 8
+	// 				for (int theta = 0; theta < THETAS; theta++){
+	// 					int rho = (x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
+	// 					accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 	for (int y = 0; y < height; y++){
 		#pragma ivdep
 		for (int x = 0; x < width; x++){
 			// If the pixel is inside the mask only
-			if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF){
-				if (hysteresis_data[n++] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
-					#pragma unroll 8
-					for (int theta = 0; theta < THETAS; theta++){
-						int rho = (x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
-						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
-					}
+			if (hysteresis_data[n++] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
+				#pragma unroll 8
+				for (int theta = 0; theta < THETAS; theta++){
+					int rho = (x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
+					accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
 				}
 			}
 		}
