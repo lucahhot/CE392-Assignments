@@ -29,6 +29,7 @@ localparam X_END = 16'h0168;
 localparam Y_END = 16'h0;
 
 localparam ACCUM_BUFF_SIZE = RHOS * THETAS;
+localparam ACCUM_BITS = $clog2(ACCUM_BUFF_SIZE);
 
 
 // localparam string FILE_OUT_NAME = "../source/uvm_test_output.txt";
