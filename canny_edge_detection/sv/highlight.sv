@@ -14,7 +14,6 @@ module hightlight#(
 
 
 
-
 typedef enum logic [1:0] {READING_IMAGE, FULL} image_state_types;
 image_state_types image_state, next_image_state;
 
@@ -30,13 +29,17 @@ always_ff @(posedge clock or posedge reset) begin
         whole_image <= '{default: '{default: '0}};
         image_index <= '0;
     end else begin
+    if(in_empty==1'b0)begin
         image_state <= next_image_state;
         image_index <= image_index_c;
+    end
+//        image_state <= next_image_state;
+//        image_index <= image_index_c;
     end
 end
 
 always_ff @(posedge rd_en) begin
-    image_index_c = image;
+    image_index_c = image_index;
     next_image_state = image_state;
     case(image_state)
         READING_IMAGE : begin
@@ -49,7 +52,8 @@ always_ff @(posedge rd_en) begin
             end
         end
         FULL : begin
-            
+        end
+        default : begin
         end
     endcase 
 end
