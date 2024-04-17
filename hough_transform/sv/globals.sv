@@ -11,21 +11,24 @@ localparam RAD_RATIO = 0.01745329251;
 localparam DATA_SIZE = 32;
 localparam FIFO_BUFFER_SIZE = 32;
 
-localparam RHO_RESOLUTION = 2;
-localparam RHOS = 900 >> 1;
+localparam RHO_RESOLUTION = 1;
 localparam THETAS = 180;
-localparam WIDTH = 720;
-localparam HEIGHT = 540;
+localparam WIDTH = 1200;
+localparam HEIGHT = 900;
+localparam RHOS = sqrt(WIDTH*WIDTH + HEIGHT*HEIGHT)/RHO_RESOLUTION;
 localparam IMG_BITS = $clog2(WIDTH);
 localparam X_WIDTH = IMG_BITS;
 localparam Y_WIDTH = $clog2(HEIGHT/2)
 localparam THETA_BITS = $clog2(THETAS);
 
-//localparam X_START = -WIDTH/2;
-localparam X_START = 16'hFE98;
+// localparam X_START = -WIDTH/2;
+// localparam X_START = 16'hFE98;
+localparam X_START = 16'hFDA8;
+localparam X_END = 16'h0258;
 // localparam Y_START = -HEIGHT/2;
-localparam Y_START = 16'hFEF2;
-localparam X_END = 16'h0168;
+// localparam Y_START = 16'hFEF2;
+localparam Y_START = 16'hFE3E;
+// localparam X_END = 16'h0168;
 localparam Y_END = 16'h0;
 
 localparam ACCUM_BUFF_SIZE = RHOS * THETAS;

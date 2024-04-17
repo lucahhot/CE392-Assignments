@@ -1,6 +1,6 @@
 module hough_transform #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540,
+    parameter WIDTH,
+    parameter HEIGHT,
     parameter X_WIDTH,
     parameter Y_WIDTH,
     parameter X_START,
@@ -17,12 +17,14 @@ module hough_transform #(
 ) (
     input   logic           clock,
     input   logic           reset,
-    input   logic           in_rd_en,
+    output  logic           in_rd_en,
     input   logic           in_empty,
     input   logic [7:0]     in_dout,
     output  logic           out_wr_en,
     input   logic           out_full,
-    output  logic [15:0]    buffer_index
+    output  logic [15:0]    buffer_index,
+    output  logic           hough_done,      // mainly for tb, tells when hough is done calculating
+    input   logic           hough_out_full
 );
 
 typedef enum logic [1:0] {INIT, X_Y_LOOP, THETA_LOOP, OUTPUT} state_types;
@@ -69,25 +71,24 @@ accum_buff_top #(
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
-        accum <= '{default: '{default: '0}};
+        // accum <= '{default: '{default: '0}};
         x <= X_START;
         y <= Y_START;
         theta <= '0;
         count <= '0;
         state <= INIT;
     end else begin
-        accum <= accum_buff;
+        // accum <= accum_buff;
         x <= x_c;
         y <= y_c;
         theta <= theta_c;
         count <= count_c;
-        accum <= accum_buff;
         state <= next_state;
     end
 end
 
 always_comb begin
-    accum_buff = accum;
+    // accum_buff = accum;
     x_c = x;
     y_c = y;
     theta_c = theta;
@@ -99,7 +100,8 @@ always_comb begin
         INIT: begin
             x_c = X_START;
             y_c = Y_START;
-            if (in_din != '0) begin
+            hough_done = '0;
+            if (in_empty == 1'b0) begin
                 next_state = X_Y_LOOP;
             end else begin
                 next_state = INIT;
@@ -107,17 +109,30 @@ always_comb begin
         end
 
         X_Y_LOOP: begin
-            x_c = x + 16'b1;
-            if (x == X_END - 1) begin
-                y_c = y + 16'b1;
+            if (in_empty == 1'b0) begin
+                in_rd_en = 1'b1;
+                if (in_din != '0) begin
+                    next_state = THETA_LOOP;
+                    data_in_x = x;
+                    data_in_y = y;
+                    theta_c = '0;
+                end else begin
+                    next_state = X_Y_LOOP;
+                end
+
+                // Increment X and Y, check if go through whole loop
+                x_c = x + 16'b1;
+                if (x == X_END - 1) begin
+                    y_c = y + 16'b1;
+                    x_c = X_START;
+                end
+                if (y == Y_END) begin
+                    next_state = INIT;
+                    hough_done = '1;
+                end
+            end else begin
+                next_state = X_Y_LOOP;
             end
-            if (y == Y_END - 1) begin
-                next_state = INIT;
-            end
-            next_state = THETA_LOOP;
-            data_in_x = x;
-            data_in_y = y;
-            theta_c = '0;
         end
 
         THETA_LOOP: begin
@@ -145,6 +160,7 @@ always_comb begin
             accum_buff = '{default: '{default: '0}};
             buffer_index = 'X;
             next_state = INIT;
+            hough_done = '0;
         end
     endcase
 end
