@@ -224,4 +224,15 @@ fifo #(
     .empty(img_out_empty)
 );
 
+hightlight #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) hightlight_inst(
+    .clock(clock),
+    .reset(reset),
+    .rd_en(image_rd_en),
+    .in_empty(image_empty),
+    .in_dout(image_dout)
+);
+
 endmodule
