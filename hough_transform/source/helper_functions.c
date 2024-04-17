@@ -279,3 +279,29 @@ void print_header_info(unsigned char* header){
    }
    
 }
+
+void mask_canny24(unsigned char *in_data, struct pixel24 * mask, int height, int width, unsigned char *out_data) {
+
+   for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+         if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+            out_data[y*width + x] = in_data[y*width + x];
+         } else {
+            out_data[y*width + x] = 0;
+         }
+      }
+   }
+}
+
+void mask_canny32(unsigned char *in_data, struct pixel32 * mask, int height, int width, unsigned char *out_data) {
+
+   for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+         if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+            out_data[y*width + x] = in_data[y*width + x];
+         } else {
+            out_data[y*width + x] = 0;
+         }
+      }
+   }
+}

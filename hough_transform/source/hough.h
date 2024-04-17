@@ -7,8 +7,8 @@
 #include <sys/time.h>
 #include <math.h>
 
-#define HOUGH_TRANSFORM_THRESHOLD 150
-#define LINE_LENGTH 5000
+#define HOUGH_TRANSFORM_THRESHOLD 175
+#define LINE_LENGTH 1000
 
 #define high_threshold 48
 #define low_threshold 12

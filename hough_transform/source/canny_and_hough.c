@@ -178,19 +178,6 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 	}
 }
 
-void mask_canny(unsigned char *in_data, struct pixel24 * mask, int height, int width, unsigned char *out_data) {
-
-   for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-         if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
-            out_data[y*width + x] = in_data[y*width + x];
-         } else {
-            out_data[y*width + x] = 0;
-         }
-      }
-   }
-}
-
 int main(int argc, char *argv[]) {
    
    // Check inputs (reject if not enough arguments)
@@ -306,14 +293,14 @@ int main(int argc, char *argv[]) {
       write_grayscale_bmp24("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
 
       // Create the masked canny image
-      mask_canny(h_data, mask_data24, height, width, mask_data);
+      mask_canny24(h_data, mask_data24, height, width, mask_data);
       write_grayscale_bmp24("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
 
       // Setting output data to rgb_data to have the original pixel values in our final image output
       output_data24 = rgb_data24;
       // Hough Transform
       hough_transform24(h_data, mask_data24, height, width, output_data24);
-      write_bmp24("../images/stage5_hough.bmp", header, offset, height, width, output_data24);
+      write_bmp24("../images/stage6_hough.bmp", header, offset, height, width, output_data24);
    } else {
       /// Grayscale conversion
       convert_to_grayscale32(rgb_data32, height, width, gs_data);
@@ -336,14 +323,14 @@ int main(int argc, char *argv[]) {
       write_grayscale_bmp32("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
 
       // Create the masked canny image
-      // mask_canny(h_data, mask_data32, height, width, mask_data);
-      // write_grayscale_bmp32("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
+      mask_canny32(h_data, mask_data32, height, width, mask_data);
+      write_grayscale_bmp32("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
 
       // Setting output data to rgb_data to have the original pixel values in our final image output
       output_data32 = rgb_data32;
       // Hough Transform
       hough_transform32(h_data, mask_data32, height, width, output_data32);
-      write_bmp32("../images/stage5_hough.bmp", header, offset, height, width, output_data32);
+      write_bmp32("../images/stage6_hough.bmp", header, offset, height, width, output_data32);
    }
 	
 

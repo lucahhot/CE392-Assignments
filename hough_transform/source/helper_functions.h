@@ -33,4 +33,8 @@ void convert_to_grayscale32(struct pixel32 * data, int height, int width, unsign
 
 void print_header_info(unsigned char* header);
 
+void mask_canny24(unsigned char *in_data, struct pixel24 * mask, int height, int width, unsigned char *out_data);
+
+void mask_canny32(unsigned char *in_data, struct pixel32 * mask, int height, int width, unsigned char *out_data);
+
 #endif // HOUGH_H

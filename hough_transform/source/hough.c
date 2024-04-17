@@ -1,18 +1,34 @@
 #include "hough.h"
 
 // Function to draw/highlight hough lines on original image
-void draw_lines24(int height, int width, int rho, float sin_theta, float cos_theta, struct pixel24* image_out)
+void draw_lines24(int height, int width, int rho, float sin_theta, float cos_theta, struct pixel24* image_out, struct pixel24 * mask)
 {
    float x0 = rho * cos_theta;
    float y0 = rho * sin_theta;
    for(int k=-LINE_LENGTH; k<LINE_LENGTH; k++){
-		int x1 = (int)(x0 + k*(-sin_theta));
-		int y1 = (int)(y0 + k *(cos_theta));
+		int x = (int)(x0 + k*(-sin_theta));
+		int y = (int)(y0 + k *(cos_theta));
 
-		if(x1>=0 && x1<width && y1>=0 && y1<height) {
-			image_out[y1*width + x1].r = 0xff;
-			image_out[y1*width + x1].g = 0x00;
-			image_out[y1*width + x1].b = 0x00;
+		// Check that the pixel is inside the image and inside the mask
+		if(x > 0 && x < (width - 1) && y > 0 && y < (height - 1)) {
+			if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+				// Going to try and make all the pixels around this pixel red to increase the width of the line
+				int top_left = (y-1)*width + x-1;
+				int top = (y-1)*width + x;
+				int top_right = (y-1)*width + x+1;
+				int left = y*width + x-1;
+				int middle = y*width + x;
+				int right = y*width + x+1;
+				int bottom_left = (y+1)*width + x-1;
+				int bottom = (y+1)*width + x;
+				int bottom_right = (y+1)*width + x+1;
+				int array[9] = {top_left, top, top_right, left, middle, right, bottom_left, bottom, bottom_right};
+				for (int i = 0; i < 9; i++){
+					image_out[array[i]].r = 0xff;
+					image_out[array[i]].g = 0x00;
+					image_out[array[i]].b = 0x00;
+				}
+			}
 		}
    	}
 }
@@ -61,10 +77,11 @@ void hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, in
 		for(int j=0; j< THETAS; j++){
 			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
 			// Sending the rho and theta values to draw_lines function
-			draw_lines24(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
+			printf("Drawing line with rho = %d, sin_theta = %f, cos_theta = %f\n", i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j]);
+			draw_lines24(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out, mask); 
 			}
 		}
-   }
+	}
 	
 }
 
@@ -126,6 +143,7 @@ void hough_transform32(unsigned char *hysteresis_data, struct pixel32 * mask, in
 		for(int j=0; j< THETAS; j++){
 			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
 			// Sending the rho and theta values to draw_lines function
+			printf("Drawing line with rho = %d, sin_theta = %f, cos_theta = %f\n", i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j]);
 			draw_lines32(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
 			}
 		}
