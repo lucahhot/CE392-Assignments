@@ -8,7 +8,11 @@
 #include <math.h>
 
 #define HOUGH_TRANSFORM_THRESHOLD 175
-#define LINE_LENGTH 1000
+// These parameters are used to transform rho and theta into cartesian coordinates (x,y)
+// so it goes from the leftmost x coordinate of the mask to the rightmost x coordinate.
+// The 0.1 and 0.9 factors are determined inside the mask.py script that creates the mask
+#define X_START 1280 * 0.1
+#define X_END 1280 * 0.9 
 
 #define high_threshold 48
 #define low_threshold 12
