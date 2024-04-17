@@ -56,9 +56,12 @@ void hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, in
 		}
 	}
 
+	FILE * accum_file = fopen("accum.txt", "w");
+
 	// Now draw the highlighted lines on the original image_in
 	for(int i = 0; i < rho_range; i++){
 		for(int j=0; j< THETAS; j++){
+			fprintf( accum_file, "%04x\n", accum_buff[i][j] );
 			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
 			// Sending the rho and theta values to draw_lines function
 			draw_lines24(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
