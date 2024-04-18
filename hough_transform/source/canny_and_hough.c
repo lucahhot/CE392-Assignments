@@ -270,6 +270,7 @@ int main(int argc, char *argv[]) {
       printf("Used 32-bit read_entire_bmp\n");
    }
 
+   int cycle_count = 0;
 
    if (bits_per_pixel == 24) {
       // Grayscale conversion
@@ -299,8 +300,10 @@ int main(int argc, char *argv[]) {
       // Setting output data to rgb_data to have the original pixel values in our final image output
       output_data24 = rgb_data24;
       // Hough Transform
-      hough_transform24(h_data, mask_data24, height, width, output_data24);
+      cycle_count = hough_transform24(h_data, mask_data24, height, width, output_data24);
       write_bmp24("../images/stage6_hough.bmp", header, offset, height, width, output_data24);
+      printf("Cycle count: %d\n", cycle_count);
+
    } else {
       /// Grayscale conversion
       convert_to_grayscale32(rgb_data32, height, width, gs_data);
@@ -332,7 +335,42 @@ int main(int argc, char *argv[]) {
       hough_transform32(h_data, mask_data32, height, width, output_data32);
       write_bmp32("../images/stage6_hough.bmp", header, offset, height, width, output_data32);
    }
-	
+
+
+   // Code to generate and write out quantized values of sin and cos
+   FILE * sin_file = fopen("quantized_values/sin_quantized.txt", "w");
+   FILE * cos_file = fopen("quantized_values/cos_quantized.txt", "w");
+   FILE * sin_file_dequantized = fopen("quantized_values/sin_dequantized.txt", "w");
+   FILE * cos_file_dequantized = fopen("quantized_values/cos_dequantized.txt", "w");
+   if ( sin_file == NULL || cos_file == NULL || sin_file_dequantized == NULL || cos_file_dequantized == NULL ) {
+      printf("Error opening sin/cos files\n");
+      return -1;
+   }
+
+   fprintf(sin_file, "static const float sinvals_quantized[] = {");
+   fprintf(cos_file, "static const float cosvals_quantized[] = {");
+   fprintf(sin_file_dequantized, "static const float sinvals[] = {");
+   fprintf(cos_file_dequantized, "static const float cosvals[] = {");
+   for (int i = 0; i < 179; i++) {
+      fprintf(sin_file, "0x%08x, ", QUANTIZE_F(sinvals[i]));
+      fprintf(cos_file, "0x%08x, ", QUANTIZE_F(cosvals[i]));
+      fprintf(sin_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(sinvals[i])));
+      fprintf(cos_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(cosvals[i])));
+   }
+   fprintf(sin_file, "0x%08x, ", QUANTIZE_F(sinvals[179]));
+   fprintf(cos_file, "0x%08x, ", QUANTIZE_F(cosvals[179]));
+   fprintf(sin_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(sinvals[179])));
+   fprintf(cos_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(cosvals[179])));
+
+   fprintf(sin_file, "};\n");
+   fprintf(cos_file, "};\n");
+   fprintf(sin_file_dequantized, "};\n");
+   fprintf(cos_file_dequantized, "};\n");
+
+   fclose(sin_file);
+   fclose(cos_file);
+   fclose(sin_file_dequantized);
+   fclose(cos_file_dequantized);
 
 	return 0;
 }
