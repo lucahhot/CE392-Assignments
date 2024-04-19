@@ -18,7 +18,7 @@ logic        in_wr_en  = '0;
 logic [23:0] in_din    = '0;
 logic        out_rd_en;
 logic        out_empty;
-logic  [7:0] out_dout;
+logic  [23:0] out_dout;
 
 logic   hold_clock    = '0;
 logic   in_write_done = '0;
@@ -145,7 +145,7 @@ initial begin : img_write_process
         out_rd_en = 1'b0;
         if (out_empty == 1'b0) begin
             r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-            $fwrite(out_file, "%c", out_dout);
+            $fwrite(out_file, "%c%c%c", out_dout[23:16], out_dout[15:8], out_dout[7:0]);
 
             if (cmp_dout != {3{out_dout}}) begin
                 out_errors += 1;

@@ -15,7 +15,7 @@ module hightlight#(
     input logic [$clog2(ANGLE_RANGE)-1:0] angle,
     input logic [RADIUS_WIDTH-1 : 0] radius,
     output logic        out_wr_en,
-    // input  logic        out_full,
+    input  logic        out_full,
     output logic [23:0]  out_din
 );
 
@@ -119,7 +119,7 @@ always_comb begin
     image_output_index_c = image_output_index;
     out_wr_en = 1'b0;
     out_din = whole_image[image_output_index];
-    if(image_state==FINISHED_DRAWING) begin
+    if(image_state==FINISHED_DRAWING && out_full==1'b0) begin
         out_wr_en = 1'b1;
         image_output_index_c++;
     end

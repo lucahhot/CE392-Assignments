@@ -13,7 +13,7 @@ module canny_edgedetect_top #(
 
     output logic        img_out_empty,
     input logic         img_out_rd_en,
-    output logic [7:0]  img_out_dout
+    output logic [23:0]  img_out_dout
 );
 
 // Input wires to grayscale function
@@ -245,6 +245,7 @@ hightlight #(
     .angle(temp_angle),
     .radius(temp_radius),
     .out_wr_en(hightlight_out_wr_en),
+    .out_full(img_out_full),
     .out_din(hightlight_out_din)
 );
 
