@@ -1,14 +1,14 @@
 #include "hough.h"
 
 // Function to draw/highlight hough lines on original image
-int draw_lines24(int width, int rho, float sin_val, float cos_val, struct pixel24 * mask, struct pixel24* image_out, int rho_resolution)
+int draw_lines24(int width, int rho, int sin_val, int cos_val, struct pixel24 * mask, struct pixel24* image_out, int rho_resolution)
 {
 	int cycle_count = 0;
 	// K_START and K_END are arbitrary values that we need to set as constants
    	for(int k = K_START; k < K_END; k++){
 		// Need to multiply by rho_resolution to get the correct cartesian values since we divide by it in the hough transform
-		int x = (int)((rho * cos_val) + k * (-sin_val))*rho_resolution;
-		int y = (int)((rho * sin_val) + k * (cos_val))*rho_resolution;
+		int x = DEQUANTIZE_I((rho * cos_val) + k * (-sin_val))*rho_resolution;
+		int y = DEQUANTIZE_I((rho * sin_val) + k * (cos_val))*rho_resolution;
 
 		// Check that the pixel is inside the mask (will naturally be inside the image if this is the case)
 		if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
@@ -71,7 +71,8 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 				if (hysteresis_data[y*width + x] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
 					// #pragma unroll 8
 					for (int theta = 0; theta < THETAS; theta++){
-						int rho = (x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
+						int rho = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta] + (y/RHO_RESOLUTION)*sinvals_quantized[theta]);
+						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
 						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
 						cycle_count++;
 					}
@@ -123,6 +124,20 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	}
 	for (int i = 0; i < right_index; i++){
 		printf("Detected Right Line %d: Theta = %d, Rho = %d\n", i, right_thetas[i], right_rhos[i]);
+	}
+
+	// If no left of right lanes have been detected, return straight away
+	if (left_index == 0 && right_index == 0){
+		printf("\nNo lanes detected :(\n");
+		return cycle_count;
+	}
+	if (left_index == 0){
+		printf("\nNo left lanes detected :(\n");
+		return cycle_count;
+	}
+	if (right_index == 0){
+		printf("\nNo right lanes detected :(\n");
+		return cycle_count;
 	}
 
 	// Now we have to select a left and a right line to draw
@@ -189,11 +204,11 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	// At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
 	if (left_theta_avg != 0) {
 		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
-		cycle_count += draw_lines24(width, left_rho_avg, sinvals[left_theta_avg], cosvals[left_theta_avg], mask, image_out, RHO_RESOLUTION);
+		cycle_count += draw_lines24(width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 	if (right_theta_avg != 0) {
 		printf("Drawing right line with theta = %d, rho = %d\n", right_theta_avg, right_rho_avg);
-		cycle_count += draw_lines24(width, right_rho_avg, sinvals[right_theta_avg], cosvals[right_theta_avg], mask, image_out, RHO_RESOLUTION);
+		cycle_count += draw_lines24(width, right_rho_avg, sinvals_quantized[right_theta_avg], cosvals_quantized[right_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 
 	// // At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it

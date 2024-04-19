@@ -347,8 +347,8 @@ int main(int argc, char *argv[]) {
       return -1;
    }
 
-   fprintf(sin_file, "static const float sinvals_quantized[] = {");
-   fprintf(cos_file, "static const float cosvals_quantized[] = {");
+   fprintf(sin_file, "static const int sinvals_quantized[] = {");
+   fprintf(cos_file, "static const int cosvals_quantized[] = {");
    fprintf(sin_file_dequantized, "static const float sinvals[] = {");
    fprintf(cos_file_dequantized, "static const float cosvals[] = {");
    for (int i = 0; i < 179; i++) {
