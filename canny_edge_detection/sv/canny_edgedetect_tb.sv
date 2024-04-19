@@ -3,9 +3,9 @@
 
 module canny_edgedetect_tb;
 
-localparam string IMG_IN_NAME  = "../images/copper_720_540.bmp";
-localparam string IMG_OUT_NAME = "../images/output.bmp";
-localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
+localparam string IMG_IN_NAME  = "D:/copper_720_540.bmp";
+localparam string IMG_OUT_NAME = "D:/output.bmp";
+localparam string IMG_CMP_NAME = "D:/stage4_hysteresis.bmp";
 localparam CLOCK_PERIOD = 10;
 
 logic clock = 1'b1;
@@ -26,7 +26,7 @@ logic   out_read_done = '0;
 integer out_errors    = '0;
 
 localparam WIDTH = 720;
-localparam HEIGHT = 540;
+localparam HEIGHT = 54;
 localparam BMP_HEADER_SIZE = 54;
 localparam BYTES_PER_PIXEL = 3;
 localparam BMP_DATA_SIZE = WIDTH*HEIGHT*BYTES_PER_PIXEL;
@@ -145,7 +145,7 @@ initial begin : img_write_process
         out_rd_en = 1'b0;
         if (out_empty == 1'b0) begin
             r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-            $fwrite(out_file, "%c%c%c", out_dout, out_dout, out_dout);
+            $fwrite(out_file, "%c", out_dout);
 
             if (cmp_dout != {3{out_dout}}) begin
                 out_errors += 1;

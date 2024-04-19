@@ -1,7 +1,9 @@
 module canny_edgedetect_top #(
     parameter WIDTH = 720,
     parameter HEIGHT = 540,
-    parameter FIFO_BUFFER_SIZE = 8
+    parameter FIFO_BUFFER_SIZE = 8,
+    parameter ANGLE_RANGE = 180,
+    parameter RADIUS_WIDTH = 16
 ) (
     input logic         clock,
     input logic         reset,
@@ -65,6 +67,9 @@ logic           img_out_wr_en;
 logic           img_out_full;
 logic [7:0]     img_out_din;
 
+// Output wires from hightlight to output FIFO
+logic           hightlight_out_wr_en;
+logic [23:0]    hightlight_out_din;
 
 
 fifo #(
@@ -211,18 +216,22 @@ hysteresis #(
 
 fifo #(
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
-    .FIFO_DATA_WIDTH(8)
+    .FIFO_DATA_WIDTH(24)
 ) fifo_img_out_inst (
     .reset(reset),
     .wr_clk(clock),
-    .wr_en(img_out_wr_en),
-    .din(img_out_din),
+    .wr_en(hightlight_out_wr_en),
+    .din(hightlight_out_din),
     .full(img_out_full),
     .rd_clk(clock),
     .rd_en(img_out_rd_en),
     .dout(img_out_dout),
     .empty(img_out_empty)
 );
+
+logic [$clog2(ANGLE_RANGE)-1:0] temp_angle = 30;
+logic [RADIUS_WIDTH-1:0] temp_radius = 100;
+
 
 hightlight #(
     .WIDTH(WIDTH),
@@ -232,7 +241,11 @@ hightlight #(
     .reset(reset),
     .rd_en(image_rd_en),
     .in_empty(image_empty),
-    .in_dout(image_dout)
+    .in_dout(image_dout),
+    .angle(temp_angle),
+    .radius(temp_radius),
+    .out_wr_en(hightlight_out_wr_en),
+    .out_din(hightlight_out_din)
 );
 
 endmodule

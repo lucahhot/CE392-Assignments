@@ -13,10 +13,10 @@ module hightlight#(
     input  logic        in_empty,
     input  logic [23:0]  in_dout,
     input logic [$clog2(ANGLE_RANGE)-1:0] angle,
-    input logic [RADIUS_WIDTH-1 : 0] radius
-    // output logic        out_wr_en,
+    input logic [RADIUS_WIDTH-1 : 0] radius,
+    output logic        out_wr_en,
     // input  logic        out_full,
-    // output logic [23:0]  out_din
+    output logic [23:0]  out_din
 );
 
 typedef enum logic [1:0] {READING_IMAGE, FULL, FINISHED_DRAWING} image_state_types;
@@ -28,11 +28,14 @@ logic [$clog2(LINE_LENGTH):0] line_index;
 
 logic [$clog2(HEIGHT*WIDTH)-1:0] image_index, image_index_c;
 
+//this wire is for outputing
+logic [$clog2(HEIGHT*WIDTH)-1:0] image_output_index, image_output_index_c;
+
 logic signed [DATA_WIDTH-1:0] sine_angle, cosine_angle;
 
-logic signed [RADIUS_WIDTH-1 : 0] x0, y0;
-logic signed [RADIUS_WIDTH-1 : 0] x_step, y_step;
-logic signed [RADIUS_WIDTH-1 : 0] x1, y1;
+logic signed [2*RADIUS_WIDTH-1 : 0] x0, y0;
+logic signed [2*RADIUS_WIDTH-1 : 0] x_step, y_step;
+logic signed [2*RADIUS_WIDTH-1 : 0] x1, y1;
 //corresponding to y1*width + x1
 logic [RADIUS_WIDTH-1:0] line_image_index;
 
@@ -52,11 +55,13 @@ always_ff @(posedge clock or posedge reset) begin
         whole_image <= '{default: '{default: '0}};
         image_index <= '0;
         line_index <= '0;
+        image_output_index <= '0;
     end else begin
     if(in_empty==1'b0)begin
         image_state <= next_image_state;
         image_index <= image_index_c;
     end
+    image_output_index <= image_output_index_c;
 //        image_state <= next_image_state;
 //        image_index <= image_index_c;
     end
@@ -92,7 +97,7 @@ always_ff @(posedge clock) begin
         if(line_index < LINE_LENGTH) begin
             line_index++;
         end else begin
-            image_state = FINISHED_DRAWING
+            image_state = FINISHED_DRAWING;
         end
     end
 end
@@ -103,10 +108,20 @@ always_comb begin
         y_step = $signed(line_index) * cosine_angle >>> FRAC_BITS;
         x1 = x0 + x_step;
         y1 = y0 + y_step;
-        if(x1 >=0 and y1>=0 and x1 < WIDTH and y1 < HEIGHT) begin
+        if(x1 >=0 && y1>=0 && x1 < WIDTH && y1 < HEIGHT) begin
             line_image_index = y1 * WIDTH + x1;
             whole_image[line_image_index] = 24'b000000001111111100000000;
         end
+    end
+end
+
+always_comb begin
+    image_output_index_c = image_output_index;
+    out_wr_en = 1'b0;
+    out_din = whole_image[image_output_index];
+    if(image_state==FINISHED_DRAWING) begin
+        out_wr_en = 1'b1;
+        image_output_index_c++;
     end
 end
 
