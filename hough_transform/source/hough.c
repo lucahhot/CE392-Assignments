@@ -1,7 +1,7 @@
 #include "hough.h"
 
 // Function to draw/highlight hough lines on original image
-int draw_lines24(int width, int rho, int sin_val, int cos_val, struct pixel24 * mask, struct pixel24* image_out, int rho_resolution)
+int draw_lines24(int height, int width, int rho, int sin_val, int cos_val, struct pixel24 * mask, struct pixel24* image_out, int rho_resolution)
 {
 	int cycle_count = 0;
 	// K_START and K_END are arbitrary values that we need to set as constants
@@ -17,10 +17,13 @@ int draw_lines24(int width, int rho, int sin_val, int cos_val, struct pixel24 * 
 
 			// Highlighting left and right of the main pixel, and 1 pixel above and below
 			for (int offset = -offset_width; offset < offset_width; offset++){
-				// Middle row
-				image_out[y*width + x + offset].r = 0xFF;
-				image_out[y*width + x + offset].g = 0x00;
-				image_out[y*width + x + offset].b = 0x00;
+
+				// Will need to check if the pixel is within the image bounds (only check the x + offset since y is already checked in the mask)
+				if ((x + offset) >= 0 && (x + offset) <= width){
+					image_out[y*width + x + offset].r = 0xFF; 
+					image_out[y*width + x + offset].g = 0x00;
+					image_out[y*width + x + offset].b = 0x00;
+				}
 				cycle_count++;
 			}
 		} else {
@@ -57,7 +60,7 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	// #pragma ivdep
 
 	// y starts from the bottom of the mask to the top of the mask
-	int starting_y = 0;
+	int starting_y = height*MASK_BL_Y;
 	// x starts from the left of the mask to the right of the mask
 	int starting_x = width*MASK_BL_X;
 	printf("\nStarting y index = %d, Ending y index = %d\n", starting_y, height_adjusted);
@@ -204,11 +207,11 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	// At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
 	if (left_theta_avg != 0) {
 		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
-		cycle_count += draw_lines24(width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
+		cycle_count += draw_lines24(height, width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 	if (right_theta_avg != 0) {
 		printf("Drawing right line with theta = %d, rho = %d\n", right_theta_avg, right_rho_avg);
-		cycle_count += draw_lines24(width, right_rho_avg, sinvals_quantized[right_theta_avg], cosvals_quantized[right_theta_avg], mask, image_out, RHO_RESOLUTION);
+		cycle_count += draw_lines24(height, width, right_rho_avg, sinvals_quantized[right_theta_avg], cosvals_quantized[right_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 
 	// // At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it

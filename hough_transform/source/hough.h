@@ -20,16 +20,16 @@
 // These values will depend on the values of rho and theta for each line so it's a bit hard to pre-calculate
 // and optimize, we can constrain them more later on hopefully
 #define K_START -1000
-#define K_END 0
+#define K_END 1000
 
 // The mask factors for all 4 corners
-#define MASK_BL_X 0.1
+#define MASK_BL_X 0.0
 #define MASK_BL_Y (1 - 0.95)
-#define MASK_BR_X 0.9
+#define MASK_BR_X 1.0
 #define MASK_BR_Y (1 - 0.95)
 #define MASK_TL_X 0.4
 #define MASK_TL_Y 1 - 0.65
-#define MASK_TR_X 0.6
+#define MASK_TR_X 0.85
 #define MASK_TR_Y (1 - 0.65)
 
 #define high_threshold 48
