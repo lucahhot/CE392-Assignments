@@ -1,5 +1,4 @@
 module bram_2d_top #(
-    parameter ADDR_WIDTH = 10,
     parameter DATA_WIDTH = 32, 
     parameter WIDTH = 720,
     parameter HEIGHT = 540
@@ -9,14 +8,13 @@ module bram_2d_top #(
     output logic [DATA_WIDTH-1:0]       output_data
 );
 
-logic                         wr_en;
-logic    [ADDR_WIDTH-1:0]    addr_x;
-logic    [ADDR_WIDTH-1:0]    addr_y;
-logic    [DATA_WIDTH-1:0]    wr_data;
+logic                           wr_en;
+logic    [$clog2(WIDTH)-1:0]    addr_x;
+logic    [$clog2(HEIGHT)-1:0]   addr_y;
+logic    [DATA_WIDTH-1:0]       wr_data;
 
 // Instantiate the BRAM module
 bram_2d #(
-    .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .WIDTH(WIDTH),
     .HEIGHT(HEIGHT)

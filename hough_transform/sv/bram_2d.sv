@@ -3,17 +3,16 @@
 // since synplify_premier doesn't support 2D arrays as BRAM
 
 module bram_2d #(
-    parameter ADDR_WIDTH = 10,
     parameter DATA_WIDTH = 32, 
     parameter WIDTH = 720,
     parameter HEIGHT = 540
 ) (
-    input logic                         clock,
-    input logic                         wr_en,
-    input logic     [ADDR_WIDTH-1:0]    addr_x,
-    input logic     [ADDR_WIDTH-1:0]    addr_y,
-    input logic     [DATA_WIDTH-1:0]    wr_data,
-    output logic    [DATA_WIDTH-1:0]    rd_data
+    input   logic                           clock,
+    input   logic                           wr_en,
+    input   logic   [$clog2(WIDTH)-1:0]     addr_x,
+    input   logic   [$clog2(HEIGHT)-1:0]    addr_y,
+    input   logic   [DATA_WIDTH-1:0]        wr_data,
+    output  logic   [DATA_WIDTH-1:0]        rd_data
 );
 
 // BRAM depth will be the product of the width and height
