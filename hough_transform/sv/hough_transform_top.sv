@@ -53,7 +53,7 @@ fifo #(
 // Wires
 logic hough_wr_en;
 logic hough_out_full;
-logic [7:0] hough_out;
+logic [15:0] hough_out;
 
 hough_transform #(
     .WIDTH(WIDTH),

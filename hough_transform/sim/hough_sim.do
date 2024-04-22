@@ -28,7 +28,20 @@ vlog -work work "../sv/hough_transform_tb.sv"
 vsim -classdebug -voptargs=+acc +notimingchecks -L work work.hough_transform_tb -wlf hough_transform_tb.wlf
 
 # do iir_wave.do
+add wave -noupdate -group hough_transform_tb/hough_top_inst
+add wave -noupdate -group hough_transform_tb/hough_top_inst -radix hexadecimal /hough_transform_tb/hough_top_inst/*
 
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst -radix hexadecimal /hough_transform_tb/hough_top_inst/hough_transform_inst/*
+
+add wave -noupdate -group hough_transform_tb/hough_top_inst/input_fifo_inst
+add wave -noupdate -group hough_transform_tb/hough_top_inst/input_fifo_inst -radix hexadecimal /hough_transform_tb/hough_top_inst/input_fifo_inst/*
+
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst -radix hexadecimal /hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst/*
+
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst/accum_buff_inst
+add wave -noupdate -group hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst/accum_buff_inst -radix hexadecimal /hough_transform_tb/hough_top_inst/hough_transform_inst/accum_buff_inst/accum_buff_inst/*
 
 run -all
 #quit;

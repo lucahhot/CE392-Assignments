@@ -5,14 +5,16 @@ module hough_transform_tb;
 `include "globals.sv"
 
 localparam IMG_IN_NAME = "../images/stage4_hysteresis.bmp";
-localparam FILE_OUT_NAME = "../sim/accum_buff_out.txt"
-localparam FILE_CMP_NAME = "../source/accum.txt"
+localparam FILE_OUT_NAME = "../sim/accum_buff_out.txt";
+localparam FILE_CMP_NAME = "../source/accum.txt";
 
 localparam BMP_HEADER_SIZE = 138;
 localparam BYTES_PER_PIXEL = 3;
-localparam BMP_DATA_SIZE = WIDHT*HEIGHT*BYTES_PER_PIXEL;
+localparam BMP_DATA_SIZE = WIDTH*HEIGHT*BYTES_PER_PIXEL;
 
-logic out_rd_done, in_write_done;
+logic out_rd_done = '0;
+logic in_write_done = '0;
+integer out_errors = '0;
 
 logic clock = 1'b1;
 logic reset = '0;
@@ -31,7 +33,7 @@ logic [7:0] accum_buff_c    [ACCUM_BUFF_SIZE-1:0];
 
 hough_transform_top #(
     .WIDTH(WIDTH),
-    .HEIGHT(HEGIHT),
+    .HEIGHT(HEIGHT),
     .X_WIDTH(X_WIDTH),
     .Y_WIDTH(Y_WIDTH),
     .X_START(X_START),
@@ -76,9 +78,9 @@ end
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
-        accum <= '{default: '{default: '0}};
+        accum_buff <= '{default: '{default: '0}};
     end else begin
-        accun <= accum_buff_c;
+        accum_buff <= accum_buff_c;
     end
 end
 
@@ -95,7 +97,7 @@ initial begin : tb_process
     @(posedge clock);
     start = 1'b0;
 
-    wait(out_read_done);
+    wait(out_rd_done);
     end_time = $time;
 
     // report metrics
@@ -126,8 +128,8 @@ initial begin : img_read_process
     i = 0;
     while ( i < BMP_DATA_SIZE ) begin
         @(negedge clock);
-        in_wr_en = 1'b0;
-        if (in_full == 1'b0) begin
+        hough_in_wr_en = 1'b0;
+        if (hough_in_full == 1'b0) begin
             r = $fread(in_din, in_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
             // get first 8 bits, B&W values so should be the same
             hough_data_in = in_din[7:0];
@@ -151,7 +153,7 @@ initial begin: output_write_process
         @(negedge clock);
         hough_out_rd_en = 1'b0;
         if (hough_out_empty == 1'b0) begin
-            accum_buff_c[hough_data_out] = accum_buff[hough_data_out] + 16'b1;
+            accum_buff_c[hough_data_out] = accum_buff[hough_data_out] + 8'b1;
             // i += BYTES_PER_PIXEL;
         end
     end
@@ -162,15 +164,15 @@ initial begin : buff_cmp_process
     int out_file;
     int cmp_file;
     logic [7:0] bmp_header [0:BMP_HEADER_SIZE-1];
+    logic [7:0] cmp_dout;
 
     @(negedge reset);
     @(negedge clock);
 
-    $display("@ %0t: Comparing file %s...", $time, IMG_OUT_NAME);
+    $display("@ %0t: Comparing file %s...", $time, FILE_OUT_NAME);
     
-    out_file = $fopen(IMG_OUT_NAME, "wb");
-    cmp_file = $fopen(IMG_CMP_NAME, "rb");
-    out_rd_en = 1'b0;
+    out_file = $fopen(FILE_OUT_NAME, "wb");
+    cmp_file = $fopen(FILE_CMP_NAME, "rb");
 
     wait(hough_done);
 
@@ -188,10 +190,9 @@ initial begin : buff_cmp_process
     end
 
     @(negedge clock);
-    out_rd_en = 1'b0;
     $fclose(out_file);
     $fclose(cmp_file);
-    out_read_done = 1'b1;
+    out_rd_done = 1'b1;
 end
 
 endmodule

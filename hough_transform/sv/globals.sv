@@ -12,13 +12,13 @@ localparam DATA_SIZE = 32;
 localparam FIFO_BUFFER_SIZE = 32;
 
 localparam RHO_RESOLUTION = 1;
-localparam THETAS = 180;
+localparam THETAS = 16'h00b4;
 localparam WIDTH = 1200;
 localparam HEIGHT = 900;
 localparam RHOS = $rtoi($sqrt(WIDTH*WIDTH + HEIGHT*HEIGHT)/RHO_RESOLUTION);
 localparam IMG_BITS = $clog2(WIDTH);
-localparam X_WIDTH = IMG_BITS;
-localparam Y_WIDTH = $clog2(HEIGHT/2);
+localparam X_WIDTH = 16;
+localparam Y_WIDTH = 16;
 localparam THETA_BITS = $clog2(THETAS);
 
 // localparam X_START = -WIDTH/2;

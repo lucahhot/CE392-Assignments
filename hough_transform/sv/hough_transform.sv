@@ -61,7 +61,7 @@ accum_buff_top #(
     .x_in_full(x_in_full),
     .y_in_full(y_in_full),
     .in_wr_en(accum_wr_en),
-    .theta_din(theta_din),
+    .theta_din(theta),
     .data_in_x(data_in_x),
     .data_in_y(data_in_y),
     .row_out_empty(row_out_empty),
@@ -95,6 +95,7 @@ always_comb begin
     count_c = count;
     next_state = state;
     accum_wr_en = 1'b0;
+    in_rd_en = 1'b0;
 
     case (state) 
         INIT: begin
@@ -136,12 +137,17 @@ always_comb begin
         end
 
         THETA_LOOP: begin
-            theta_c = theta + 16'b1;
-            accum_wr_en = 1'b1;
             if (theta == THETAS-1 && count == THETAS-1) begin
                 next_state = X_Y_LOOP;
+                theta_c = 16'b0;
             end else begin
-                next_state = OUTPUT;
+                if (theta_in_full == 1'b0) begin
+                    theta_c = theta + 16'b1;
+                    accum_wr_en = 1'b1;
+                    next_state = OUTPUT;
+                end else begin
+                    next_state = THETA_LOOP;
+                end
             end
         end
 
@@ -161,6 +167,7 @@ always_comb begin
             next_state = INIT;
             hough_done = '0;
             accum_wr_en = '0;
+            in_rd_en = 1'b0;
         end
     endcase
 end
