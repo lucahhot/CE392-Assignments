@@ -1,0 +1,211 @@
+m255
+K4
+z2
+!s11f vlog 2020.1 2020.01, Jan 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/home/mwp8699/CE392-Assignments/hough_transform/sim
+vaccum_buff_calc
+Z1 DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
+Z2 !s110 1713802806
+!i10b 1
+!s100 ;zO_:`G:n10;LOSDVNc7P2
+Z3 !s11b Dg1SIo80bB@j0V0VzS_@n1
+IJ^`czdaDUon5HoZ>eC2R53
+Z4 VDg1SIo80bB@j0V0VzS_@n1
+S1
+R0
+Z5 w1713800753
+8../sv/accum_buff_calc.sv
+F../sv/accum_buff_calc.sv
+!i122 30
+L0 1 129
+Z6 OL;L;2020.1;71
+r1
+!s85 0
+31
+Z7 !s108 1713802806.000000
+!s107 ../sv/accum_buff_calc.sv|
+!s90 -work|work|../sv/accum_buff_calc.sv|
+!i113 0
+Z8 o-work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z9 tCvgOpt 0
+vaccum_buff_top
+R1
+R2
+!i10b 1
+!s100 QF6L9H@8Ho;?^3JU3bX=T0
+R3
+Ihm9<zDDIf53h8P>]FNC:M2
+R4
+S1
+R0
+R5
+8../sv/accum_buff_top.sv
+F../sv/accum_buff_top.sv
+!i122 31
+L0 1 122
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/accum_buff_top.sv|
+!s90 -work|work|../sv/accum_buff_top.sv|
+!i113 0
+R8
+R9
+vcordic
+R1
+R2
+!i10b 1
+!s100 c<biL918ikUi9XS>Tkz:]3
+R3
+ITDQ27D9D49fbmHlIhHIOz1
+R4
+S1
+R0
+R5
+8../sv/cordic.sv
+F../sv/cordic.sv
+!i122 28
+L0 1 125
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/cordic.sv|
+!s90 -work|work|../sv/cordic.sv|
+!i113 0
+R8
+R9
+vcordic_stage
+R1
+R2
+!i10b 1
+!s100 ;>J<D586FC7IaGl5=Fk1<1
+R3
+I?3KY2WV[1<nRd@K=]]U=;1
+R4
+S1
+R0
+R5
+8../sv/cordic_stage.sv
+F../sv/cordic_stage.sv
+!i122 27
+L0 1 48
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/cordic_stage.sv|
+!s90 -work|work|../sv/cordic_stage.sv|
+!i113 0
+R8
+R9
+vcordic_top
+R1
+R2
+!i10b 1
+!s100 AL=`XDHVjIfG8SAo5V0Aj0
+R3
+I6YTI:_<m1Gf8WNOLd6Dll2
+R4
+S1
+R0
+R5
+8../sv/cordic_top.sv
+F../sv/cordic_top.sv
+!i122 29
+L0 1 96
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/cordic_top.sv|
+!s90 -work|work|../sv/cordic_top.sv|
+!i113 0
+R8
+R9
+vfifo
+R1
+R2
+!i10b 1
+!s100 JJ9WTn?^46FJn6Sib6ECo1
+R3
+Ij:[k:a4XRZ6Im<1oU4m=41
+R4
+S1
+R0
+R5
+8../sv/fifo.sv
+F../sv/fifo.sv
+!i122 26
+L0 2 77
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/fifo.sv|
+!s90 -work|work|../sv/fifo.sv|
+!i113 0
+R8
+R9
+vhough_transform
+R1
+R2
+!i10b 1
+!s100 ZID;13I3T9N6W=0=l31a?0
+R3
+I[lQCAUPO=UiD`R9fzm7B:2
+R4
+S1
+R0
+w1713802666
+8../sv/hough_transform.sv
+F../sv/hough_transform.sv
+!i122 32
+L0 1 168
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/hough_transform.sv|
+!s90 -work|work|../sv/hough_transform.sv|
+!i113 0
+R8
+R9
+vhough_transform_top
+R1
+R2
+!i10b 1
+!s100 WH:F8mT]E4[gffmf34Gb92
+R3
+I`0>OYHkjTJ@:>T4mn>^Jk0
+R4
+S1
+R0
+w1713802798
+8../sv/hough_transform_top.sv
+F../sv/hough_transform_top.sv
+!i122 33
+L0 1 104
+R6
+r1
+!s85 0
+31
+R7
+!s107 ../sv/hough_transform_top.sv|
+!s90 -work|work|../sv/hough_transform_top.sv|
+!i113 0
+R8
+R9
