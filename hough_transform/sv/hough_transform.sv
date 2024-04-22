@@ -142,7 +142,6 @@ always_comb begin
                 theta_c = 16'b0;
             end else begin
                 if (theta_in_full == 1'b0) begin
-                    theta_c = theta + 16'b1;
                     accum_wr_en = 1'b1;
                     next_state = OUTPUT;
                 end else begin
@@ -154,8 +153,8 @@ always_comb begin
         OUTPUT: begin
             if (row_out_empty == 1'b0) begin
                 row_out_rd_en = 1'b1;
-                buffer_index = RHOS * (row_out) + count;
-                count_c = count + 4'b1;
+                buffer_index = RHOS * (row_out) + theta;
+                theta_c = theta + 16'b1;
             end
             next_state = THETA_LOOP;
         end
