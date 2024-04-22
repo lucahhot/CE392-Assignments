@@ -5,10 +5,13 @@ module hough_transform #(
     parameter Y_WIDTH,
     parameter X_START,
     parameter Y_START,
+    parameter X_END,
+    parameter Y_END,
     parameter THETAS,
     parameter RHO_RESOLUTION,
     parameter RHOS,
     parameter IMG_BITS,
+    parameter THETA_BITS,
     parameter CORDIC_DATA_WIDTH,
     parameter BITS,
     parameter FIFO_BUFFER_SIZE,
@@ -40,7 +43,7 @@ logic theta_in_full, x_in_full, y_in_full;
 logic accum_wr_en, row_out_empty, row_out_rd_en;
 logic [CORDIC_DATA_WIDTH-1:0] theta_din, data_in_x, data_in_y, row_out;
 
-logic [ACCUM_BITS-1:0] buffer_index;
+// logic [ACCUM_BITS-1:0] buffer_index;
 
 accum_buff_top #(
     .THETAS(THETAS),
@@ -91,7 +94,7 @@ always_comb begin
     theta_c = theta;
     count_c = count;
     next_state = state;
-    in_wr_en = 1'b0;
+    accum_wr_en = 1'b0;
 
     case (state) 
         INIT: begin
@@ -108,7 +111,7 @@ always_comb begin
         X_Y_LOOP: begin
             if (in_empty == 1'b0) begin
                 in_rd_en = 1'b1;
-                if (in_din != '0) begin
+                if (in_dout != '0) begin
                     next_state = THETA_LOOP;
                     data_in_x = x;
                     data_in_y = y;
@@ -154,10 +157,10 @@ always_comb begin
         default: begin
             theta_c = '0;
             count_c = '0;
-            accum_buff = '{default: '{default: '0}};
             buffer_index = 'X;
             next_state = INIT;
             hough_done = '0;
+            accum_wr_en = '0;
         end
     endcase
 end

@@ -61,7 +61,7 @@ void hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, in
 	// Now draw the highlighted lines on the original image_in
 	for(int i = 0; i < rho_range; i++){
 		for(int j=0; j< THETAS; j++){
-			fprintf( accum_file, "%04x\n", accum_buff[i][j] );
+			fprintf( accum_file, "%02x\n", accum_buff[i][j] );
 			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
 			// Sending the rho and theta values to draw_lines function
 			draw_lines24(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
@@ -144,7 +144,7 @@ void hough_transform32(unsigned char *hysteresis_data, struct pixel32 * mask, in
 		for(int j=0; j< THETAS; j++){
 			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
 			// Sending the rho and theta values to draw_lines function
-			fprintf( accum_file, "%04x\n", accum_buff[i][j] );
+			fprintf( accum_file, "%02x\n", accum_buff[i][j] );
 			draw_lines32(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
 			}
 		}

@@ -36,10 +36,13 @@ hough_transform_top #(
     .Y_WIDTH(Y_WIDTH),
     .X_START(X_START),
     .Y_START(Y_START),
+    .X_END(X_END),
+    .Y_END(Y_END),
     .THETAS(THETAS),
     .RHO_RESOLUTION(RHO_RESOLUTION),
     .RHOS(RHOS),
     .IMG_BITS(IMG_BITS),
+    .THETA_BITS(THETA_BITS),
     .CORDIC_DATA_WIDTH(CORDIC_DATA_WIDTH),
     .BITS(BITS),
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
@@ -172,18 +175,16 @@ initial begin : buff_cmp_process
     wait(hough_done);
 
     i = 0;
-    while (i < BMP_DATA_SIZE) begin
+    while (i < ACCUM_BUFF_SIZE) begin
         @(negedge clock);
-        r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-        $fwrite(out_file, "%c", out_dout);
+        r = $fread(cmp_dout, cmp_file, i, 1);
+        $fwrite(out_file, "%c", accum_buff[i]);
 
-            if (cmp_dout != {3{out_dout}}) begin
-                out_errors += 1;
-                // $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{out_dout}}, cmp_dout, i);
-            end
-            out_rd_en = 1'b1;
-            i += BYTES_PER_PIXEL;
+        if (cmp_dout != accum_buff[i]) begin
+            out_errors += 1;
+            // $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{out_dout}}, cmp_dout, i);
         end
+        i += 1;
     end
 
     @(negedge clock);
