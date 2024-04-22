@@ -9,6 +9,8 @@ int draw_lines24(int height, int width, int rho, int sin_val, int cos_val, struc
 		// Need to multiply by rho_resolution to get the correct cartesian values since we divide by it in the hough transform
 		int x = DEQUANTIZE_I((rho * cos_val) + k * (-sin_val))*rho_resolution;
 		int y = DEQUANTIZE_I((rho * sin_val) + k * (cos_val))*rho_resolution;
+		// int x = ((rho * cos_val) + k * (-sin_val))*rho_resolution;
+		// int y = ((rho * sin_val) + k * (cos_val))*rho_resolution;
 
 		// Check that the pixel is inside the mask (will naturally be inside the image if this is the case)
 		if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
@@ -60,21 +62,37 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	// #pragma ivdep
 
 	// y starts from the bottom of the mask to the top of the mask
-	int starting_y = height*MASK_BL_Y;
+	int starting_y = height*MASK_BL_Y - 1;
 	// x starts from the left of the mask to the right of the mask
-	int starting_x = width*MASK_BL_X;
+	int starting_x = width*MASK_BL_X - 1;
 	printf("\nStarting y index = %d, Ending y index = %d\n", starting_y, height_adjusted);
 	printf("Starting x index = %d, Ending x index = %d\n", starting_x, width_adjusted);
+
+    FILE *f = fopen("rho_results.txt", "w");
+	if (f == NULL)
+	{
+		printf("Error opening file!\n");
+		return -1;
+	}
+
+	FILE *f2 = fopen("mask_values.txt", "w");
+	if (f2 == NULL)
+	{
+		printf("Error opening file!\n");
+		return -1;
+	}
 
 	for (int y = starting_y; y < height_adjusted; y++){
 		// #pragma ivdep
 		for (int x = starting_x; x < width_adjusted; x++){
 			// If the pixel is inside the mask only
-			if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF){
+			fprintf(f2, "x = %d, y = %d, mask value = %d\n", x, y, mask[y*width + x].r);
+			if (mask[y*width + x].r >= 0x0F && mask[y*width + x].g >= 0x0F && mask[y*width + x].b >= 0x0F){
 				if (hysteresis_data[y*width + x] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
 					// #pragma unroll 8
 					for (int theta = 0; theta < THETAS; theta++){
 						int rho = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta] + (y/RHO_RESOLUTION)*sinvals_quantized[theta]);
+						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, cos_quantized = %d, sin_quantized = %d\n", rho, x, y, theta, cosvals_quantized[theta], sinvals_quantized[theta]);
 						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
 						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
 						cycle_count++;
@@ -88,19 +106,22 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 		}
 	}
 
-	// Printing out accum_buff values to a textfile for testing purposes
-	FILE *f = fopen("accum_buff_results.txt", "w");
-	if (f == NULL)
-	{
-	    printf("Error opening file!\n");
-	    return -1;
-	}
-	for (int i = 0; i < rho_range; i++){
-		for (int j = 0; j < THETAS; j++){
-			fprintf(f, "%d\n", accum_buff[i][j]);
-		}
-	}
 	fclose(f);
+	fclose(f2);
+
+	// Printing out accum_buff values to a textfile for testing purposes
+	// FILE *f = fopen("accum_buff_results.txt", "w");
+	// if (f == NULL)
+	// {
+	//     printf("Error opening file!\n");
+	//     return -1;
+	// }
+	// for (int i = 0; i < rho_range; i++){
+	// 	for (int j = 0; j < THETAS; j++){
+	// 		fprintf(f, "%d\n", accum_buff[i][j]);
+	// 	}
+	// }
+	// fclose(f);
 
 	// // Array to hold the rho and theta values of the lines that meet the threshold
 	int left_rhos[100]; // Technically there can be rho_range*THETAS number of lines but bringing this down because of a segfault error
@@ -222,10 +243,12 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	if (left_theta_avg != 0) {
 		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
 		cycle_count += draw_lines24(height, width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
+		// cycle_count += draw_lines24(height, width, left_rho_avg, sinvals[left_theta_avg], cosvals[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 	if (right_theta_avg != 0) {
 		printf("Drawing right line with theta = %d, rho = %d\n", right_theta_avg, right_rho_avg);
 		cycle_count += draw_lines24(height, width, right_rho_avg, sinvals_quantized[right_theta_avg], cosvals_quantized[right_theta_avg], mask, image_out, RHO_RESOLUTION);
+		// cycle_count += draw_lines24(height, width, right_rho_avg, sinvals[right_theta_avg], cosvals[right_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
 
 	// // At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it

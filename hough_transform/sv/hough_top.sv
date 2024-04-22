@@ -136,9 +136,10 @@ bram #(
     .BRAM_DATA_WIDTH(8)
 ) mask_bram_inst (
     .clock(clock),
+    .rd_addr(mask_bram_rd_addr),
+    .wr_addr(mask_bram_wr_addr),
     .wr_en(mask_bram_wr_en),
     .wr_data(mask_bram_wr_data),
-    .wr_addr(mask_bram_wr_addr),
     .rd_data(mask_bram_rd_data)
 );
 
@@ -247,9 +248,10 @@ bram #(
     .BRAM_DATA_WIDTH(8)
 ) hysteresis_bram_inst (
     .clock(clock),
+    .rd_addr(hysteresis_bram_rd_addr),
+    .wr_addr(hysteresis_bram_wr_addr),
     .wr_en(hysteresis_bram_wr_en),
     .wr_data(hysteresis_bram_wr_data),
-    .wr_addr(hysteresis_bram_wr_addr),
     .rd_data(hysteresis_bram_rd_data)
 );
 

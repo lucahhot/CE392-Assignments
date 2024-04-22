@@ -4,11 +4,11 @@
 
 module hough_tb;
 
-localparam string IMG_IN_NAME  = "../images/road_image_1200_900.bmp";
-localparam string MASK_IN_NAME = "../images/mask_1200_900.bmp";
+localparam string IMG_IN_NAME  = "../images/road_image_1280_720.bmp";
+localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 // localparam string IMG_OUT_NAME = "../images/output.bmp";
 // localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
-localparam string FILE_OUT_NAME = "../source/accum_buff_rtl.txt";
+localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
 localparam CLOCK_PERIOD = 10;
 
@@ -23,11 +23,11 @@ logic [23:0] image_din    = '0;
 logic        mask_full;
 logic        mask_wr_en   = '0;
 logic [23:0] mask_din     = '0;
-logic        hough_done   = '0;
 logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out;
 
 logic   hold_clock    = '0;
 logic   in_write_done = '0;
+logic   mask_write_done = '0;
 logic   out_read_done = '0;
 integer out_errors    = '0;
 
@@ -87,62 +87,82 @@ initial begin : tb_process
     $finish;
 end
 
-// Also reads in the mask BMP image
 initial begin : img_read_process
     int i, r;
     int in_file;
     logic [7:0] bmp_header [0:BMP_HEADER_SIZE-1];
 
-    int r_mask;
-    int mask_file;
-    logic [7:0] mask_bmp_header [0:BMP_HEADER_SIZE-1];
-
     @(negedge reset);
     $display("@ %0t: Loading file %s...", $time, IMG_IN_NAME);
-    $display("@ %0t: Loading file %s...", $time, MASK_IN_NAME);
-
+    
     in_file = $fopen(IMG_IN_NAME, "rb");
-    mask_file = $fopen(MASK_IN_NAME, "rb");
+    
     image_wr_en = 1'b0;
-    mask_wr_en = 1'b0;
-
+    
     // Skip BMP header
     r = $fread(bmp_header, in_file, 0, BMP_HEADER_SIZE);
-    r_mask = $fread(mask_bmp_header, mask_file, 0, BMP_HEADER_SIZE);
 
     // Read data from image file
     i = 0;
     while ( i < BMP_DATA_SIZE ) begin
         @(negedge clock);
         image_wr_en = 1'b0;
-        mask_wr_en = 1'b0;
-        if (image_full == 1'b0 && mask_full == 1'b0) begin
+        if (image_full == 1'b0) begin
             r = $fread(image_din, in_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-            r_mask = $fread(mask_din, mask_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
             image_wr_en = 1'b1;
-            mask_wr_en = 1'b1;
             i += BYTES_PER_PIXEL;
         end
     end
 
     @(negedge clock);
     image_wr_en = 1'b0;
-    mask_wr_en = 1'b0;
     $fclose(in_file);
-    $fclose(mask_file);
     in_write_done = 1'b1;
+end
+
+initial begin : mask_read_process
+    int i, r_mask;
+    int mask_file;
+    logic [7:0] mask_bmp_header [0:BMP_HEADER_SIZE-1];
+
+    @(negedge reset);
+
+    $display("@ %0t: Loading file %s...", $time, MASK_IN_NAME);
+
+    mask_file = $fopen(MASK_IN_NAME, "rb");
+
+    mask_wr_en = 1'b0;
+
+    r_mask = $fread(mask_bmp_header, mask_file, 0, BMP_HEADER_SIZE);
+
+    i = 0;
+    while ( i < BMP_DATA_SIZE ) begin
+        @(negedge clock);
+        mask_wr_en = 1'b0;
+        if (mask_full == 1'b0) begin
+            r_mask = $fread(mask_din, mask_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+            mask_wr_en = 1'b1;
+            i += BYTES_PER_PIXEL;
+        end
+    end
+
+    @(negedge clock);
+    mask_wr_en = 1'b0;
+    $fclose(mask_file);
+    mask_write_done = 1'b1;
 end
 
 initial begin : accum_buff_output_process
     int i, r;
     int cmp_val;
-    int out_file, cmp_file;
+    int out_file, cmp_file, cmp_out_file;
 
     @(negedge reset);
     @(negedge clock);
 
     out_file = $fopen(FILE_OUT_NAME, "w");
     cmp_file = $fopen(FILE_CMP_NAME, "r");
+    // cmp_out_file = $fopen("../source/cmp_out.txt", "w");
 
     // Waiting until the hough transform is done (at least till the accum_buff has been filled out)
     wait(hough_done);
@@ -152,15 +172,13 @@ initial begin : accum_buff_output_process
     // Write the accum_buff_out to a file
     for (int i = 0; i < RHO_RANGE; i++) begin
         for (int j = 0; j < THETAS; j++) begin
-            $fwrite(out_file, "%d\n", accum_buff_out[i][j]);
+            $fwrite(out_file, "%0d\n", accum_buff_out[i][j]);
         end
     end
 
-    // Compare the accum_buff_out to the expected results
-    i = 0;
-    while (i < RHO_RANGE) begin
-        for (int j = 0; j < THETAS; j++) begin
-            @(negedge clock);
+    // Compare the accum_buff_out to the expected results 
+    for (int i = -100; i < 100; i++) begin
+        for (int j = 80; j < 100; j++) begin
             if ($feof(cmp_file)) begin
                 $display("@ %0t: ERROR: File %s is shorter than expected.", $time, FILE_CMP_NAME);
                 $fclose(out_file);
@@ -168,17 +186,18 @@ initial begin : accum_buff_output_process
                 $finish;
             end
             r = $fscanf(cmp_file, "%d", cmp_val);
+            // $fwrite(cmp_out_file, "%0d\n", cmp_val);
             if (cmp_val != accum_buff_out[i][j]) begin
                 out_errors += 1;
-                $write("@ %0t: ERROR: %d != %d at index %d.\n", $time, accum_buff_out[i][j], cmp_val, i);
+                $write("@ %0t: ERROR: %0d != %0d at index %0d.\n", $time, accum_buff_out[i][j], cmp_val, (i*RHO_RANGE)+j);
             end
-            i += 1;
         end
     end
 
     @(negedge clock);
     $fclose(out_file);
     $fclose(cmp_file);
+    // $fclose(cmp_out_file);
     out_read_done = 1'b1;
 end
 

@@ -52,7 +52,7 @@ always_comb begin
             // Reset the x and y coordinates once we are in the IDLE state and we see there is a value inside the input FIFO
             if (in_empty == 1'b0) begin
                 next_state = GS;
-                x_c = 0;
+                x_c = 0; 
                 y_c = 0;
             end
         end
@@ -90,8 +90,8 @@ always_comb begin
             out_wr_addr = '0;
             next_state = IDLE;
             gs_c = 8'hX;
-            x_c = '0;
-            y_c = '0;
+            x_c = 'X;
+            y_c = 'X;
         end
 
     endcase

@@ -92,8 +92,9 @@ case(state)
             if (counter < WIDTH + 2) begin
                 if (in_empty == 1'b0)
                     counter_c++;
-            end else 
+            end else begin
                 next_state = HYSTERESIS;
+            end
         end
         // Sobel HYSTERESISing
         HYSTERESIS: begin

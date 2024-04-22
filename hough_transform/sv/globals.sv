@@ -1,17 +1,17 @@
 // Image dimensions
-localparam WIDTH = 720;
-localparam HEIGHT = 540;
+localparam WIDTH = 1280;
+localparam HEIGHT = 720;
 localparam IMAGE_SIZE = WIDTH * HEIGHT;
 localparam FIFO_BUFFER_SIZE = 8;
 
 // Mask info
-localparam MASK_BL_X = 0.0;
+localparam MASK_BL_X = 0.1;
 localparam MASK_BL_Y = (1 - 0.95);
-localparam MASK_BR_X = 1.0;
+localparam MASK_BR_X = 0.9;
 localparam MASK_BR_Y = (1 - 0.95);
 localparam MASK_TL_X = 0.4;
 localparam MASK_TL_Y = 1 - 0.65;
-localparam MASK_TR_X = 0.85;
+localparam MASK_TR_X = 0.6;
 localparam MASK_TR_Y = (1 - 0.65);
 
 // Adjusted height and width to save cycles

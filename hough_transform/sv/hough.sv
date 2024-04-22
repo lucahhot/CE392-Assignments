@@ -37,7 +37,7 @@ typedef enum logic [1:0] {IDLE, ACCUMULATE, THETA_LOOP, SELECT} state_types;
 state_types state, next_state;
 
 // Unroll factor for the accumulation stage (the theta loop)
-parameter THETA_UNROLL = 4;
+parameter THETA_UNROLL = 1;
 
 // X and Y indices for the accumulation stage (using the adjusted width and height)
 logic [$clog2(WIDTH)-1:0] x, x_c;
@@ -50,7 +50,10 @@ logic [7:0] hysteresis, mask;
 logic [$clog2(THETAS)-1:0] theta, theta_c;
 
 // Wire to hold rho value (will be calculated using the x and y values)
-logic [15:0] rho;
+logic signed [15:0] rho;
+
+// Quantized sin and cos wires for debugging
+logic signed [15:0] sin_quantized, cos_quantized;
 
 // Accumulator buffer (2D array of all possible rhos and thetas)
 // Each entry will be a 16 bit value as specified in the C code by Professor Zaretsky
@@ -94,6 +97,9 @@ always_comb begin
                 // We start at STARTING_X and STARTING_Y to save cycles
                 hysteresis_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
                 mask_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
+                // Set the initial x and y coordinates
+                x_c = STARTING_X;
+                y_c = STARTING_Y;
                 // Zero out the accum_buff array
                 accum_buff_c = '{default: '{default: '{default: '0}}};
             end
@@ -106,8 +112,8 @@ always_comb begin
             hysteresis = hysteresis_bram_rd_data;
             mask = mask_bram_rd_data;
             // Only jump into the THETA stage if the pixel is an edge pixel (hysteresis != 0x00) and
-            // the pixel is inside the mask (mask == 0xFF)
-            if (hysteresis != 8'h00 && mask == 8'hFF) begin
+            // the pixel is inside the mask (mask >= 0x0F because some mask values are like 0xFE, 0xFD but some are 0x03)
+            if (hysteresis != 8'h00 && mask >= 8'h0F) begin
                 next_state = THETA_LOOP;
             end else begin
                 // Increment the x and y values to move to the next pixel
@@ -116,7 +122,7 @@ always_comb begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT;
                     end else begin
-                        x_c = 0;
+                        x_c = STARTING_X;
                         y_c = y + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
                         hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
@@ -138,7 +144,10 @@ always_comb begin
             // For loop to perform the unrolled theta loop
             for (int theta_index = theta; theta_index < theta + THETA_UNROLL; theta_index++) begin
                 // Calculate the rho value using the x, y, and quantized trig values in globals.sv
-                rho = x * COS_QUANTIZED[theta_index] + y * SIN_QUANTIZED[theta_index];
+                // rho = DEQUANTIZE(x * COS_QUANTIZED[theta_index]) + DEQUANTIZE(y * SIN_QUANTIZED[theta_index]);
+                sin_quantized = SIN_QUANTIZED[theta_index];
+                cos_quantized = COS_QUANTIZED[theta_index];
+                rho = DEQUANTIZE($signed(x * COS_QUANTIZED[theta_index]) + $signed(y * SIN_QUANTIZED[theta_index]));
                 // Increment the accumulator buffer value at the rho and theta index by 1
                 accum_buff_c[rho][theta_index] = accum_buff[rho][theta_index] + 1;
             end
@@ -147,6 +156,7 @@ always_comb begin
             // If we've reached the end of thetas, go back to the ACCUMULATE stage to move to the next pixel
             if (theta_c > THETAS) begin
                 next_state = ACCUMULATE;
+                theta_c = 0;
                 // We need to update the x and y coordinates to and set the addresses for the next pixel
                 // so the BRAM outputs can be ready in the next cycle
                 if (x == WIDTH_ADJUSTED-1) begin
