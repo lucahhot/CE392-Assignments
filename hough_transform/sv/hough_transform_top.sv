@@ -22,7 +22,8 @@ module hough_transform_top #(
     input   logic [7:0]     data_in,
     output  logic           out_empty,
     input   logic           out_rd_en,
-    output  logic [15:0]    data_out
+    output  logic [15:0]    data_out,
+    output  logic           hough_done
 );
 
 // Wires
@@ -93,16 +94,5 @@ fifo #(
     .dout(data_out),
     .empty(out_empty)
 );
-
-fifo #(
-    .FIFO_DATA_WIDTH(1),
-    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
-) done_fifo_inst (
-    .reset(reset),
-    .wr_clk(clock),
-    .wr_en(hough_wr_en),
-    .din(hough_done),
-    .full(//CONTINUE HERE)
-)
 
 endmodule

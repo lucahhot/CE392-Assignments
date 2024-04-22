@@ -23,16 +23,13 @@ module hough_transform #(
     output  logic           out_wr_en,
     input   logic           out_full,
     output  logic [15:0]    buffer_index,
-    output  logic           hough_done,      // mainly for tb, tells when hough is done calculating
-    input   logic           hough_out_full
+    output  logic           hough_done      // mainly for tb, tells when hough is done calculating
 );
 
 typedef enum logic [1:0] {INIT, X_Y_LOOP, THETA_LOOP, OUTPUT} state_types;
 state_types state, next_state;
 
 
-logic [7:0] accum_buff  [ACCUM_BUFF_SIZE-1:0];
-logic [7:0] accum       [ACCUM_BUFF_SIZE-1:0];
 
 logic [X_WIDTH-1:0] x, x_c;
 logic [Y_WIDTH-1:0] y, y_c;

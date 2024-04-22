@@ -23,6 +23,11 @@ logic hough_in_full, hough_in_wr_en;
 logic [7:0] hough_data_in;
 logic hough_out_empty, hough_out_rd_en;
 logic [15:0] hough_data_out;
+logic hough_done;
+
+logic [7:0] accum_buff      [ACCUM_BUFF_SIZE-1:0];
+logic [7:0] accum_buff_c    [ACCUM_BUFF_SIZE-1:0];
+
 
 hough_transform_top #(
     .WIDTH(WIDTH),
@@ -48,7 +53,8 @@ hough_transform_top #(
     .data_in(hough_data_in),
     .out_empty(hough_out_empty),
     .out_rd_en(hough_out_rd_en),
-    .data_out(hough_data_out)
+    .data_out(hough_data_out),
+    .hough_done(hough_done)
 );
 
 always begin
@@ -63,6 +69,14 @@ initial begin
     reset = 1'b1;
     @(posedge clock);
     reset = 1'b0;
+end
+
+always_ff @(posedge clock or posedge reset) begin
+    if (reset == 1'b1) begin
+        accum <= '{default: '{default: '0}};
+    end else begin
+        accun <= accum_buff_c;
+    end
 end
 
 initial begin : tb_process
@@ -125,6 +139,21 @@ initial begin : img_read_process
     in_write_done = 1'b1;
 end
 
+initial begin: output_write_process
+    int i;
+
+    hough_out_rd_en = 1'b0;
+    // i = 0;
+    while (hough_done == 1'b0) begin
+        @(negedge clock);
+        hough_out_rd_en = 1'b0;
+        if (hough_out_empty == 1'b0) begin
+            accum_buff_c[hough_data_out] = accum_buff[hough_data_out] + 16'b1;
+            // i += BYTES_PER_PIXEL;
+        end
+    end
+end
+
 initial begin : buff_cmp_process
     int i, r;
     int out_file;
@@ -140,13 +169,13 @@ initial begin : buff_cmp_process
     cmp_file = $fopen(IMG_CMP_NAME, "rb");
     out_rd_en = 1'b0;
 
+    wait(hough_done);
+
     i = 0;
-    while () begin
+    while (i < BMP_DATA_SIZE) begin
         @(negedge clock);
-        out_rd_en = 1'b0;
-        if (out_empty == 1'b0) begin
-            r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-            $fwrite(out_file, "%c%c%c", out_dout, out_dout, out_dout);
+        r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+        $fwrite(out_file, "%c", out_dout);
 
             if (cmp_dout != {3{out_dout}}) begin
                 out_errors += 1;
