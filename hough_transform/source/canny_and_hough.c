@@ -183,14 +183,14 @@ int main(int argc, char *argv[]) {
    // Check inputs (reject if not enough arguments)
 	if (argc < 3) {
 		printf("Usage: ./canny_hough <BMP filename> <BMP mask filename>\n");
-		return 0;
+		return -1;
 	}
 
 	FILE * f = fopen(argv[1],"rb");
-	if ( f == NULL ) return 0;
+	if ( f == NULL ) return -1;
 
    FILE * f_mask = fopen(argv[2],"rb");
-   if ( f_mask == NULL ) return 0;
+   if ( f_mask == NULL ) return -1;
 
    // Reading header until image size
    unsigned char header_until_image_size[38];
@@ -352,13 +352,13 @@ int main(int argc, char *argv[]) {
    fprintf(sin_file_dequantized, "static const float sinvals[] = {");
    fprintf(cos_file_dequantized, "static const float cosvals[] = {");
    for (int i = 0; i < 179; i++) {
-      fprintf(sin_file, "0x%08x, ", QUANTIZE_F(sinvals[i]));
-      fprintf(cos_file, "0x%08x, ", QUANTIZE_F(cosvals[i]));
+      fprintf(sin_file, "16'h%04x, ", QUANTIZE_F(sinvals[i]));
+      fprintf(cos_file, "16'h%04x, ", QUANTIZE_F(cosvals[i]));
       fprintf(sin_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(sinvals[i])));
       fprintf(cos_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(cosvals[i])));
    }
-   fprintf(sin_file, "0x%08x, ", QUANTIZE_F(sinvals[179]));
-   fprintf(cos_file, "0x%08x, ", QUANTIZE_F(cosvals[179]));
+   fprintf(sin_file, "16'h%04x", QUANTIZE_F(sinvals[179]));
+   fprintf(cos_file, "16'h%04x", QUANTIZE_F(cosvals[179]));
    fprintf(sin_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(sinvals[179])));
    fprintf(cos_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(cosvals[179])));
 

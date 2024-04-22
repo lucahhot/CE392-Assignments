@@ -1,7 +1,4 @@
-module sobel #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-)(
+module sobel (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,

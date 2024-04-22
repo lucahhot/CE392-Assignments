@@ -1,8 +1,9 @@
 // This module will take in the output of the hysteresis stage and the mask, and 
 // calculate the accum_buff which will be a 2D array of all the possible rhos and thetas.
 
-// (Might do the highlighting of the lanes in this module to avoid having to transfer the 
-// accum_buff to another module to do the highlighting).
+// (Might just output the resulting left and right lanes (their rhos, thetas/trig values) as it will
+// prevent the issue of sending the accum_buff values to another module which might create a lot of wires
+// on the top level if we're not storing the values inside of a BRAM).
 
 // Hysteresis inputs will be streamed in pixel by pixel, but we need to loop through 0 to THETAS
 // PER pixel, therefore this hough module will be stalled per pixel and it might stall the entire canny edge
@@ -21,28 +22,184 @@ module hough (
     input  logic        reset,
     input  logic        start,
     // HYSTERESIS INPUTS from bram_2d
-    input  logic [7:0]  hysteresis_bram_dout,
-    output logic [$clog2(WIDTH)-1:0] hysteresis_bram_addr_x,
-    output logic [$clog2(HEIGHT)-1:0] hysteresis_bram_addr_y,
+    input  logic [7:0]                      hysteresis_bram_rd_data,
+    output logic [$clog2(IMAGE_SIZE)-1:0]   hysteresis_bram_rd_addr,
     // MASK INPUTs from bram_2d
-    input  logic [7:0]  mask_bram_dout,
-    output logic [$clog2(WIDTH)-1:0] mask_bram_addr_x,
-    output logic [$clog2(HEIGHT)-1:0] mask_bram_addr_y, 
+    input  logic [7:0]                      mask_bram_rd_data,
+    output logic [$clog2(IMAGE_SIZE )-1:0]  mask_bram_rd_addr,
     // UNSURE OF OUTPUTS FOR NOW
+    output logic done;
+    output logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out
+
 );
 
-typedef enum logic [1:0] {IDLE, LOAD_DATA, ACCUMULATE, SELECT} state_types;
+typedef enum logic [1:0] {IDLE, ACCUMULATE, THETA_LOOP, SELECT} state_types;
+state_types state, next_state;
+
+// Unroll factor for the accumulation stage (the theta loop)
+paramter THETA_UNROLL = 4;
+
+// X and Y indices for the accumulation stage (using the adjusted width and height)
+logic [$clog2(WIDTH_ADJUSTED)-1:0] x, x_c;
+logic [$clog2(HEIGHT_ADJUSTED)-1:0] y, y_c;
+
+// Read values from the hyseteresis and mask BRAMs 
+logic [7:0] hysteresis, mask;
+
+// Theta index for the accumulation stage
+logic [$clog2(THETAS)-1:0] theta, theta_c;
+
+// Wire to hold rho value (will be calculated using the x and y values)
+logic [15:0] rho;
 
 // Accumulator buffer (2D array of all possible rhos and thetas)
 // Each entry will be a 16 bit value as specified in the C code by Professor Zaretsky
-logic [15:0] accum_buff [0:RHO_RANGE-1][0:THETAS-1];
+logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff, accum_buff_c;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
+        state <= IDLE;
         accum_buff <= '{default: '{default: '{default: '0}}};
+        x <= '0;
+        y <= '0;
+        theta <= '0;
+    end else begin
+        state <= next_state;
+        accum_buff <= accum_buff_c;
+        x <= x_c;
+        y <= y_c;
+        theta <= theta_c;
     end
+end
 
+always_comb begin
+    next_state = state;
+    accum_buff_c = accum_buff;
+    x_c = x;
+    y_c = y;
+    theta_c = theta;
+    hysteresis_bram_addr_x = x;
+    hysteresis_bram_addr_y = y;
+    mask_bram_addr_x = x;
+    mask_bram_addr_y = y;
 
+    done = 1'b0;
+    accum_buff_out = '{default: '{default: '{default: '0}}};
+
+    case(state)
+        // Waits for the start signal to begin the accumulation stage 
+        IDLE: begin
+            if (start == 1'b1) begin
+                next_state = ACCUMULATE;
+                // Set the hysteresis and mask BRAM addresses so the BRAM output can be read in the next cycle
+                // We start at STARTING_X and STARTING_Y to save cycles
+                hysteresis_bram_addr_x = STARTING_X;
+                hysteresis_bram_addr_y = STARTING_Y;
+                mask_bram_addr_x = STARTING_X;
+                mask_bram_addr_y = STARTING_Y;
+                // Zero out the accum_buff array
+                accum_buff_c = '{default: '{default: '{default: '0}}};
+            end
+        end
+
+        // Stage to find out if we jump into the THETA_LOOP stage or not (and update BRAM addresses for the next pixel)
+        // Not performing the accumulation here as we need to loop through all thetas for each pixel and it might get messy
+        ACCUMULATE: begin
+            // Read the hysteresis and mask values from the BRAMs (from addresses in the last cycle)
+            hysteresis = hysteresis_bram_dout;
+            mask = mask_bram_dout;
+            // Only jump into the THETA stage if the pixel is an edge pixel (hysteresis != 0x00) and
+            // the pixel is inside the mask (mask == 0xFF)
+            if (hysteresis != 8'h00 && mask == 8'hFF) begin
+                next_state = THETA_LOOP;
+            end else begin
+                // Increment the x and y values to move to the next pixel
+                if (x == WIDTH_ADJUSTED-1) begin
+                    if (y == HEIGHT_ADJUSTED-1) begin
+                        // We've reached the end of the image so we're done
+                        next_state = SELECT;
+                    end else begin
+                        x_c = 0;
+                        y_c = y + 1;
+                        // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
+                        hysteresis_bram_addr_x = x_c;
+                        hysteresis_bram_addr_y = y_c;
+                        mask_bram_addr_x = x_c;
+                        mask_bram_addr_y = y_c;
+                    end 
+                end else begin
+                    x_c = x + 1;
+                    // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
+                    hysteresis_bram_addr_x = x_c;
+                    hysteresis_bram_addr_y = y;
+                    mask_bram_addr_x = x_c;
+                    mask_bram_addr_y = y;
+                end
+            end
+        end
+
+        // THETA_LOOP stage to loop through all thetas for each pixel and calculate the rho value
+        // Will unroll this according to the THETA_UNROLL parameter to save cycles since none of the 
+        // calculations are dependent on each other
+        THETA_LOOP: begin
+            // For loop to perform the unrolled theta loop
+            for (int theta_index = theta; theta_index < theta + THETA_UNROLL; theta_index++) begin
+                // Calculate the rho value using the x, y, and quantized trig values in globals.sv
+                rho = x * COS_QUANTIZED[theta_index] + y * SIN_QUANTIZED[theta_index];
+                // Increment the accumulator buffer value at the rho and theta index by 1
+                accum_buff_c[rho][theta_index] = accum_buff[rho][theta_index] + 1;
+            end
+            // Increment the theta value by the unroll factor
+            theta_c = theta + THETA_UNROLL;
+            // If we've reached the end of thetas, go back to the ACCUMULATE stage to move to the next pixel
+            if (theta_c > THETAS) begin
+                next_state = ACCUMULATE;
+                // We need to update the x and y coordinates to and set the addresses for the next pixel
+                // so the BRAM outputs can be ready in the next cycle
+                if (x == WIDTH_ADJUSTED-1) begin
+                    if (y == HEIGHT_ADJUSTED-1) begin
+                        // We've reached the end of the image so we're done
+                        next_state = SELECT;
+                    end else begin
+                        x_c = 0;
+                        y_c = y + 1;
+                        // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
+                        hysteresis_bram_addr_x = x_c;
+                        hysteresis_bram_addr_y = y_c;
+                        mask_bram_addr_x = x_c;
+                        mask_bram_addr_y = y_c;
+                    end 
+                end else begin
+                    x_c = x + 1;
+                    // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
+                    hysteresis_bram_addr_x = x_c;
+                    hysteresis_bram_addr_y = y;
+                    mask_bram_addr_x = x_c;
+                    mask_bram_addr_y = y;
+                end
+            end
+        end
+
+        // SELECT stage to output the left and right lanes (their rhos, thetas/trig values)
+        SELECT: begin
+            next_state = IDLE;
+            accum_buff_out = accum_buff;
+            done = 1'b1;
+        end
+
+        default: begin
+            next_state = IDLE;
+            accum_buff_c = '{default: '{default: '{default: '0}}};
+            x_c = 'X;
+            y_c = 'X;
+            theta_c = 'X;
+            hysteresis_bram_addr_x = 0;
+            hysteresis_bram_addr_y = 0;
+            mask_bram_addr_x = 0;
+            mask_bram_addr_y = 0;
+        end
+
+    endcase
 end
 
 

@@ -1,7 +1,4 @@
-module gaussian_blur #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-)(
+module gaussian_blur (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,

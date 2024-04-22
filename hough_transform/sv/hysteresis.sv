@@ -1,21 +1,21 @@
-module hysteresis#(
-    WIDTH = 720,
-    HEIGHT = 540
-) (
+module hysteresis (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
     input  logic        in_empty,
     input  logic [7:0]  in_dout,
-    output logic        out_wr_en,
-    input  logic        out_full,
-    output logic [7:0]  out_din
+    // Output wires to write to BRAM
+    output logic                            out_wr_en,
+    output logic [$clog2(IMAGE_SIZE)-1:0]   out_wr_addr,
+    output logic [7:0]                      out_wr_data,
+    // Start signal to tell hough that it can start 
+    output logic hough_start
 );
 
 parameter HIGH_THRESHOLD = 48;
 parameter LOW_THRESHOLD = 12;  
 
-typedef enum logic [1:0] {PROLOGUE, HYSTERESIS, OUTPUT} state_types;
+typedef enum logic [1:0] {sPROLOGUE, HYSTERESIS, OUTPUT} state_types;
 state_types state, next_state;
 parameter SHIFT_REG_LEN = 2*WIDTH+3;
 parameter PIXEL_COUNT = WIDTH*HEIGHT;
@@ -61,12 +61,14 @@ always_comb begin
     next_state = state;
     in_rd_en = 1'b0;
     out_wr_en = 1'b0;
-    out_din = 8'h00;
+    out_wr_data = 8'h00;
+    out_wr_addr = 0;
     counter_c = counter;
     col_c = col;
     row_c = row;
     shift_reg_c = shift_reg;
     hysteresis_c = hysteresis;
+    hjough_start = 1'b0;
 
     if (state != OUTPUT) begin
         if (in_empty == 1'b0) begin
@@ -84,7 +86,7 @@ always_comb begin
 case(state) 
         // Prologue
         PROLOGUE: begin
-            // Waiting for shift register to fill up enough to start sobel HYSTERESIS
+            // Waiting for shift register to fill up enough to start hysteresis
             if (counter < WIDTH + 2) begin
                 if (in_empty == 1'b0)
                     counter_c++;
@@ -122,44 +124,46 @@ case(state)
                 end else begin
                     hysteresis_c = '0;
                 end
-                // Increment col and row trackers
-                if (col == WIDTH - 1) begin
-                    col_c = 0;
-                    row_c++;
-                end else
-                    col_c++;
 
                 next_state = OUTPUT;
             end
 
         end
-        // Writing to FIFO
+        // Writing to BRAM instead of FIFO
         OUTPUT: begin
-            if (out_full == 1'b0) begin
-                out_din = hysteresis;
-                out_wr_en = 1'b1;
-                next_state = HYSTERESIS;
-                // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                if (row == HEIGHT && col == WIDTH) begin
-                    next_state = PROLOGUE;
+            out_wr_data = hysteresis;
+            out_wr_en = 1'b1;
+            out_wr_addr = (row * WIDTH) + col;
+            next_state = HYSTERESIS;
+            // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
+            if (col == WIDTH-1) begin
+                if (row == HEIGHT-1) begin
+                    next_state = PROLOGUE; 
                     row_c = 0;
                     col_c = 0;
                     counter_c = 0;
                     hysteresis_c = 0;
-                    // shift_reg_c = '{default: '{default: '0}};
-                end
+                    hough_start = 1'b1;
+                end else begin
+                    col_c = 0;
+                    row_c = row + 1;
+                end                
+            end else begin
+                col_c = col + 1;
             end
         end
         default: begin
             next_state = PROLOGUE;
             in_rd_en = 1'b0;
             out_wr_en = 1'b0;
-            out_din = '0;
+            out_wr_data = '0;
+            out_wr_addr = '0;
             counter_c = 'X;
             col_c = 'X;
             row_c = 'X;
             shift_reg_c = '{default: '{default: '0}};
             hysteresis_c = 'X;
+            hough_start = 1'b0;
         end
     endcase
 end

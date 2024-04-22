@@ -88,6 +88,20 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 		}
 	}
 
+	// Printing out accum_buff values to a textfile for testing purposes
+	FILE *f = fopen("accum_buff_results.txt", "w");
+	if (f == NULL)
+	{
+	    printf("Error opening file!\n");
+	    return -1;
+	}
+	for (int i = 0; i < rho_range; i++){
+		for (int j = 0; j < THETAS; j++){
+			fprintf(f, "%d\n", accum_buff[i][j]);
+		}
+	}
+	fclose(f);
+
 	// // Array to hold the rho and theta values of the lines that meet the threshold
 	int left_rhos[100]; // Technically there can be rho_range*THETAS number of lines but bringing this down because of a segfault error
 	int left_thetas[100];

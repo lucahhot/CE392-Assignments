@@ -1,7 +1,4 @@
-module non_maximum_suppressor #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-) (
+module non_maximum_suppressor (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
