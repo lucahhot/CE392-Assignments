@@ -1,3 +1,5 @@
+`include "globals.sv"
+
 module gaussian_blur (
     input  logic        clock,
     input  logic        reset,

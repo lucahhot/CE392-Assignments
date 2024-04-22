@@ -136,7 +136,6 @@ bram #(
     .BRAM_DATA_WIDTH(8)
 ) mask_bram_inst (
     .clock(clock),
-    .reset(reset),
     .wr_en(mask_bram_wr_en),
     .wr_data(mask_bram_wr_data),
     .wr_addr(mask_bram_wr_addr),
@@ -248,7 +247,6 @@ bram #(
     .BRAM_DATA_WIDTH(8)
 ) hysteresis_bram_inst (
     .clock(clock),
-    .reset(reset),
     .wr_en(hysteresis_bram_wr_en),
     .wr_data(hysteresis_bram_wr_data),
     .wr_addr(hysteresis_bram_wr_addr),

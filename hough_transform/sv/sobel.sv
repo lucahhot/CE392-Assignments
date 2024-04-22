@@ -1,3 +1,5 @@
+`include "globals.sv"
+
 module sobel (
     input  logic        clock,
     input  logic        reset,

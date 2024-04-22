@@ -1,7 +1,7 @@
 `include "globals.sv"
 
 module fifo #(
-    parameter FIFO_DATA_WIDTH = 32,
+    parameter FIFO_DATA_WIDTH = 32
 ) (
     input  logic reset,
     input  logic wr_clk,

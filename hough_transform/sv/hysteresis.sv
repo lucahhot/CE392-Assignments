@@ -1,3 +1,5 @@
+`include "globals.sv"
+
 module hysteresis (
     input  logic        clock,
     input  logic        reset,
@@ -15,13 +17,13 @@ module hysteresis (
 parameter HIGH_THRESHOLD = 48;
 parameter LOW_THRESHOLD = 12;  
 
-typedef enum logic [1:0] {sPROLOGUE, HYSTERESIS, OUTPUT} state_types;
+typedef enum logic [1:0] {PROLOGUE, HYSTERESIS, OUTPUT} state_types;
 state_types state, next_state;
 parameter SHIFT_REG_LEN = 2*WIDTH+3;
 parameter PIXEL_COUNT = WIDTH*HEIGHT;
 
 // Shift register
-logic [0:SHIFT_REG_LEN-1][7:0] shift_reg ;
+logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue
@@ -68,7 +70,7 @@ always_comb begin
     row_c = row;
     shift_reg_c = shift_reg;
     hysteresis_c = hysteresis;
-    hjough_start = 1'b0;
+    hough_start = 1'b0;
 
     if (state != OUTPUT) begin
         if (in_empty == 1'b0) begin

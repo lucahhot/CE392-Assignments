@@ -1,3 +1,5 @@
+`include "globals.sv"
+
 module non_maximum_suppressor (
     input  logic        clock,
     input  logic        reset,

@@ -28,7 +28,7 @@ module hough (
     input  logic [7:0]                      mask_bram_rd_data,
     output logic [$clog2(IMAGE_SIZE )-1:0]  mask_bram_rd_addr,
     // UNSURE OF OUTPUTS FOR NOW
-    output logic done;
+    output logic done,
     output logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out
 
 );
@@ -37,11 +37,11 @@ typedef enum logic [1:0] {IDLE, ACCUMULATE, THETA_LOOP, SELECT} state_types;
 state_types state, next_state;
 
 // Unroll factor for the accumulation stage (the theta loop)
-paramter THETA_UNROLL = 4;
+parameter THETA_UNROLL = 4;
 
 // X and Y indices for the accumulation stage (using the adjusted width and height)
-logic [$clog2(WIDTH_ADJUSTED)-1:0] x, x_c;
-logic [$clog2(HEIGHT_ADJUSTED)-1:0] y, y_c;
+logic [$clog2(WIDTH)-1:0] x, x_c;
+logic [$clog2(HEIGHT)-1:0] y, y_c;
 
 // Read values from the hyseteresis and mask BRAMs 
 logic [7:0] hysteresis, mask;
@@ -78,10 +78,9 @@ always_comb begin
     x_c = x;
     y_c = y;
     theta_c = theta;
-    hysteresis_bram_addr_x = x;
-    hysteresis_bram_addr_y = y;
-    mask_bram_addr_x = x;
-    mask_bram_addr_y = y;
+    // Default values for the BRAM addresses
+    hysteresis_bram_rd_addr = 0;
+    mask_bram_rd_addr = 0;
 
     done = 1'b0;
     accum_buff_out = '{default: '{default: '{default: '0}}};
@@ -93,10 +92,8 @@ always_comb begin
                 next_state = ACCUMULATE;
                 // Set the hysteresis and mask BRAM addresses so the BRAM output can be read in the next cycle
                 // We start at STARTING_X and STARTING_Y to save cycles
-                hysteresis_bram_addr_x = STARTING_X;
-                hysteresis_bram_addr_y = STARTING_Y;
-                mask_bram_addr_x = STARTING_X;
-                mask_bram_addr_y = STARTING_Y;
+                hysteresis_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
+                mask_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
                 // Zero out the accum_buff array
                 accum_buff_c = '{default: '{default: '{default: '0}}};
             end
@@ -106,8 +103,8 @@ always_comb begin
         // Not performing the accumulation here as we need to loop through all thetas for each pixel and it might get messy
         ACCUMULATE: begin
             // Read the hysteresis and mask values from the BRAMs (from addresses in the last cycle)
-            hysteresis = hysteresis_bram_dout;
-            mask = mask_bram_dout;
+            hysteresis = hysteresis_bram_rd_data;
+            mask = mask_bram_rd_data;
             // Only jump into the THETA stage if the pixel is an edge pixel (hysteresis != 0x00) and
             // the pixel is inside the mask (mask == 0xFF)
             if (hysteresis != 8'h00 && mask == 8'hFF) begin
@@ -122,18 +119,14 @@ always_comb begin
                         x_c = 0;
                         y_c = y + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                        hysteresis_bram_addr_x = x_c;
-                        hysteresis_bram_addr_y = y_c;
-                        mask_bram_addr_x = x_c;
-                        mask_bram_addr_y = y_c;
+                        hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
+                        mask_bram_rd_addr = y_c * WIDTH + x_c;
                     end 
                 end else begin
                     x_c = x + 1;
                     // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                    hysteresis_bram_addr_x = x_c;
-                    hysteresis_bram_addr_y = y;
-                    mask_bram_addr_x = x_c;
-                    mask_bram_addr_y = y;
+                    hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
+                    mask_bram_rd_addr = y_c * WIDTH + x_c;
                 end
             end
         end
@@ -164,18 +157,14 @@ always_comb begin
                         x_c = 0;
                         y_c = y + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                        hysteresis_bram_addr_x = x_c;
-                        hysteresis_bram_addr_y = y_c;
-                        mask_bram_addr_x = x_c;
-                        mask_bram_addr_y = y_c;
+                        hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
+                        mask_bram_rd_addr = y_c * WIDTH + x_c;
                     end 
                 end else begin
                     x_c = x + 1;
                     // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                    hysteresis_bram_addr_x = x_c;
-                    hysteresis_bram_addr_y = y;
-                    mask_bram_addr_x = x_c;
-                    mask_bram_addr_y = y;
+                    hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
+                        mask_bram_rd_addr = y_c * WIDTH + x_c;
                 end
             end
         end
@@ -193,10 +182,8 @@ always_comb begin
             x_c = 'X;
             y_c = 'X;
             theta_c = 'X;
-            hysteresis_bram_addr_x = 0;
-            hysteresis_bram_addr_y = 0;
-            mask_bram_addr_x = 0;
-            mask_bram_addr_y = 0;
+            hysteresis_bram_rd_addr = 0;
+            mask_bram_rd_addr = 0;
         end
 
     endcase
