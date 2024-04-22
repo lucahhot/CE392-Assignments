@@ -96,24 +96,32 @@ always_ff @(posedge clock) begin
     if(image_state==FULL) begin
         if(line_index < LINE_LENGTH) begin
             line_index++;
+            x_step = $signed(line_index) * (-sine_angle) >>> FRAC_BITS;
+            y_step = $signed(line_index) * cosine_angle >>> FRAC_BITS;
+            x1 = x0 + x_step;
+            y1 = y0 + y_step;
+            if(x1 >=0 && y1>=0 && x1 < WIDTH && y1 < HEIGHT) begin
+                line_image_index = y1 * WIDTH + x1;
+                whole_image[line_image_index] = 24'b000000001111111100000000;
+            end
         end else begin
             image_state = FINISHED_DRAWING;
         end
     end
 end
 
-always_comb begin
-    if(image_state==FULL) begin
-        x_step = $signed(line_index) * (-sine_angle) >>> FRAC_BITS;
-        y_step = $signed(line_index) * cosine_angle >>> FRAC_BITS;
-        x1 = x0 + x_step;
-        y1 = y0 + y_step;
-        if(x1 >=0 && y1>=0 && x1 < WIDTH && y1 < HEIGHT) begin
-            line_image_index = y1 * WIDTH + x1;
-            whole_image[line_image_index] = 24'b000000001111111100000000;
-        end
-    end
-end
+// always_ff @(posedge clock) begin
+//     if(image_state==FULL) begin
+//         x_step = $signed(line_index) * (-sine_angle) >>> FRAC_BITS;
+//         y_step = $signed(line_index) * cosine_angle >>> FRAC_BITS;
+//         x1 = x0 + x_step;
+//         y1 = y0 + y_step;
+//         if(x1 >=0 && y1>=0 && x1 < WIDTH && y1 < HEIGHT) begin
+//             line_image_index = y1 * WIDTH + x1;
+//             whole_image[line_image_index] = 24'b000000001111111100000000;
+//         end
+//     end
+// end
 
 always_comb begin
     image_output_index_c = image_output_index;

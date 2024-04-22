@@ -3,9 +3,9 @@
 
 module canny_edgedetect_tb;
 
-localparam string IMG_IN_NAME  = "D:/copper_720_540.bmp";
-localparam string IMG_OUT_NAME = "D:/output.bmp";
-localparam string IMG_CMP_NAME = "D:/stage4_hysteresis.bmp";
+localparam string IMG_IN_NAME  = "../images/copper_720_540.bmp";
+localparam string IMG_OUT_NAME = "../images/output.bmp";
+localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
 localparam CLOCK_PERIOD = 10;
 
 logic clock = 1'b1;
@@ -26,7 +26,7 @@ logic   out_read_done = '0;
 integer out_errors    = '0;
 
 localparam WIDTH = 720;
-localparam HEIGHT = 54;
+localparam HEIGHT = 540;
 localparam BMP_HEADER_SIZE = 54;
 localparam BYTES_PER_PIXEL = 3;
 localparam BMP_DATA_SIZE = WIDTH*HEIGHT*BYTES_PER_PIXEL;
