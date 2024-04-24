@@ -40,8 +40,9 @@ state_types state, next_state;
 parameter THETA_UNROLL = 1;
 
 // X and Y indices for the accumulation stage (using the adjusted width and height)
-logic [$clog2(WIDTH)-1:0] x, x_c;
-logic [$clog2(HEIGHT)-1:0] y, y_c;
+// Giving it 1 extra bit since we are making them signed for the dequantization to work
+logic signed [$clog2(WIDTH_ADJUSTED):0] x, x_c;
+logic signed [$clog2(HEIGHT_ADJUSTED):0] y, y_c;
 
 // Read values from the hyseteresis and mask BRAMs 
 logic [7:0] hysteresis, mask;
@@ -50,9 +51,10 @@ logic [7:0] hysteresis, mask;
 logic [$clog2(THETAS)-1:0] theta, theta_c;
 
 // Wire to hold rho value (will be calculated using the x and y values)
-logic signed [15:0] rho;
+logic signed [15:0] rho, rho_unquantized_x, rho_unquantized_y, rho_quantized_x, rho_quantized_y;
 
-// Quantized sin and cos wires for debugging
+// Wires to hold the quantized sin and cos values for the theta loop (for some reason it doesn't work when referencing
+// the SIN_QUANTIZED and COS_QUANTIZED arrays directly from globals.sv)
 logic signed [15:0] sin_quantized, cos_quantized;
 
 // Accumulator buffer (2D array of all possible rhos and thetas)
@@ -144,12 +146,15 @@ always_comb begin
             // For loop to perform the unrolled theta loop
             for (int theta_index = theta; theta_index < theta + THETA_UNROLL; theta_index++) begin
                 // Calculate the rho value using the x, y, and quantized trig values in globals.sv
-                // rho = DEQUANTIZE(x * COS_QUANTIZED[theta_index]) + DEQUANTIZE(y * SIN_QUANTIZED[theta_index]);
                 sin_quantized = SIN_QUANTIZED[theta_index];
                 cos_quantized = COS_QUANTIZED[theta_index];
-                rho = DEQUANTIZE($signed(x * COS_QUANTIZED[theta_index]) + $signed(y * SIN_QUANTIZED[theta_index]));
+                rho_unquantized_x = DEQUANTIZE(x * cos_quantized);
+                rho_unquantized_y = DEQUANTIZE(y * sin_quantized);
+                // rho_quantized_x = (x * cos_quantized);
+                // rho_quantized_y = (y * sin_quantized);
+                rho = (rho_unquantized_x + rho_unquantized_y);
                 // Increment the accumulator buffer value at the rho and theta index by 1
-                accum_buff_c[rho][theta_index] = accum_buff[rho][theta_index] + 1;
+                accum_buff_c[rho+RHOS][theta_index] = accum_buff[rho+RHOS][theta_index] + 1;
             end
             // Increment the theta value by the unroll factor
             theta_c = theta + THETA_UNROLL;
@@ -174,7 +179,7 @@ always_comb begin
                     x_c = x + 1;
                     // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
                     hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
-                        mask_bram_rd_addr = y_c * WIDTH + x_c;
+                    mask_bram_rd_addr = y_c * WIDTH + x_c;
                 end
             end
         end
