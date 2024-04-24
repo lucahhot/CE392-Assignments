@@ -12,7 +12,7 @@ module gaussian_blur #(
     output logic [7:0]  out_din
 );
 
-parameter DATA_SIZE = 16;
+parameter DIVIDEND_WIDTH = 16;
 
 // To unroll the MAC operation in the FILTER stage
 parameter UNROLL = 5;
@@ -43,15 +43,15 @@ logic [$clog2(WIDTH)-1:0] col, col_c;
 logic [$clog2(HEIGHT)-1:0] row, row_c;
 
 // Numerator and denominator values (adapted for unroll function)
-logic [0:UNROLL-1][DATA_SIZE-1:0] numerator, numerator_c;
+logic [0:UNROLL-1][DIVIDEND_WIDTH-1:0] numerator, numerator_c;
 logic [0:UNROLL-1][7:0] denominator, denominator_c;
 
 // Summed numerator and denominator values
-logic [DATA_SIZE-1:0] numerator_sum;
+logic [DIVIDEND_WIDTH-1:0] numerator_sum;
 logic [7:0] denominator_sum;
 
 // Gaussian blur value
-logic [DATA_SIZE-1:0] gaussian_blur;
+logic [DIVIDEND_WIDTH-1:0] gaussian_blur;
 
 // Wires to hold temporary pixel values
 logic [24:0][7:0] pixel_values;
@@ -59,25 +59,25 @@ logic [24:0][7:0] pixel_values;
 // Pixel counter
 logic [4:0] pixel_counter;
 
-// // Divider signals
-// logic start_div, div_overflow_out, div_valid_out;
-// logic [DATA_SIZE-1:0] dividend, div_quotient_out;
-// logic [7:0] divisor, div_remainder_out;
+// Divider signals
+logic start_div, div_valid_out;
+logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
+logic [7:0] divisor;
 
-// div #(
-//     .DIVIDEND_WIDTH(DATA_SIZE),
-//     .DIVISOR_WIDTH(8)
-// ) divider_inst (
-//     .clk(clock),
-//     .reset(reset),
-//     .valid_in(start_div),
-//     .dividend(dividend),
-//     .divisor(divisor),
-//     .quotient(div_quotient_out),
-//     .remainder(div_remainder_out),
-//     .overflow(div_overflow_out),
-//     .valid_out(div_valid_out)
-// );
+div #(
+    .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
+    .DIVISOR_WIDTH(8)
+) divider_inst (
+    .clk(clock),
+    .reset(reset),
+    .valid_in(start_div),
+    .dividend(dividend),
+    .divisor(divisor),
+    .quotient(div_quotient_out),
+    // .remainder(div_remainder_out),
+    // .overflow(div_overflow_out),
+    .valid_out(div_valid_out)
+);
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -111,9 +111,9 @@ always_comb begin
     out_wr_en = 1'b0;
     out_din = '0;
 
-    // start_div = 1'b0;
-    // dividend = 0;
-    // divisor = 0;
+    start_div = 1'b0;
+    dividend = 0;
+    divisor = 0;
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // gaussian_blur function can go through every single pixel
@@ -198,15 +198,15 @@ always_comb begin
             end else
                 col_c++;
 
-            // start_div = 1'b1;
-            // numerator_sum = 0;
-            // denominator_sum = 0;
-            // for (int i = 0; i < UNROLL; i++) begin
-            //     numerator_sum = numerator_sum + numerator_c[i];
-            //     denominator_sum = denominator_sum + denominator_c[i];
-            // end
-            // dividend = numerator_sum;
-            // divisor = denominator_sum;
+            start_div = 1'b1;
+            numerator_sum = 0;
+            denominator_sum = 0;
+            for (int i = 0; i < UNROLL; i++) begin
+                numerator_sum = numerator_sum + numerator_c[i];
+                denominator_sum = denominator_sum + denominator_c[i];
+            end
+            dividend = numerator_sum;
+            divisor = denominator_sum;
             next_state = OUTPUT;
             
         end
@@ -214,17 +214,17 @@ always_comb begin
         // Waiting for division and writing to FIFO
         OUTPUT: begin
             // Wait for division to complete
-            // if (div_valid_out == 1'b1) begin
+            if (div_valid_out == 1'b1) begin
                 if (out_full == 1'b0) begin
                     numerator_sum = 0;
                     denominator_sum = 0;
-                    // Sum up the numerator and denominator values
-                    for (int i = 0; i < UNROLL; i++) begin
-                        numerator_sum = numerator_sum + numerator[i];
-                        denominator_sum = denominator_sum + denominator[i];
-                    end
-                    // gaussian_blur = div_quotient_out;
-                    gaussian_blur = numerator_sum / denominator_sum;
+                    // // Sum up the numerator and denominator values
+                    // for (int i = 0; i < UNROLL; i++) begin
+                    //     numerator_sum = numerator_sum + numerator[i];
+                    //     denominator_sum = denominator_sum + denominator[i];
+                    // end
+                    gaussian_blur = div_quotient_out;
+                    // gaussian_blur = numerator_sum / denominator_sum;
                     // Accounting for saturation
                     gaussian_blur = (gaussian_blur > 8'hff) ? 8'hff : gaussian_blur;
                     out_din = 8'(gaussian_blur);
@@ -241,11 +241,11 @@ always_comb begin
                         // shift_reg_c = '{default: '{default: '0}};
                     end
                 end
-            // end else begin
-            //     // Cycle through this state
-            //     next_state = OUTPUT;
-            //     out_wr_en = 1'b0;
-            // end
+            end else begin
+                // Cycle through this state
+                next_state = OUTPUT;
+                out_wr_en = 1'b0;
+            end
         end
 
         default: begin
@@ -259,9 +259,9 @@ always_comb begin
             row_c = 'X;
             numerator_c = '{default: '{default: '0}};;
             denominator_c = '{default: '{default: '0}};;
-            // start_div = 1'b0;
-            // dividend = 'X;
-            // divisor = 'X;
+            start_div = 1'b0;
+            dividend = 'X;
+            divisor = 'X;
         end
 
     endcase

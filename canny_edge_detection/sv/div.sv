@@ -1,8 +1,8 @@
 // Adapted for UNSIGNED division for the Canny Edge Detection project (gaussian_blur module)
 
 module div #(
-    parameter DIVIDEND_WIDTH = 24,
-    parameter DIVISOR_WIDTH = 16
+    parameter DIVIDEND_WIDTH = 16,
+    parameter DIVISOR_WIDTH = 8
 ) (
     input  logic                        clk,
     input  logic                        reset,
@@ -10,15 +10,13 @@ module div #(
     input  logic [DIVIDEND_WIDTH-1:0]   dividend,
     input  logic [DIVISOR_WIDTH-1:0]    divisor,
     output logic [DIVIDEND_WIDTH-1:0]   quotient,
-    output logic [DIVISOR_WIDTH-1:0]    remainder,
-    output logic                        valid_out,
-    output logic                        overflow
+    // output logic [DIVISOR_WIDTH-1:0]    remainder,
+    output logic                        valid_out
+    // output logic                        overflow
 );
 
     // Define the state machine states
-    typedef enum logic [2:0] {
-        INIT, B_EQ_1, LOOP, EPILOGUE
-    } state_t;
+    typedef enum logic [2:0] {INIT, B_EQ_1, LOOP} state_t;
     state_t state, next_state;
 
     // Define internal signals
@@ -85,9 +83,9 @@ module div #(
         q_c = q;
         valid_out = '0;
         quotient = '0;
-        remainder = '0;
+        // remainder = '0;
         valid_out = 1'b0;
-        overflow =  1'b0;
+        // overflow =  1'b0;
         dividend_temp_c = dividend_temp;
         divisor_temp_c = divisor_temp;
 
@@ -96,7 +94,7 @@ module div #(
             INIT: begin
                 // Only assign stuff is valid_in is high
                 if (valid_in == 1'b1) begin
-                    overflow = 1'b0;
+                    // overflow = 1'b0;
                     a_c = dividend;
                     b_c = divisor;
                     q_c = '0;
@@ -108,7 +106,7 @@ module div #(
                     if (divisor == 1) begin
                         next_state = B_EQ_1;
                     end else if (divisor == 0) begin
-                        overflow = 1'b1;
+                        // overflow = 1'b1;
                         next_state = B_EQ_1;
                     end else begin
                         next_state = LOOP;
@@ -120,9 +118,9 @@ module div #(
 
             B_EQ_1: begin
                 q_c = dividend_temp;
-                a_c = '0;
-                b_c = b;
-                next_state = EPILOGUE;
+                quotient = dividend_temp;
+                valid_out = 1'b1;
+                next_state = INIT;
             end
 
             LOOP: begin
@@ -140,28 +138,12 @@ module div #(
                     a_c = a - (b << p);
                     next_state = LOOP;
                 end else begin
-                    next_state = EPILOGUE;
+                    // next_state = EPILOGUE;
+                    quotient = q_c;
+                    // remainder = a_c;
+                    valid_out = 1'b1;
+                    next_state = INIT;
                 end
-            end
-
-            EPILOGUE: begin
-                quotient = q;
-                remainder = a;
-                valid_out = 1'b1;
-                next_state = INIT;
-            end
-
-            default: begin
-                quotient = '0;
-                remainder = '0;
-                valid_out = 1'b0;
-                overflow  = 1'b0;
-                next_state = INIT;
-                a_c = 'X;
-                b_c = 'X;
-                q_c = 'X;
-                dividend_temp_c = 'X;
-                divisor_temp_c = 'X;
             end
 
         endcase
