@@ -1,5 +1,8 @@
 
-module grayscale (
+module grayscale #(
+    parameter WIDTH = 720,
+    parameter HEIGHT = 540
+) (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,

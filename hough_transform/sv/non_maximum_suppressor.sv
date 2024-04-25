@@ -1,6 +1,9 @@
 `include "globals.sv"
 
-module non_maximum_suppressor (
+module non_maximum_suppressor #(
+    parameter WIDTH = 720,
+    parameter HEIGHT = 540
+) (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,

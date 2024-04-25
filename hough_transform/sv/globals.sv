@@ -11,9 +11,14 @@ localparam HEIGHT_ADJUSTED = 251; // HEIGHT * MASK_TR_Y
 localparam STARTING_X = 128; // WIDTH * MASK_BL_X
 localparam STARTING_Y = 36; // HEIGHT * MASK_BL_Y
 
+// Reduced image dimensions (rectangle that encompasses the mask)
+localparam REDUCED_WIDTH = WIDTH_ADJUSTED - STARTING_X; // 1024
+localparam REDUCED_HEIGHT = HEIGHT_ADJUSTED - STARTING_Y; //215
+localparam REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT; 
+
 localparam THETAS = 180;
 localparam RHOS = 1179;
-localparam RHO_RANGE = 2*1179;
+localparam RHO_RANGE = 2*RHOS;
 
 // Quantization constants
 localparam BITS = 8;

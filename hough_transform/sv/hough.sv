@@ -26,7 +26,7 @@ module hough (
     output logic [$clog2(IMAGE_SIZE)-1:0]   hysteresis_bram_rd_addr,
     // MASK INPUTs from bram_2d
     input  logic [7:0]                      mask_bram_rd_data,
-    output logic [$clog2(IMAGE_SIZE )-1:0]  mask_bram_rd_addr,
+    output logic [$clog2(IMAGE_SIZE)-1:0]  mask_bram_rd_addr,
     // UNSURE OF OUTPUTS FOR NOW
     output logic done,
     output logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out

@@ -17,6 +17,7 @@ vlog -work work "../sv/hysteresis.sv"
 vlog -work work "../sv/hough.sv"
 vlog -work work "../sv/hough_top.sv"
 vlog -work work "../sv/hough_tb.sv"
+vlog -work work "../sv/image_loader.sv"
 
 
 # start basic simulation

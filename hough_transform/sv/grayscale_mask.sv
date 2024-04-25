@@ -2,7 +2,10 @@
 
 `include "globals.sv"
 
-module grayscale_mask (
+module grayscale_mask #(
+    parameter WIDTH = 720,
+    parameter HEIGHT = 540
+) (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
@@ -87,7 +90,7 @@ always_comb begin
             in_rd_en  = 1'b0;
             out_wr_en = 1'b0;
             out_wr_data = 8'b0;
-            out_wr_addr = '0;
+            out_wr_addr = 0;
             next_state = IDLE;
             gs_c = 8'hX;
             x_c = 'X;

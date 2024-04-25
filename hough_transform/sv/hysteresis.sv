@@ -19,21 +19,21 @@ parameter LOW_THRESHOLD = 12;
 
 typedef enum logic [1:0] {PROLOGUE, HYSTERESIS, OUTPUT} state_types;
 state_types state, next_state;
-parameter SHIFT_REG_LEN = 2*WIDTH+3;
-parameter PIXEL_COUNT = WIDTH*HEIGHT;
+parameter SHIFT_REG_LEN = 2*REDUCED_WIDTH+3;
+parameter PIXEL_COUNT = REDUCED_WIDTH*REDUCED_HEIGHT;
 
 // Shift register
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue
-logic [$clog2(WIDTH+2)-1:0] counter, counter_c;
+logic [$clog2(REDUCED_WIDTH+2)-1:0] counter, counter_c;
 
 // Column counter to know when to jump
-logic [$clog2(WIDTH)-1:0] col, col_c;
+logic [$clog2(REDUCED_WIDTH)-1:0] col, col_c;
 
 // Row counter to know when we need to enter epilogue and push more zeros
-logic [$clog2(HEIGHT)-1:0] row, row_c;
+logic [$clog2(REDUCED_HEIGHT)-1:0] row, row_c;
 
 // Hysteresis value
 logic [7:0] hysteresis, hysteresis_c;
@@ -79,7 +79,7 @@ always_comb begin
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2)) begin
+        end else if ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2)) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -89,29 +89,29 @@ case(state)
         // Prologue
         PROLOGUE: begin
             // Waiting for shift register to fill up enough to start hysteresis
-            if (counter < WIDTH + 2) begin
+            if (counter < REDUCED_WIDTH + 2) begin
                 if (in_empty == 1'b0)
                     counter_c++;
             end else begin
                 next_state = HYSTERESIS;
             end
         end
-        // Sobel HYSTERESISing
+        // HYSTERESIS
         HYSTERESIS: begin
             // Only calculate hysteresis value if we there is input from the input FIFO 
-            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2))) begin
+            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2))) begin
                 // If we are on an edge pixel, the hysteresis value will be zero
-                if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
+                if (row != 0 && row != (REDUCED_HEIGHT - 1) && col != 0 && col != (REDUCED_WIDTH - 1)) begin
                     // Grabbing correct pixel values from the shift register
                     pixel1 = shift_reg[0];
                     pixel2 = shift_reg[1];
                     pixel3 = shift_reg[2];
-                    pixel4 = shift_reg[WIDTH];
-                    pixel5 = shift_reg[WIDTH+1];
-                    pixel6 = shift_reg[WIDTH+2];
-                    pixel7 = shift_reg[WIDTH*2];
-                    pixel8 = shift_reg[WIDTH*2+1];
-                    pixel9 = shift_reg[WIDTH*2+2];
+                    pixel4 = shift_reg[REDUCED_WIDTH];
+                    pixel5 = shift_reg[REDUCED_WIDTH+1];
+                    pixel6 = shift_reg[REDUCED_WIDTH+2];
+                    pixel7 = shift_reg[REDUCED_WIDTH*2];
+                    pixel8 = shift_reg[REDUCED_WIDTH*2+1];
+                    pixel9 = shift_reg[REDUCED_WIDTH*2+2];
 
                     // If pixel is strong or it is somewhat strong and at least one 
 			        // neighbouring pixel is strong, keep it. Otherwise zero it.
@@ -136,11 +136,13 @@ case(state)
         OUTPUT: begin
             out_wr_data = hysteresis;
             out_wr_en = 1'b1;
-            out_wr_addr = (row * WIDTH) + col;
+            // Have to adjust row and col because they're rows and columns for the REDUCED_IMAGE_SIZE but we still want the 
+            // hysteresis BRAM to be addressed in terms of the normal IMAGE_SIZE coordinates
+            out_wr_addr = ((row + STARTING_Y) * WIDTH) + (col + STARTING_X);
             next_state = HYSTERESIS;
             // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
-            if (col == WIDTH-1) begin
-                if (row == HEIGHT-1) begin
+            if (col == REDUCED_WIDTH-1) begin
+                if (row == REDUCED_HEIGHT-1) begin
                     next_state = PROLOGUE; 
                     row_c = 0;
                     col_c = 0;

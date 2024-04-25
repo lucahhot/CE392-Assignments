@@ -1,7 +1,8 @@
 `include "globals.sv"
 
 module bram #(
-  parameter BRAM_DATA_WIDTH = 8
+  parameter BRAM_DATA_WIDTH = 8,
+  parameter IMAGE_SIZE = 388800
 ) ( 
   input  logic                            clock,
   input  logic [$clog2(IMAGE_SIZE)-1:0]   rd_addr,

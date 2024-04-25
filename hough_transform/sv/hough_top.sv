@@ -17,10 +17,27 @@ module hough_top (
     
 );
 
-// Input wires to grayscale function
+// Input wires to image_loader
 logic [23:0]    image_dout;
 logic           image_empty;
 logic           image_rd_en;
+
+// Output wires from image_loader to grayscale FIFO
+logic           grayscale_wr_en;
+logic           grayscale_full;
+logic [23:0]    grayscale_din;
+
+// Output wires from image_loader to image_BRAM
+logic                           image_bram_wr_en;
+logic [23:0]                    image_bram_wr_data;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+logic [23:0]                    image_bram_rd_data;
+
+// Input wires to grayscale function
+logic [23:0]    grayscale_dout;
+logic           grayscale_empty;
+logic           grayscale_rd_en;
 
 // Input wires to grayscale function for mask
 logic [23:0]    mask_dout;
@@ -96,6 +113,46 @@ fifo #(
     .empty(image_empty)
 );
 
+image_loader image_loader_inst (
+    .clock(clock),
+    .reset(reset),
+    .in_rd_en(image_rd_en),
+    .in_empty(image_empty),
+    .in_dout(image_dout),
+    .fifo_out_wr_en(grayscale_wr_en),
+    .fifo_out_full(grayscale_full),
+    .fifo_out_din(grayscale_din),
+    .bram_out_wr_en(image_bram_wr_en),
+    .bram_out_wr_addr(image_bram_wr_addr),
+    .bram_out_wr_data(image_bram_wr_data)
+);
+
+bram #(
+    .BRAM_DATA_WIDTH(24),
+    .IMAGE_SIZE(IMAGE_SIZE)
+) image_bram_inst (
+    .clock(clock),
+    .rd_addr(image_bram_rd_addr),
+    .wr_addr(image_bram_wr_addr),
+    .wr_en(image_bram_wr_en),
+    .wr_data(image_bram_wr_data),
+    .rd_data(image_bram_rd_data)
+);
+
+fifo #(
+    .FIFO_DATA_WIDTH(24)
+) fifo_grayscale_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(grayscale_wr_en),
+    .din(grayscale_din),
+    .full(grayscale_full),
+    .rd_clk(clock),
+    .rd_en(grayscale_rd_en),
+    .dout(grayscale_dout),
+    .empty(grayscale_empty)
+);
+
 fifo #(
     .FIFO_DATA_WIDTH(24)
 ) fifo_mask_inst (
@@ -110,18 +167,24 @@ fifo #(
     .empty(mask_empty)
 );
 
-grayscale img_grayscale_inst(
+grayscale #(
+    .WIDTH(REDUCED_WIDTH),
+    .HEIGHT(REDUCED_HEIGHT)
+) img_grayscale_inst(
     .clock(clock),
     .reset(reset),
-    .in_rd_en(image_rd_en),
-    .in_empty(image_empty),
-    .in_dout(image_dout),
+    .in_rd_en(grayscale_rd_en),
+    .in_empty(grayscale_empty),
+    .in_dout(grayscale_dout),
     .out_wr_en(gaussian_wr_en),
     .out_full(gaussian_full),
     .out_din(gaussian_din)
 );
 
-grayscale_mask mask_grayscale_inst(
+grayscale_mask #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) mask_grayscale_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(mask_rd_en),
@@ -133,7 +196,8 @@ grayscale_mask mask_grayscale_inst(
 );
 
 bram #(
-    .BRAM_DATA_WIDTH(8)
+    .BRAM_DATA_WIDTH(8),
+    .IMAGE_SIZE(IMAGE_SIZE)
 ) mask_bram_inst (
     .clock(clock),
     .rd_addr(mask_bram_rd_addr),
@@ -157,7 +221,10 @@ fifo #(
     .empty(gaussian_empty)
 );
 
-gaussian_blur gaussian_inst(
+gaussian_blur #(
+    .WIDTH(REDUCED_WIDTH),
+    .HEIGHT(REDUCED_HEIGHT)    
+) gaussian_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(gaussian_rd_en),
@@ -182,7 +249,10 @@ fifo #(
     .empty(sobel_empty)
 );
 
-sobel sobel_inst(
+sobel #(
+    .WIDTH(REDUCED_WIDTH),
+    .HEIGHT(REDUCED_HEIGHT)
+) sobel_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(sobel_rd_en),
@@ -207,7 +277,10 @@ fifo #(
     .empty(nms_empty)
 );
 
-non_maximum_suppressor nms_inst(
+non_maximum_suppressor #(
+    .WIDTH(REDUCED_WIDTH),
+    .HEIGHT(REDUCED_HEIGHT)
+) nms_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(nms_rd_en),
@@ -245,7 +318,8 @@ hysteresis hysteresis_inst (
 );
 
 bram #(
-    .BRAM_DATA_WIDTH(8)
+    .BRAM_DATA_WIDTH(8),
+    .IMAGE_SIZE(IMAGE_SIZE)
 ) hysteresis_bram_inst (
     .clock(clock),
     .rd_addr(hysteresis_bram_rd_addr),
