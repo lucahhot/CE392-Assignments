@@ -68,16 +68,17 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	printf("\nStarting y index = %d, Ending y index = %d\n", starting_y, height_adjusted);
 	printf("Starting x index = %d, Ending x index = %d\n", starting_x, width_adjusted);
 
-    FILE *f = fopen("rho_results.txt", "w");
-	FILE *f2 = fopen("mask_values.txt", "w");
-	FILE *f3 = fopen("hysteresis_values.txt", "w");
+	printf("\nReduced Width = %d, Reduced Height = %d\n", width_adjusted - starting_x ,height_adjusted - starting_y);
 
+    FILE *f = fopen("test_values/rho_results.txt", "w");
+	FILE *f2 = fopen("test_values/mask_values.txt", "w");
+	
 	for (int y = starting_y; y < height_adjusted; y++){
 		// #pragma ivdep
 		for (int x = starting_x; x < width_adjusted; x++){
 			// If the pixel is inside the mask only
 			fprintf(f2, "x = %d, y = %d, mask value = %d\n", x, y, mask[y*width + x].r);
-			fprintf(f3, "x = %d, y = %d, hysteresis value = %d\n", x, y, hysteresis_data[y*width + x]);
+			
 			if (mask[y*width + x].r >= 0x0F && mask[y*width + x].g >= 0x0F && mask[y*width + x].b >= 0x0F){
 				if (hysteresis_data[y*width + x] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
 					// #pragma unroll 8
@@ -85,7 +86,7 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 						int rho_quantized_x = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta]);
 						int rho_quantized_y = DEQUANTIZE_I((y/RHO_RESOLUTION)*sinvals_quantized[theta]);
 						int rho = (rho_quantized_x + rho_quantized_y);
-						fprintf(f, "rho = %d, rho_quantized_x = %d, rho_quantized_y = %d, x = %d, y = %d, theta = %d, sin_quantized = %d, cos_quantized %d\n", rho, rho_quantized_x, rho_quantized_y, x, y, theta, sinvals_quantized[theta], cosvals_quantized[theta]);
+						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
 						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
 						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
 						cycle_count++;
@@ -101,7 +102,6 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 
 	fclose(f);
 	fclose(f2);
-	fclose(f3);
 	
 	// Printing out accum_buff values to a textfile for testing purposes
 	// FILE *f = fopen("accum_buff_results.txt", "w");

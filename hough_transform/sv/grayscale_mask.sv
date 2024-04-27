@@ -1,11 +1,9 @@
 // Same as the grayscale for the image but to write the grayscaled mask to a 2D BRAM
 
+// Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"
 
-module grayscale_mask #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-) (
+module grayscale_mask (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,

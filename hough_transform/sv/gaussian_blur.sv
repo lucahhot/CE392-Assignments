@@ -1,7 +1,7 @@
-module gaussian_blur #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-)(
+// Comment this line out for synthesis but uncomment for simulations
+`include "globals.sv"
+
+module gaussian_blur (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
@@ -26,21 +26,21 @@ parameter logic [3:0] gaussian_filter[5][5] = '{'{2,4,5,4,2},
 
 typedef enum logic [1:0] {PROLOGUE,FILTER,OUTPUT} state_types;
 state_types state, next_state;
-parameter SHIFT_REG_LEN = 4*WIDTH+5;
-parameter PIXEL_COUNT = WIDTH*HEIGHT;
+parameter SHIFT_REG_LEN = 4*REDUCED_WIDTH+5;
+parameter PIXEL_COUNT = REDUCED_WIDTH*REDUCED_HEIGHT;
 
 // Shift register
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue (to get the first pixel in the center of the 5x5 filter box)
-logic [$clog2(2*WIDTH+3)-1:0] counter, counter_c;
+logic [$clog2(2*REDUCED_WIDTH+3)-1:0] counter, counter_c;
 
 // Column counter to know when to jump
-logic [$clog2(WIDTH)-1:0] col, col_c;
+logic [$clog2(REDUCED_WIDTH)-1:0] col, col_c;
 
 // Row counter to know when we need to enter epilogue and push more zeros
-logic [$clog2(HEIGHT)-1:0] row, row_c;
+logic [$clog2(REDUCED_HEIGHT)-1:0] row, row_c;
 
 // Numerator and denominator values (adapted for unroll function)
 logic [0:UNROLL-1][DIVIDEND_WIDTH-1:0] numerator, numerator_c;
@@ -58,6 +58,10 @@ logic [24:0][7:0] pixel_values;
 
 // Pixel counter
 logic [4:0] pixel_counter;
+
+// X and Y wires to know where we are in reference to the actual image
+logic [$clog2(WIDTH)-1:0] x;
+logic [$clog2(HEIGHT)-1:0] y;
 
 // Divider signals
 logic start_div, div_valid_out;
@@ -86,8 +90,8 @@ always_ff @(posedge clock or posedge reset) begin
         counter <= '0;
         col <= '0;
         row <= '0;
-        numerator <= '{default: '{default: '0}};;
-        denominator <= '{default: '{default: '0}};;
+        numerator <= '{default: '{default: '0}};
+        denominator <= '{default: '{default: '0}};
     end else begin
         state <= next_state;
         shift_reg <= shift_reg_c;
@@ -125,8 +129,8 @@ always_comb begin
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        // Basically for the last 2*WIDTH+3 pixels, shift in 0s since there are no more image pixels
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3)) begin
+        // Basically for the last 2*REDUCED_WIDTH+3 pixels, shift in 0s since there are no more image pixels
+        end else if ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (2*REDUCED_WIDTH+3)) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -137,7 +141,7 @@ always_comb begin
         // Prologue
         PROLOGUE: begin
             // Waiting for shift register to fill up enough to start gaussian filter
-            if (counter < 2*WIDTH + 3) begin
+            if (counter < 2*REDUCED_WIDTH + 3) begin
                 if (in_empty == 1'b0)
                     counter_c++;
             end else 
@@ -147,68 +151,96 @@ always_comb begin
         // Gaussian blurring
         FILTER: begin
 
-            // Grabbing correct pixel values from the shift register
-            pixel_values[0] = shift_reg[0];
-            pixel_values[1] = shift_reg[1];
-            pixel_values[2] = shift_reg[2];
-            pixel_values[3] = shift_reg[3];
-            pixel_values[4] = shift_reg[4];
-            pixel_values[5] = shift_reg[WIDTH];
-            pixel_values[6] = shift_reg[WIDTH+1];
-            pixel_values[7] = shift_reg[WIDTH+2];
-            pixel_values[8] = shift_reg[WIDTH+3];
-            pixel_values[9] = shift_reg[WIDTH+4];
-            pixel_values[10] = shift_reg[WIDTH*2];
-            pixel_values[11] = shift_reg[WIDTH*2+1];
-            pixel_values[12] = shift_reg[WIDTH*2+2];
-            pixel_values[13] = shift_reg[WIDTH*2+3];
-            pixel_values[14] = shift_reg[WIDTH*2+4];
-            pixel_values[15] = shift_reg[WIDTH*3];
-            pixel_values[16] = shift_reg[WIDTH*3+1];
-            pixel_values[17] = shift_reg[WIDTH*3+2];
-            pixel_values[18] = shift_reg[WIDTH*3+3];
-            pixel_values[19] = shift_reg[WIDTH*3+4];
-            pixel_values[20] = shift_reg[WIDTH*4];
-            pixel_values[21] = shift_reg[WIDTH*4+1];
-            pixel_values[22] = shift_reg[WIDTH*4+2];
-            pixel_values[23] = shift_reg[WIDTH*4+3];
-            pixel_values[24] = shift_reg[WIDTH*4+4];
+            x = col + STARTING_X;
+            y = row + STARTING_Y;
 
-            pixel_counter = 0;
-            numerator_c = 0;
-            denominator_c = 0;
+            // Only calculate gaussian blur value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in 
+            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (2*REDUCED_WIDTH+3))) begin
 
-            // Calculate MAC for the numerator (might need to separate to speed up this cycle)
-            for (int i = -2; i <= 2; i++) begin
-                for (int j = -2; j <= 2; j++) begin
-                    // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
-                    if ((row+i) >= 0 && (row+i) < HEIGHT && (col+j) >= 0 && (col+j) < WIDTH) begin
-                        // Calculate the numerator and denominator values for the gaussian blur in an unrolled fashion (5 MACs can be parallelized)
-                        numerator_c[j+2] = numerator_c[j+2] + pixel_values[pixel_counter] * gaussian_filter[i+2][j+2];
-                        denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
+                // Only calculate gaussian blur values if we are within the mask which is 2 pixels within START_X/START_Y and END_X/END_Y
+                // This is to avoid going through many cycles of div.sv which will add extra cycles that are unnecessary
+                // NOTE: we need to calculate the gaussian_blur for the 1 pixel padding around our actual mask since sobel and NMS need those values
+                if (x >= STARTING_X + 2 && y >= STARTING_Y + 2) begin
+
+                    // Grabbing correct pixel values from the shift register
+                    pixel_values[0] = shift_reg[0];
+                    pixel_values[1] = shift_reg[1];
+                    pixel_values[2] = shift_reg[2];
+                    pixel_values[3] = shift_reg[3];
+                    pixel_values[4] = shift_reg[4];
+                    pixel_values[5] = shift_reg[REDUCED_WIDTH];
+                    pixel_values[6] = shift_reg[REDUCED_WIDTH+1];
+                    pixel_values[7] = shift_reg[REDUCED_WIDTH+2];
+                    pixel_values[8] = shift_reg[REDUCED_WIDTH+3];
+                    pixel_values[9] = shift_reg[REDUCED_WIDTH+4];
+                    pixel_values[10] = shift_reg[REDUCED_WIDTH*2];
+                    pixel_values[11] = shift_reg[REDUCED_WIDTH*2+1];
+                    pixel_values[12] = shift_reg[REDUCED_WIDTH*2+2];
+                    pixel_values[13] = shift_reg[REDUCED_WIDTH*2+3];
+                    pixel_values[14] = shift_reg[REDUCED_WIDTH*2+4];
+                    pixel_values[15] = shift_reg[REDUCED_WIDTH*3];
+                    pixel_values[16] = shift_reg[REDUCED_WIDTH*3+1];
+                    pixel_values[17] = shift_reg[REDUCED_WIDTH*3+2];
+                    pixel_values[18] = shift_reg[REDUCED_WIDTH*3+3];
+                    pixel_values[19] = shift_reg[REDUCED_WIDTH*3+4];
+                    pixel_values[20] = shift_reg[REDUCED_WIDTH*4];
+                    pixel_values[21] = shift_reg[REDUCED_WIDTH*4+1];
+                    pixel_values[22] = shift_reg[REDUCED_WIDTH*4+2];
+                    pixel_values[23] = shift_reg[REDUCED_WIDTH*4+3];
+                    pixel_values[24] = shift_reg[REDUCED_WIDTH*4+4];
+
+                    pixel_counter = 0;
+                    numerator_c = '{default: '{default: '0}};
+                    denominator_c = '{default: '{default: '0}};
+
+                    // Calculate MAC for the numerator (might need to separate to speed up this cycle)
+                    for (int i = -2; i <= 2; i++) begin
+                        for (int j = -2; j <= 2; j++) begin
+                            // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
+                            if ((y+i) >= 0 && (y+i) < HEIGHT && (x+j) >= 0 && (x+j) < WIDTH) begin
+                                // Calculate the numerator and denominator values for the gaussian blur in an unrolled fashion (5 MACs can be parallelized)
+                                numerator_c[j+2] = numerator_c[j+2] + pixel_values[pixel_counter] * gaussian_filter[i+2][j+2];
+                                denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
+                            end
+                            pixel_counter = pixel_counter + 1;
+                        end
                     end
-                    pixel_counter = pixel_counter + 1;
+
+                    // Increment col and row trackers
+                    if (col == REDUCED_WIDTH-1) begin
+                        col_c = 0;
+                        row_c++;
+                    end else
+                        col_c++;
+
+                    start_div = 1'b1;
+                    numerator_sum = 0;
+                    denominator_sum = 0;
+                    // THIS IS THE LIMITING PART RIGHT NOW FOR TOP LEVEL SYNTHESIS
+                    for (int i = 0; i < UNROLL; i++) begin
+                        numerator_sum = numerator_sum + numerator_c[i];
+                        denominator_sum = denominator_sum + denominator_c[i];
+                    end
+                    dividend = numerator_sum;
+                    divisor = denominator_sum;
+                    next_state = OUTPUT;
+
+                end else begin
+
+                    // Increment col and row trackers
+                    if (col == REDUCED_WIDTH-1) begin
+                        col_c = 0;
+                        row_c++;
+                    end else
+                        col_c++;
+
+                    // Start a dummy division to keep the pipeline going
+                    start_div = 1'b1;
+                    dividend = 0;
+                    divisor = 1;
+                    next_state = OUTPUT;
                 end
             end
-
-            // Increment col and row trackers
-            if (col == WIDTH - 1) begin
-                col_c = 0;
-                row_c++;
-            end else
-                col_c++;
-
-            start_div = 1'b1;
-            numerator_sum = 0;
-            denominator_sum = 0;
-            for (int i = 0; i < UNROLL; i++) begin
-                numerator_sum = numerator_sum + numerator_c[i];
-                denominator_sum = denominator_sum + denominator_c[i];
-            end
-            dividend = numerator_sum;
-            divisor = denominator_sum;
-            next_state = OUTPUT;
-            
         end
 
         // Waiting for division and writing to FIFO
@@ -231,7 +263,7 @@ always_comb begin
                     out_wr_en = 1'b1;
                     next_state = FILTER;
                     // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                    if (row == HEIGHT && col == WIDTH) begin
+                    if (row == REDUCED_HEIGHT-1 && col == REDUCED_WIDTH-1) begin
                         next_state = PROLOGUE;
                         row_c = 0;
                         col_c = 0;

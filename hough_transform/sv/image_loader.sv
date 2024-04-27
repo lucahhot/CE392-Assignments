@@ -8,11 +8,14 @@
 // cycles needed whereas here we would have IMAGE_SIZE + REDUCED_IMAGE_SIZE * 2 cycles needed.
 
 // IMAGE_SIZE = 1280 x 720 = 921600 
-// REDUCED_IMAGE_SIZE = 1024 x 215 = 219648 (according to the mask_1280_720.bmp file)
-// Normal cycles count = 921600 * 2 = 1,843,200
-// Reduced cycles count = 921600 + 219648 * 2 = 1,360,896
-// Difference = 482,304 cycles saved or 26.2% less cycles needed
+// REDUCED_IMAGE_SIZE = 1035 x 226 = 233910 (1024 x 215 according to the mask_1280_720.bmp file) Note: we need 5 pixels of padding
+// on each side because we always have to fill the pixels around the edges of the masked pixels at every stage of the pipeline
 
+// Normal cycles count = 921600 * 2 = 1,843,200
+// Reduced cycles count = 921600 + 228882 * 2 = 1,389,420
+// Difference = 453,780 cycles saved or 24.6% less cycles needed
+
+// Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"
 
 module image_loader (
@@ -75,10 +78,11 @@ always_comb begin
 
         OUTPUT: begin
             // Only write to both FIFO and BRAM if output FIFO is not empty
-            if (fifo_out_full == 1'b0) begin
+            if (fifo_out_full == 1'b0 && in_empty == 1'b0) begin
+                in_rd_en = 1'b1;
                 pixel = in_dout;
                 // Writing to FIFO (that feed into the canny pipeline) only if pixel is inside the reduced image dimensions
-                if (x >= STARTING_X && x < WIDTH_ADJUSTED && y >= STARTING_Y && y < HEIGHT_ADJUSTED) begin
+                if (x >= STARTING_X && x <= ENDING_X && y >= STARTING_Y && y <= ENDING_Y) begin
                     fifo_out_wr_en = 1'b1;
                     fifo_out_din = pixel;
                 end

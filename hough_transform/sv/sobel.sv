@@ -1,9 +1,7 @@
+// Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"
 
-module sobel #(
-    parameter WIDTH = 720,
-    parameter HEIGHT = 540
-) (
+module sobel (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
@@ -16,21 +14,21 @@ module sobel #(
 
 typedef enum logic [1:0] {PROLOGUE, FILTER, OUTPUT} state_types;
 state_types state, next_state;
-parameter SHIFT_REG_LEN = 2*WIDTH+3;
-parameter PIXEL_COUNT = WIDTH*HEIGHT;
+parameter SHIFT_REG_LEN = 2*REDUCED_WIDTH+3;
+parameter PIXEL_COUNT = REDUCED_WIDTH*REDUCED_HEIGHT;
 
 // Shift register
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg ;
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg_c;
 
 // Counters for prologue
-logic [$clog2(WIDTH+2)-1:0] counter, counter_c;
+logic [$clog2(REDUCED_WIDTH+2)-1:0] counter, counter_c;
 
 // Column counter to know when to jump
-logic [$clog2(WIDTH)-1:0] col, col_c;
+logic [$clog2(REDUCED_WIDTH)-1:0] col, col_c;
 
 // Row counter to know when we need to enter epilogue and push more zeros
-logic [$clog2(HEIGHT)-1:0] row, row_c;
+logic [$clog2(REDUCED_HEIGHT)-1:0] row, row_c;
 
 // Sobel value
 logic [15:0] sobel;
@@ -40,6 +38,10 @@ logic [15:0] cx, cx_c, cy, cy_c, cx_temp, cy_temp;
 
 // Wires to hold temporary pixel values
 logic [7:0] pixel1,pixel2,pixel3,pixel4,pixel5,pixel6,pixel7,pixel8,pixel9;
+
+// X and Y wires to know where we are in reference to the actual image
+logic [$clog2(WIDTH)-1:0] x;
+logic [$clog2(HEIGHT)-1:0] y;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -82,8 +84,9 @@ always_comb begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
-        // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2)) begin
+        // If we have reached the end of the pixels from the FIFO, shift in zeros for padding (Had to add a -1 here or else it would stall;
+        // maybe it's because of the new dimensions of the reduced image
+        end else if ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -93,7 +96,7 @@ always_comb begin
         // Prologue
         PROLOGUE: begin
             // Waiting for shift register to fill up enough to start sobel filter
-            if (counter < WIDTH + 2) begin
+            if (counter < REDUCED_WIDTH + 2) begin
                 if (in_empty == 1'b0)
                     counter_c++;
             end else 
@@ -101,21 +104,23 @@ always_comb begin
         end
         // Sobel filtering
         FILTER: begin
+            x = col + STARTING_X;
+            y = row + STARTING_Y;
             // Only calculate sobel value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in ie. 
             // if the previous stage is still running (gaussian blur), then don't do any sobel calculations)
-            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2))) begin
+            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1)) begin
                 // If we are on an edge pixel, the sobel value will be zero
-                if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
+                if (y != 0 && y != (HEIGHT - 1) && x != 0 && x != (WIDTH - 1)) begin
                     // Grabbing correct pixel values from the shift register
                     pixel1 = shift_reg[0];
                     pixel2 = shift_reg[1];
                     pixel3 = shift_reg[2];
-                    pixel4 = shift_reg[WIDTH];
-                    pixel5 = shift_reg[WIDTH+1];
-                    pixel6 = shift_reg[WIDTH+2];
-                    pixel7 = shift_reg[WIDTH*2];
-                    pixel8 = shift_reg[WIDTH*2+1];
-                    pixel9 = shift_reg[WIDTH*2+2];
+                    pixel4 = shift_reg[REDUCED_WIDTH];
+                    pixel5 = shift_reg[REDUCED_WIDTH+1];
+                    pixel6 = shift_reg[REDUCED_WIDTH+2];
+                    pixel7 = shift_reg[REDUCED_WIDTH*2];
+                    pixel8 = shift_reg[REDUCED_WIDTH*2+1];
+                    pixel9 = shift_reg[REDUCED_WIDTH*2+2];
                     cx_c = $signed(pixel3 + 2*pixel6 + pixel9) - $signed(pixel1 + 2*pixel4 + pixel7);
                     cy_c = $signed(pixel7 + 2*pixel8 + pixel9) - $signed(pixel1 + 2*pixel2 + pixel3);
                     // Using the absolute value
@@ -126,7 +131,7 @@ always_comb begin
                     cy_c = '0;
                 end
                 // Increment col and row trackers
-                if (col == WIDTH - 1) begin
+                if (col == REDUCED_WIDTH-1) begin
                     col_c = 0;
                     row_c++;
                 end else
@@ -148,7 +153,7 @@ always_comb begin
                 out_wr_en = 1'b1;
                 next_state = FILTER;
                 // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                if (row == HEIGHT && col == WIDTH) begin
+                if (row == REDUCED_HEIGHT-1 && col == REDUCED_WIDTH-1) begin
                     next_state = PROLOGUE;
                     row_c = 0;
                     col_c = 0;

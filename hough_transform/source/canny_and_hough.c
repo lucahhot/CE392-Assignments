@@ -12,6 +12,9 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
    };
    int x, y, i, j;
    unsigned int numerator_r, denominator;
+   unsigned char pixel_values[25];
+
+   FILE *f = fopen("test_values/gaussian_blur_values.txt", "w");
   
    for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
@@ -22,12 +25,23 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
                // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
                if ( (x+i) >= 0 && (x+i) < width && (y+j) >= 0 && (y+j) < height) {
                   unsigned char d = in_data[(y+j)*width + (x+i)];
+                  if (x == 128 && y == 36){
+                    pixel_values[(j+2)*5 + (i+2)] = d;
+                  }
                   numerator_r += d * gaussian_filter[i+2][j+2];
                   denominator += gaussian_filter[i+2][j+2];
                }
             }
          }
 		   out_data[y*width + x] = numerator_r / denominator;
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+            fprintf(f, "x = %d, y = %d, gaussian blur value = %d, center grayscale value = %d\n", x, y, out_data[y*width + x], in_data[(y)*width + (x)]);
+         }
+         // if (x == 128 && y == 36){
+         //    for (int k = 0; k < 25; k++){
+         //       fprintf(f, "pixel value %d = %d\n", k, pixel_values[k]);
+         //    }
+         // }
       }
    }
 
@@ -72,6 +86,8 @@ void sobel_filter(unsigned char *in_data, int height, int width, unsigned char *
     unsigned char buffer[3][3];
     unsigned char data = 0;
 
+    FILE* f = fopen("test_values/sobel_values.txt", "w");
+
     for (int y = 0; y < height; y++) 
     {
         for (int x = 0; x < width; x++) 
@@ -93,11 +109,18 @@ void sobel_filter(unsigned char *in_data, int height, int width, unsigned char *
             }
             
             out_data[y*width + x] = data;
+
+            if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+               fprintf(f, "x = %d, y = %d, sobel value = %d\n", x, y, data);
+            }
+
         }
     }
 }
     
 void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsigned char *out_data) {
+
+   FILE *f = fopen("test_values/nms_values.txt", "w");
       
    for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
@@ -142,6 +165,9 @@ void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsig
                out_data[y*width + x] = in_data[y*width + x];
             }
          }
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253) {
+            fprintf(f, "x = %d, y = %d, nms value = %d\n", x, y, out_data[y*width + x]);
+         }
       }
    }
 }
@@ -149,6 +175,11 @@ void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsig
 // Only keep pixels that are next to at least one strong pixel.
 void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned char *out_data) 
 {
+
+   FILE *f = fopen("test_values/hysteresis_values.txt", "w");
+
+   unsigned char pixel_values[9];
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			// Along the boundaries, set to 0
@@ -156,6 +187,16 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 				out_data[y*width + x] = 0;
 				continue;
 			}
+
+         pixel_values[0] = in_data[(y-1)*width + x - 1];
+         pixel_values[1] = in_data[(y-1)*width + x];
+         pixel_values[2] = in_data[(y-1)*width + x + 1];
+         pixel_values[3] = in_data[y*width + x - 1];
+         pixel_values[4] = in_data[y*width + x];
+         pixel_values[5] = in_data[y*width + x + 1];
+         pixel_values[6] = in_data[(y+1)*width + x - 1];
+         pixel_values[7] = in_data[(y+1)*width + x];
+         pixel_values[8] = in_data[(y+1)*width + x + 1];
 			
 			// If pixel is strong or it is somewhat strong and at least one 
 			// neighbouring pixel is strong, keep it. Otherwise zero it.
@@ -174,6 +215,14 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 			} else {
 				out_data[y*width + x] = 0;
 			}
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+            fprintf(f, "x = %d, y = %d, hysteresis value = %d\n", x, y, out_data[y*width + x]);
+         }
+         if (x == 128 && y == 36){
+            for (int k = 0; k < 9; k++){
+               fprintf(f, "pixel value %d = %d\n", k, pixel_values[k]);
+            }
+         }
 		}
 	}
 }

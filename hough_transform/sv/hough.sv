@@ -15,6 +15,7 @@
 // and also we would need to read and write to each accum_buff array value in 1 clock cycle, which is not
 // possible with the BRAM.
 
+// Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"
 
 module hough (
@@ -41,8 +42,8 @@ parameter THETA_UNROLL = 1;
 
 // X and Y indices for the accumulation stage (using the adjusted width and height)
 // Giving it 1 extra bit since we are making them signed for the dequantization to work
-logic signed [$clog2(WIDTH_ADJUSTED):0] x, x_c;
-logic signed [$clog2(HEIGHT_ADJUSTED):0] y, y_c;
+logic signed [$clog2(ENDING_X):0] x, x_c;
+logic signed [$clog2(ENDING_Y):0] y, y_c;
 
 // Read values from the hyseteresis and mask BRAMs 
 logic [7:0] hysteresis, mask;
@@ -119,8 +120,8 @@ always_comb begin
                 next_state = THETA_LOOP;
             end else begin
                 // Increment the x and y values to move to the next pixel
-                if (x == WIDTH_ADJUSTED-1) begin
-                    if (y == HEIGHT_ADJUSTED-1) begin
+                if (x == ENDING_X) begin
+                    if (y == ENDING_Y) begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT;
                     end else begin
@@ -164,8 +165,8 @@ always_comb begin
                 theta_c = 0;
                 // We need to update the x and y coordinates to and set the addresses for the next pixel
                 // so the BRAM outputs can be ready in the next cycle
-                if (x == WIDTH_ADJUSTED-1) begin
-                    if (y == HEIGHT_ADJUSTED-1) begin
+                if (x == ENDING_X) begin
+                    if (y == ENDING_Y) begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT;
                     end else begin

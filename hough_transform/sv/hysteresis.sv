@@ -1,3 +1,4 @@
+// Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"
 
 module hysteresis (
@@ -41,6 +42,10 @@ logic [7:0] hysteresis, hysteresis_c;
 // Wires to hold temporary pixel values
 logic [7:0] pixel1,pixel2,pixel3,pixel4,pixel5,pixel6,pixel7,pixel8,pixel9;
 
+// X and Y registers to know where we are in reference to the actual image
+logic [$clog2(WIDTH)-1:0] x, x_c;
+logic [$clog2(HEIGHT)-1:0] y, y_c;
+
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         state <= PROLOGUE;
@@ -49,6 +54,8 @@ always_ff @(posedge clock or posedge reset) begin
         col <= '0;
         row <= '0;
         hysteresis <= '0;
+        x <= '0;
+        y <= '0;
     end else begin
         state <= next_state;
         shift_reg <= shift_reg_c;
@@ -56,6 +63,8 @@ always_ff @(posedge clock or posedge reset) begin
         col <= col_c;
         row <= row_c;
         hysteresis <= hysteresis_c;
+        x <= x_c;
+        y <= y_c;
     end
 end
 
@@ -71,6 +80,8 @@ always_comb begin
     shift_reg_c = shift_reg;
     hysteresis_c = hysteresis;
     hough_start = 1'b0;
+    x_c = x;
+    y_c = y;
 
     if (state != OUTPUT) begin
         if (in_empty == 1'b0) begin
@@ -78,8 +89,9 @@ always_comb begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
-        // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        end else if ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2)) begin
+        // If we have reached the end of the pixels from the FIFO, shift in zeros for padding (Had to add a -1 here or else it would stall;
+        // maybe it's because of the new dimensions of the reduced image
+        end else if ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -98,10 +110,14 @@ case(state)
         end
         // HYSTERESIS
         HYSTERESIS: begin
-            // Only calculate hysteresis value if we there is input from the input FIFO 
-            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2))) begin
-                // If we are on an edge pixel, the hysteresis value will be zero
-                if (row != 0 && row != (REDUCED_HEIGHT - 1) && col != 0 && col != (REDUCED_WIDTH - 1)) begin
+            x_c = col + STARTING_X;
+            y_c = row + STARTING_Y;
+            // Only calculate hysteresis value if there is input from the input FIFO 
+            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1)) begin
+                
+                // If we are on an edge pixel, the hysteresis value will be zero 
+                // NOTE: we have to check the adjusted row and col (taking into account STARTING_X and STARTING_Y)
+                if (y_c != 0 && y_c != (HEIGHT - 1) && x_c != 0 && x_c != (WIDTH - 1)) begin
                     // Grabbing correct pixel values from the shift register
                     pixel1 = shift_reg[0];
                     pixel2 = shift_reg[1];
@@ -123,8 +139,9 @@ case(state)
                         end else begin
                             hysteresis_c = '0;
                         end
-                        
+
                 end else begin
+                    // Hysteresis output is 0 if we are on the image border
                     hysteresis_c = '0;
                 end
 
@@ -138,7 +155,7 @@ case(state)
             out_wr_en = 1'b1;
             // Have to adjust row and col because they're rows and columns for the REDUCED_IMAGE_SIZE but we still want the 
             // hysteresis BRAM to be addressed in terms of the normal IMAGE_SIZE coordinates
-            out_wr_addr = ((row + STARTING_Y) * WIDTH) + (col + STARTING_X);
+            out_wr_addr = (y * WIDTH) + x;
             next_state = HYSTERESIS;
             // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
             if (col == REDUCED_WIDTH-1) begin

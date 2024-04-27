@@ -100,7 +100,8 @@ logic [7:0]                     hysteresis_bram_rd_data;
 logic                           hough_start;
 
 fifo #(
-    .FIFO_DATA_WIDTH(24)
+    .FIFO_DATA_WIDTH(24),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_image_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -140,7 +141,8 @@ bram #(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(24)
+    .FIFO_DATA_WIDTH(24),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_grayscale_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -154,7 +156,8 @@ fifo #(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(24)
+    .FIFO_DATA_WIDTH(24),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_mask_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -167,10 +170,7 @@ fifo #(
     .empty(mask_empty)
 );
 
-grayscale #(
-    .WIDTH(REDUCED_WIDTH),
-    .HEIGHT(REDUCED_HEIGHT)
-) img_grayscale_inst(
+grayscale img_grayscale_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(grayscale_rd_en),
@@ -181,10 +181,7 @@ grayscale #(
     .out_din(gaussian_din)
 );
 
-grayscale_mask #(
-    .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
-) mask_grayscale_inst(
+grayscale_mask mask_grayscale_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(mask_rd_en),
@@ -208,7 +205,8 @@ bram #(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(8)
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_gaussian_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -221,10 +219,7 @@ fifo #(
     .empty(gaussian_empty)
 );
 
-gaussian_blur #(
-    .WIDTH(REDUCED_WIDTH),
-    .HEIGHT(REDUCED_HEIGHT)    
-) gaussian_inst(
+gaussian_blur gaussian_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(gaussian_rd_en),
@@ -236,7 +231,8 @@ gaussian_blur #(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(8)
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_sobel_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -249,10 +245,7 @@ fifo #(
     .empty(sobel_empty)
 );
 
-sobel #(
-    .WIDTH(REDUCED_WIDTH),
-    .HEIGHT(REDUCED_HEIGHT)
-) sobel_inst(
+sobel sobel_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(sobel_rd_en),
@@ -277,10 +270,7 @@ fifo #(
     .empty(nms_empty)
 );
 
-non_maximum_suppressor #(
-    .WIDTH(REDUCED_WIDTH),
-    .HEIGHT(REDUCED_HEIGHT)
-) nms_inst(
+non_maximum_suppressor nms_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(nms_rd_en),

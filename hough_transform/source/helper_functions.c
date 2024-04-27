@@ -222,8 +222,15 @@ void write_grayscale_bmp32(const char *filename, unsigned char* header, int offs
 // Determine the grayscale 8 bit value by averaging the r, g, and b channel values for pixel24
 void convert_to_grayscale24(struct pixel24 * data, int height, int width, unsigned char *grayscale_data) 
 {
+   FILE* f = fopen("test_values/grayscale_values.txt", "w");
    for (int i = 0; i < width*height; i++) { 
+      int x = i % width;
+      int y = i / width;
       grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3;
+      if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+         // int image_value = data[i].b << 16 | data[i].g << 8 | data[i].r; 
+         fprintf(f, "x = %d, y = %d, grayscale value = %d\n", x, y, grayscale_data[i]);
+      }
    }
 }
 

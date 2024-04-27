@@ -1,5 +1,3 @@
-`include "globals.sv"
-
 module bram #(
   parameter BRAM_DATA_WIDTH = 8,
   parameter IMAGE_SIZE = 388800
