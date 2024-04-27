@@ -98,11 +98,13 @@ always_comb begin
                 next_state = ACCUMULATE;
                 // Set the hysteresis and mask BRAM addresses so the BRAM output can be read in the next cycle
                 // We start at STARTING_X and STARTING_Y to save cycles
-                hysteresis_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
-                mask_bram_rd_addr = STARTING_Y * WIDTH + STARTING_X;
+                // Note: we start at STARTING_X + 5 and STARTING_Y + 5 because the mask is 5 pixels away from the edge
+                // of our starting and ending points due to padding for the canny edge detection algorithm
+                hysteresis_bram_rd_addr = (STARTING_Y+5) * WIDTH + (STARTING_X+5);
+                mask_bram_rd_addr = (STARTING_Y+5) * WIDTH + (STARTING_X+5);
                 // Set the initial x and y coordinates
-                x_c = STARTING_X;
-                y_c = STARTING_Y;
+                x_c = STARTING_X + 5;
+                y_c = STARTING_Y + 5;
                 // Zero out the accum_buff array
                 accum_buff_c = '{default: '{default: '{default: '0}}};
             end
@@ -120,12 +122,12 @@ always_comb begin
                 next_state = THETA_LOOP;
             end else begin
                 // Increment the x and y values to move to the next pixel
-                if (x == ENDING_X) begin
-                    if (y == ENDING_Y) begin
+                if (x == ENDING_X - 5) begin
+                    if (y == ENDING_Y - 5) begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT;
                     end else begin
-                        x_c = STARTING_X;
+                        x_c = STARTING_X + 5;
                         y_c = y + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
                         hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
@@ -165,12 +167,12 @@ always_comb begin
                 theta_c = 0;
                 // We need to update the x and y coordinates to and set the addresses for the next pixel
                 // so the BRAM outputs can be ready in the next cycle
-                if (x == ENDING_X) begin
-                    if (y == ENDING_Y) begin
+                if (x == ENDING_X - 5) begin
+                    if (y == ENDING_Y - 5) begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT;
                     end else begin
-                        x_c = 0;
+                        x_c = STARTING_X + 5;
                         y_c = y + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
                         hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
