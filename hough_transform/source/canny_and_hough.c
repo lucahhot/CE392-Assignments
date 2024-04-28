@@ -1,111 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
 #include "hough.h"
-
-#define high_threshold 48
-#define low_threshold 12
-
-void print_pixel(struct pixel p) {
-   printf("r: %d, g: %d, b: %d\n", p.r, p.g, p.b);
-}
-
-// Read BMP file and extract the pixel values (store in data) and header (store in header)
-// data is data[0] = BLUE, data[1] = GREEN, data[2] = RED, etc...
-int read_bmp(FILE *f, unsigned char* header, int *height, int *width, struct pixel* data) 
-{
-	printf("reading file...\n");
-	// read the first 54 bytes into the header
-   if (fread(header, sizeof(unsigned char), 54, f) != 54)
-   {
-		printf("Error reading BMP header\n");
-		return -1;
-   }   
-
-   // get height and width of image
-   int w = (int)(header[19] << 8) | header[18];
-   int h = (int)(header[23] << 8) | header[22];
-
-   // get number of bits per pixel
-   int bits_per_pixel = (int)(header[29] << 8) | header[28];
-
-   printf("Bits per BMP pixel = %d\n", bits_per_pixel);
-
-   printf("BMP Image dimensions: width = %d, height = %d\n", w, h);
-
-   // Read in the image
-   int size = w * h;
-
-   if (fread(data, sizeof(struct pixel), size, f) != size){
-		printf("Error reading BMP image\n");
-		return -1;
-   }   
-
-   *width = w;
-   *height = h;
-   return 0;
-}
-
-// Write the grayscale image to disk.
-void write_bmp(const char *filename, unsigned char* header, struct pixel* data) 
-{
-   FILE* file = fopen(filename, "wb");
-
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
-   int size = width * height;
-   
-   // write the 54-byte header
-   fwrite(header, sizeof(unsigned char), 54, file); 
-   fwrite(data, sizeof(struct pixel), size, file); 
-   
-   fclose(file);
-}
-
-// Write the grayscale image to disk.
-void write_grayscale_bmp(const char *filename, unsigned char* header, unsigned char* data) {
-   FILE* file = fopen(filename, "wb");
-
-   // get height and width of image
-   int width = (int)(header[19] << 8) | header[18];
-   int height = (int)(header[23] << 8) | header[22];
-   int size = width * height;
-
-   // printf("Writing an image of dimensions: width = %d, height = %d\n", width, height);
-
-   struct pixel * data_temp = (struct pixel *)malloc(size*sizeof(struct pixel)); 
-   
-   // write the 54-byte header
-   fwrite(header, sizeof(unsigned char), 54, file); 
-   int y, x;
-   
-   // the r field of the pixel has the grayscale value. copy to g and b.
-   for (y = 0; y < height; y++) {
-      for (x = 0; x < width; x++) {
-         (*(data_temp + y*width + x)).b = (*(data + y*width + x));
-         (*(data_temp + y*width + x)).g = (*(data + y*width + x));
-         (*(data_temp + y*width + x)).r = (*(data + y*width + x));
-         // print_pixel(*(data_temp + y*width + x));
-      }
-   }
-
-   size = width * height;
-   fwrite(data_temp, sizeof(struct pixel), size, file); 
-   
-   free(data_temp);
-   fclose(file);
-}
-
-// Determine the grayscale 8 bit value by averaging the r, g, and b channel values.
-void convert_to_grayscale(struct pixel * data, int height, int width, unsigned char *grayscale_data) 
-{
-   for (int i = 0; i < width*height; i++) {
-	   grayscale_data[i] = (data[i].r + data[i].g + data[i].b) / 3;
-      //  printf("%3d: %02x %02x %02x  ->  %02x\n", i,data[i].r, data[i].g, data[i].b, grayscale_data[i]);
-   }
-}
+#include "helper_functions.h"
 
 // Gaussian blur. 
 void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char *out_data) {
@@ -118,6 +12,9 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
    };
    int x, y, i, j;
    unsigned int numerator_r, denominator;
+   unsigned char pixel_values[25];
+
+   FILE *f = fopen("test_values/gaussian_blur_values.txt", "w");
   
    for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
@@ -128,12 +25,23 @@ void gaussian_blur(unsigned char *in_data, int height, int width, unsigned char 
                // Checking if the pixel +/- the 5x5 offset value is within the image coordinates and ignore if not
                if ( (x+i) >= 0 && (x+i) < width && (y+j) >= 0 && (y+j) < height) {
                   unsigned char d = in_data[(y+j)*width + (x+i)];
+                  if (x == 128 && y == 36){
+                    pixel_values[(j+2)*5 + (i+2)] = d;
+                  }
                   numerator_r += d * gaussian_filter[i+2][j+2];
                   denominator += gaussian_filter[i+2][j+2];
                }
             }
          }
-		 out_data[y*width + x] = numerator_r / denominator;
+		   out_data[y*width + x] = numerator_r / denominator;
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+            fprintf(f, "x = %d, y = %d, gaussian blur value = %d, center grayscale value = %d\n", x, y, out_data[y*width + x], in_data[(y)*width + (x)]);
+         }
+         // if (x == 128 && y == 36){
+         //    for (int k = 0; k < 25; k++){
+         //       fprintf(f, "pixel value %d = %d\n", k, pixel_values[k]);
+         //    }
+         // }
       }
    }
 
@@ -178,6 +86,8 @@ void sobel_filter(unsigned char *in_data, int height, int width, unsigned char *
     unsigned char buffer[3][3];
     unsigned char data = 0;
 
+    FILE* f = fopen("test_values/sobel_values.txt", "w");
+
     for (int y = 0; y < height; y++) 
     {
         for (int x = 0; x < width; x++) 
@@ -199,11 +109,18 @@ void sobel_filter(unsigned char *in_data, int height, int width, unsigned char *
             }
             
             out_data[y*width + x] = data;
+
+            if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+               fprintf(f, "x = %d, y = %d, sobel value = %d\n", x, y, data);
+            }
+
         }
     }
 }
     
 void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsigned char *out_data) {
+
+   FILE *f = fopen("test_values/nms_values.txt", "w");
       
    for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
@@ -248,6 +165,9 @@ void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsig
                out_data[y*width + x] = in_data[y*width + x];
             }
          }
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253) {
+            fprintf(f, "x = %d, y = %d, nms value = %d\n", x, y, out_data[y*width + x]);
+         }
       }
    }
 }
@@ -255,6 +175,11 @@ void non_maximum_suppressor(unsigned char *in_data, int height, int width, unsig
 // Only keep pixels that are next to at least one strong pixel.
 void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned char *out_data) 
 {
+
+   FILE *f = fopen("test_values/hysteresis_values.txt", "w");
+
+   unsigned char pixel_values[9];
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			// Along the boundaries, set to 0
@@ -262,6 +187,16 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 				out_data[y*width + x] = 0;
 				continue;
 			}
+
+         pixel_values[0] = in_data[(y-1)*width + x - 1];
+         pixel_values[1] = in_data[(y-1)*width + x];
+         pixel_values[2] = in_data[(y-1)*width + x + 1];
+         pixel_values[3] = in_data[y*width + x - 1];
+         pixel_values[4] = in_data[y*width + x];
+         pixel_values[5] = in_data[y*width + x + 1];
+         pixel_values[6] = in_data[(y+1)*width + x - 1];
+         pixel_values[7] = in_data[(y+1)*width + x];
+         pixel_values[8] = in_data[(y+1)*width + x + 1];
 			
 			// If pixel is strong or it is somewhat strong and at least one 
 			// neighbouring pixel is strong, keep it. Otherwise zero it.
@@ -280,68 +215,215 @@ void hysteresis_filter(unsigned char *in_data, int height, int width, unsigned c
 			} else {
 				out_data[y*width + x] = 0;
 			}
+         if (x >= 126 && x <= 1154 && y >= 34 && y <= 253){
+            fprintf(f, "x = %d, y = %d, hysteresis value = %d\n", x, y, out_data[y*width + x]);
+         }
+         if (x == 128 && y == 36){
+            for (int k = 0; k < 9; k++){
+               fprintf(f, "pixel value %d = %d\n", k, pixel_values[k]);
+            }
+         }
 		}
 	}
 }
 
-
 int main(int argc, char *argv[]) {
-	struct pixel *rgb_data = (struct pixel *)malloc(640*426*sizeof(struct pixel));
-	unsigned char *gs_data = (unsigned char *)malloc(640*426*sizeof(unsigned char));
-	unsigned char *gb_data = (unsigned char *)malloc(640*426*sizeof(unsigned char));
-	unsigned char *sobel_data = (unsigned char *)malloc(640*426*sizeof(unsigned char));
-	unsigned char *nms_data = (unsigned char *)malloc(640*426*sizeof(unsigned char));
-	unsigned char *h_data = (unsigned char *)malloc(640*426*sizeof(unsigned char));
-	unsigned char header[54];
-	int height, width;
-
-   // Added pointer for the output of the hough transform
-   struct pixel *output_data= (struct pixel *)malloc(640*426*sizeof(struct pixel));
-
-	// Check inputs
-	if (argc < 2) {
-		printf("Usage: edgedetect <BMP filename>\n");
-		return 0;
+   
+   // Check inputs (reject if not enough arguments)
+	if (argc < 3) {
+		printf("Usage: ./canny_hough <BMP filename> <BMP mask filename>\n");
+		return -1;
 	}
 
 	FILE * f = fopen(argv[1],"rb");
-	if ( f == NULL ) return 0;
+	if ( f == NULL ) return -1;
 
-	// read the bitmap
-	read_bmp(f, header, &height, &width, rgb_data);
+   FILE * f_mask = fopen(argv[2],"rb");
+   if ( f_mask == NULL ) return -1;
 
-   // printf("Successfully read BMP file\n");
+   // Reading header until image size
+   unsigned char header_until_image_size[38];
+   int offset; // Offset is the header size in bytes (called offset in the header)
+   int bits_per_pixel;
+   int height, width;
 
-	/// Grayscale conversion
-	convert_to_grayscale(rgb_data, height, width, gs_data);
-	write_grayscale_bmp("../images/stage0_grayscale.bmp", header, gs_data);
+   read_bmp_until_image_size(f, header_until_image_size, &offset, &bits_per_pixel, &height, &width);
 
-	/// Gaussian filter
-	gaussian_blur(gs_data, height, width, gb_data);
-	write_grayscale_bmp("../images/stage1_gaussian.bmp", header, gb_data);
+   // If bits_per_pixel != 24 && bits_per_pixel != 32, then return -1 and exit
+   if (bits_per_pixel != 24 && bits_per_pixel != 32) {
+      printf("Error: Unsupported bits per pixel value\n");
+      return -1;
+   }
 
-	/// Sobel operator
-	sobel_filter(gb_data, height, width, sobel_data);
-	write_grayscale_bmp("../images/stage2_sobel.bmp", header, sobel_data);
+   struct pixel24 *rgb_data24 = NULL;
+   struct pixel24 *output_data24 = NULL;
+   struct pixel32 *rgb_data32 = NULL;
+   struct pixel32 *output_data32 = NULL;
+   struct pixel24 *mask_data24 = NULL;
+   struct pixel32 *mask_data32 = NULL;
 
-	/// Non-maximum suppression
-	non_maximum_suppressor(sobel_data, height, width, nms_data);
-	write_grayscale_bmp("../images/stage3_nonmax_suppression.bmp", header, nms_data);
+   // Dynamically allocate memory for the pixel data based on the bits per pixel value
+   if (bits_per_pixel == 24) {
+      rgb_data24 = (struct pixel24 *)malloc(width * height * sizeof(struct pixel24));
+      output_data24 = (struct pixel24 *)malloc(width * height *sizeof(struct pixel24));
+      mask_data24 = (struct pixel24 *)malloc(width * height *sizeof(struct pixel24));
 
-	/// Hysteresis
-	hysteresis_filter(nms_data, height, width, h_data);
-	write_grayscale_bmp("../images/stage4_hysteresis.bmp", header, h_data);
+   } else {
+      rgb_data32 = (struct pixel32 *)malloc(width * height * sizeof(struct pixel32));
+      output_data32 = (struct pixel32 *)malloc(width * height *sizeof(struct pixel32));
+      mask_data32 = (struct pixel32 *)malloc(width * height *sizeof(struct pixel32));
+   }
 
-   // for (int i = width*100; i < width*110; i++) {
-   //    printf("Grayscale value: %d, Gaussian value: %d, Sobel value: %d, NMS value: %d\n", gs_data[i],gb_data[i],sobel_data[i],nms_data[i]);
-   // }
+   // Read the rest of the header
+   unsigned char header_remaining[offset-38];
+   if (bits_per_pixel == 24) {
+      read_bmp_data24(f, header_remaining, offset, &height, &width, rgb_data24);
+      printf("Used 24-bit read_bmp_data\n");
+   }
+   else  {
+      read_bmp_data32(f, header_remaining, offset, &height, &width, rgb_data32);
+      printf("Used 32-bit read_bmp_data\n");
+   }
 
-   // Setting output data to rgb_data to have the original pixel values in our final image output
-   output_data = rgb_data;
-   // Hough Transform
-   hough_transform(h_data, rgb_data, height, width, output_data);
-   write_bmp("../images/stage5_hough.bmp", header, output_data);
+   // Final complete header
+   unsigned char header[offset];
 
+   // Combine all 3 headers to get the full header
+   memcpy(header, header_until_image_size, 38);  // Copy the first part of the header
+   memcpy(header + 38, header_remaining, offset-38);  // Copy the second part of the header
+
+   printf("Finished reading BMP file\n");
+
+   // Allocate memory for grayscale, gaussian, sobel, non-maximum suppression, and hysteresis data
+	unsigned char *gs_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
+	unsigned char *gb_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
+	unsigned char *sobel_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
+	unsigned char *nms_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
+	unsigned char *h_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));	
+   unsigned char *mask_data = (unsigned char *)malloc(width * height *sizeof(unsigned char));
+   
+   // Print header data
+   print_header_info(header);
+
+   printf("\nReading in mask image\n");
+
+   // Reading in mask header and data (we are assuming that the mask is the same dimensions as the image)
+   unsigned char mask_header[offset];
+
+    if (bits_per_pixel == 24) {
+      read_entire_bmp24(f_mask, mask_header, mask_data24, offset, height, width);
+      printf("Used 24-bit read_entire_bmp\n");
+   }
+   else  {
+      read_entire_bmp32(f_mask, mask_header, mask_data32, offset, height, width);
+      printf("Used 32-bit read_entire_bmp\n");
+   }
+
+   int cycle_count = 0;
+
+   if (bits_per_pixel == 24) {
+      // Grayscale conversion
+      convert_to_grayscale24(rgb_data24, height, width, gs_data);
+      write_grayscale_bmp24("../images/stage0_grayscale.bmp", header, offset, height, width, gs_data);
+
+      // Gaussian filter
+      gaussian_blur(gs_data, height, width, gb_data);
+      write_grayscale_bmp24("../images/stage1_gaussian.bmp", header, offset, height, width, gb_data);
+
+      // Sobel operator
+      sobel_filter(gb_data, height, width, sobel_data);
+      write_grayscale_bmp24("../images/stage2_sobel.bmp", header, offset, height, width, sobel_data);
+
+      // Non-maximum suppression
+      non_maximum_suppressor(sobel_data, height, width, nms_data);
+      write_grayscale_bmp24("../images/stage3_nonmax_suppression.bmp", header, offset, height, width, nms_data);
+
+      // Hysteresis
+      hysteresis_filter(nms_data, height, width, h_data);
+      write_grayscale_bmp24("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
+
+      // Create the masked canny image
+      mask_canny24(h_data, mask_data24, height, width, mask_data);
+      write_grayscale_bmp24("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
+
+      // Setting output data to rgb_data to have the original pixel values in our final image output
+      output_data24 = rgb_data24;
+      // Hough Transform
+      cycle_count = hough_transform24(h_data, mask_data24, height, width, output_data24);
+      write_bmp24("../images/stage6_hough.bmp", header, offset, height, width, output_data24);
+      printf("Cycle count: %d\n", cycle_count);
+
+   } else {
+      /// Grayscale conversion
+      convert_to_grayscale32(rgb_data32, height, width, gs_data);
+      write_grayscale_bmp32("../images/stage0_grayscale.bmp", header, offset, height, width, gs_data);
+
+      /// Gaussian filter
+      gaussian_blur(gs_data, height, width, gb_data);
+      write_grayscale_bmp32("../images/stage1_gaussian.bmp", header, offset, height, width, gb_data);
+
+      /// Sobel operator
+      sobel_filter(gb_data, height, width, sobel_data);
+      write_grayscale_bmp32("../images/stage2_sobel.bmp", header, offset, height, width, sobel_data);
+
+      /// Non-maximum suppression
+      non_maximum_suppressor(sobel_data, height, width, nms_data);
+      write_grayscale_bmp32("../images/stage3_nonmax_suppression.bmp", header, offset, height, width, nms_data);
+
+      /// Hysteresis
+      hysteresis_filter(nms_data, height, width, h_data);
+      write_grayscale_bmp32("../images/stage4_hysteresis.bmp", header, offset, height, width, h_data);
+
+      // Create the masked canny image
+      mask_canny32(h_data, mask_data32, height, width, mask_data);
+      write_grayscale_bmp32("../images/stage5_masked_canny.bmp", header, offset, height, width, mask_data);
+
+      // Setting output data to rgb_data to have the original pixel values in our final image output
+      output_data32 = rgb_data32;
+      // Hough Transform
+      hough_transform32(h_data, mask_data32, height, width, output_data32);
+      write_bmp32("../images/stage6_hough.bmp", header, offset, height, width, output_data32);
+   }
+
+
+   // Code to generate and write out quantized values of sin and cos
+   FILE * sin_file = fopen("quantized_values/sin_quantized.txt", "w");
+   FILE * cos_file = fopen("quantized_values/cos_quantized.txt", "w");
+   FILE * sin_file_dequantized = fopen("quantized_values/sin_dequantized.txt", "w");
+   FILE * cos_file_dequantized = fopen("quantized_values/cos_dequantized.txt", "w");
+   if ( sin_file == NULL || cos_file == NULL || sin_file_dequantized == NULL || cos_file_dequantized == NULL ) {
+      printf("Error opening sin/cos files\n");
+      return -1;
+   }
+
+   fprintf(sin_file, "static const int sinvals_quantized[] = {");
+   fprintf(cos_file, "static const int cosvals_quantized[] = {");
+   fprintf(sin_file_dequantized, "static const float sinvals[] = {");
+   fprintf(cos_file_dequantized, "static const float cosvals[] = {");
+   for (int i = 0; i < 179; i++) {
+      fprintf(sin_file, "10'h%x, ", QUANTIZE_F(sinvals[i]));
+      fprintf(cos_file, "10'h%x, ", QUANTIZE_F(cosvals[i]));
+      // fprintf(sin_file, "%d, ", QUANTIZE_F(sinvals[i]));
+      // fprintf(cos_file, "%d, ", QUANTIZE_F(cosvals[i]));
+      fprintf(sin_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(sinvals[i])));
+      fprintf(cos_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(cosvals[i])));
+   }
+   fprintf(sin_file, "10'h%x", QUANTIZE_F(sinvals[179]));
+   fprintf(cos_file, "10'h%x", QUANTIZE_F(cosvals[179]));
+   // fprintf(sin_file, "%d", QUANTIZE_F(sinvals[179]));
+   // fprintf(cos_file, "%d", QUANTIZE_F(cosvals[179]));
+   fprintf(sin_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(sinvals[179])));
+   fprintf(cos_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(cosvals[179])));
+
+   fprintf(sin_file, "};\n");
+   fprintf(cos_file, "};\n");
+   fprintf(sin_file_dequantized, "};\n");
+   fprintf(cos_file_dequantized, "};\n");
+
+   fclose(sin_file);
+   fclose(cos_file);
+   fclose(sin_file_dequantized);
+   fclose(cos_file_dequantized);
 
 	return 0;
 }

@@ -1,0 +1,245 @@
+m255
+K4
+z2
+!s11f vlog 2019.3_2 2019.09, Sep 24 2019
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/home/uko9054/ce392/CE392-Assignments/canny_edge_detection/sim
+T_opt
+Z1 !s110 1714320460
+VnJR@;O:GZdg[SOi08?J;L1
+04 19 4 work canny_edgedetect_tb fast 0
+=1-000ae431a4f1-662e744c-293c1-29fcd5
+o-quiet -auto_acc_if_foreign -work work -L work +acc
+Z2 tCvgOpt 0
+n@_opt
+OE;O;2019.3_2;69
+vcanny_edgedetect_tb
+Z3 DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
+Z4 !s110 1714320459
+!i10b 1
+!s100 8K^L7?B44kRNb_SXT?8V72
+!s11b R83D387?SkWE=0[[hnCQa3
+IMYal?>A22TaLLa4iXR4j41
+Z5 VDg1SIo80bB@j0V0VzS_@n1
+S1
+R0
+Z6 w1714320425
+8../sv/canny_edgedetect_tb.sv
+F../sv/canny_edgedetect_tb.sv
+!i122 -1
+L0 4
+Z7 OE;L;2019.3_2;69
+r1
+!s85 0
+31
+Z8 !s108 1714320459.000000
+!s107 ../sv/canny_edgedetect_tb.sv|
+!s90 -work|work|../sv/canny_edgedetect_tb.sv|
+!i113 0
+Z9 o-work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R2
+vcanny_edgedetect_top
+R3
+R4
+!i10b 1
+!s100 ^L><k3lPIHDlPXifen3XJ3
+!s11b KAjiBhF0S[^VDJa3eT=>73
+I::C7c8Z02OHUfiRVlcS@B3
+R5
+S1
+R0
+R6
+8../sv/canny_edgedetect_top.sv
+F../sv/canny_edgedetect_top.sv
+!i122 -1
+L0 1
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/canny_edgedetect_top.sv|
+!s90 -work|work|../sv/canny_edgedetect_top.sv|
+!i113 0
+R9
+R2
+vdiv
+R3
+R4
+!i10b 1
+!s100 kdo9=gNm5R5aFRNX1lHn12
+!s11b kAh_?@_f:=]`@5TJ5?7jZ3
+I39Pc<aAg:kebjDoc0HH2d2
+R5
+S1
+R0
+R6
+8../sv/div.sv
+F../sv/div.sv
+!i122 -1
+L0 3
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/div.sv|
+!s90 -work|work|../sv/div.sv|
+!i113 0
+R9
+R2
+vfifo
+R3
+R4
+!i10b 1
+!s100 JJ9WTn?^46FJn6Sib6ECo1
+!s11b _kP]^9cFJ5[i@4IC9XR9i2
+IIX4eJJ6Oj1>_FdE[heNk_0
+R5
+S1
+R0
+w1712282336
+8../sv/fifo.sv
+F../sv/fifo.sv
+!i122 -1
+L0 2
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/fifo.sv|
+!s90 -work|work|../sv/fifo.sv|
+!i113 0
+R9
+R2
+vgaussian_blur
+R3
+R4
+!i10b 1
+!s100 l?zAl;?ASD;gG4EUVg^Ga3
+!s11b 5nEdMLRL8o7oOPP@VGIF01
+ISe0oZQ8<UlX1fR1NHPa2P0
+R5
+S1
+R0
+R6
+8../sv/gaussian_blur.sv
+F../sv/gaussian_blur.sv
+!i122 -1
+L0 1
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/gaussian_blur.sv|
+!s90 -work|work|../sv/gaussian_blur.sv|
+!i113 0
+R9
+R2
+vgrayscale
+R3
+R4
+!i10b 1
+!s100 BE>CldDnMT?[[Ri82VL7o2
+!s11b kUQ=k1N<]ElaI^8M_GOoo0
+Ih5F;NPnD4iDiKEV5eLEQd0
+R5
+S1
+R0
+w1713115420
+8../sv/grayscale.sv
+F../sv/grayscale.sv
+!i122 -1
+L0 2
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/grayscale.sv|
+!s90 -work|work|../sv/grayscale.sv|
+!i113 0
+R9
+R2
+vhysteresis
+R3
+R1
+!i10b 1
+!s100 A;oKWo[XEL4PYPT4niVM@1
+!s11b KN_BeMOX_deBO3eH1heJ[3
+Iha[LO4Z3bRkgn^Yn_Z0G^1
+R5
+S1
+R0
+Z10 w1713800907
+8../sv/hysteresis.sv
+F../sv/hysteresis.sv
+!i122 -1
+L0 1
+R7
+r1
+!s85 0
+31
+!s108 1714320460.000000
+!s107 ../sv/hysteresis.sv|
+!s90 -work|work|../sv/hysteresis.sv|
+!i113 0
+R9
+R2
+vnon_maximum_suppressor
+R3
+R1
+!i10b 1
+!s100 bBZa?J_Kzk06=Cmg1eA=R2
+!s11b `KWK7JJ1hP@mI?_4[QiX_2
+ITVANfm;^LmaT6OU6S@LUJ0
+R5
+S1
+R0
+R10
+8../sv/non_maximum_suppressor.sv
+F../sv/non_maximum_suppressor.sv
+!i122 -1
+L0 1
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/non_maximum_suppressor.sv|
+!s90 -work|work|../sv/non_maximum_suppressor.sv|
+!i113 0
+R9
+R2
+vsobel
+R3
+R4
+!i10b 1
+!s100 ]m0ENM?j[leNdoZW0IciK2
+!s11b fO2GZASKSIbXEU8^4F`Dg2
+IWzmXo`?]eczX?i@Vc@T3W1
+R5
+S1
+R0
+R10
+8../sv/sobel.sv
+F../sv/sobel.sv
+!i122 -1
+L0 1
+R7
+r1
+!s85 0
+31
+R8
+!s107 ../sv/sobel.sv|
+!s90 -work|work|../sv/sobel.sv|
+!i113 0
+R9
+R2

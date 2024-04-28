@@ -19,7 +19,7 @@ vlog -work work "../sv/lookup_table.sv"
 # start basic simulation
 vsim -classdebug -voptargs=+acc +notimingchecks -L work work.canny_edgedetect_tb -wlf canny_edgedetect.wlf
 
-do canny_edgedetect_wave.do
+# do canny_edgedetect_wave.do
 
 run -all
 #quit;

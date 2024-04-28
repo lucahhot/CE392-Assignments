@@ -1,35 +1,56 @@
 #include "hough.h"
 
 // Function to draw/highlight hough lines on original image
-void draw_lines(int height, int width, int rho, float sin_theta, float cos_theta, struct pixel* image_out)
+int draw_lines24(int height, int width, int rho, int sin_val, int cos_val, struct pixel24 * mask, struct pixel24* image_out, int rho_resolution)
 {
-   float x0 = rho * cos_theta;
-   float y0 = rho * sin_theta;
-   for(int k=-LINE_LENGTH; k<LINE_LENGTH; k++){
-		int x1 = (int)(x0 + k*(-sin_theta));
-		int y1 = (int)(y0 + k *(cos_theta));
+	int cycle_count = 0;
+	// K_START and K_END are arbitrary values that we need to set as constants
+   	for(int k = K_START; k < K_END; k++){
+		// Need to multiply by rho_resolution to get the correct cartesian values since we divide by it in the hough transform
+		int x = DEQUANTIZE_I((rho * cos_val) + k * (-sin_val))*rho_resolution;
+		int y = DEQUANTIZE_I((rho * sin_val) + k * (cos_val))*rho_resolution;
+		// int x = ((rho * cos_val) + k * (-sin_val))*rho_resolution;
+		// int y = ((rho * sin_val) + k * (cos_val))*rho_resolution;
 
-		if(x1>=0 && x1<width && y1>=0 && y1<height) {
-			image_out[y1*width + x1].r = 0xff;
-			image_out[y1*width + x1].g = 0x00;
-			image_out[y1*width + x1].b = 0x00;
+		// Check that the pixel is inside the mask (will naturally be inside the image if this is the case)
+		if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+
+			int offset_width = 8;
+
+			// Highlighting left and right of the main pixel, and 1 pixel above and below
+			for (int offset = -offset_width; offset < offset_width; offset++){
+
+				// Will need to check if the pixel is within the image bounds (only check the x + offset since y is already checked in the mask)
+				if ((x + offset) >= 0 && (x + offset) <= width){
+					image_out[y*width + x + offset].r = 0xFF; 
+					image_out[y*width + x + offset].g = 0x00;
+					image_out[y*width + x + offset].b = 0x00;
+				}
+				cycle_count++;
+			}
+		} else {
+			cycle_count++;
 		}
    	}
+	return cycle_count;
 }
 
-float sinvals[180] = {0.0, 0.01745240643728351, 0.03489949670250097, 0.05233595624294383, 0.0697564737441253, 0.08715574274765817, 0.10452846326765346, 0.12186934340514748, 0.13917310096006544, 0.15643446504023087, 0.17364817766693033, 0.1908089953765448, 0.20791169081775931, 0.224951054343865, 0.24192189559966773, 0.25881904510252074, 0.27563735581699916, 0.29237170472273677, 0.3090169943749474, 0.32556815445715664, 0.3420201433256687, 0.35836794954530027, 0.374606593415912, 0.3907311284892737, 0.40673664307580015, 0.42261826174069944, 0.4383711467890774, 0.45399049973954675, 0.4694715627858908, 0.48480962024633706, 0.49999999999999994, 0.5150380749100542, 0.5299192642332049, 0.5446390350150271, 0.5591929034707469, 0.573576436351046, 0.5877852522924731, 0.6018150231520483, 0.6156614753256582, 0.6293203910498374, 0.6427876096865393, 0.6560590289905072, 0.6691306063588582, 0.6819983600624985, 0.6946583704589973, 0.7071067811865475, 0.7193398003386511, 0.7313537016191705, 0.7431448254773941, 0.754709580222772, 0.766044443118978, 0.7771459614569708, 0.788010753606722, 0.7986355100472928, 0.8090169943749475, 0.8191520442889918, 0.8290375725550417, 0.8386705679454239, 0.848048096156426, 0.8571673007021122, 0.8660254037844386, 0.8746197071393957, 0.8829475928589269, 0.8910065241883678, 0.898794046299167, 0.9063077870366499, 0.9135454576426009, 0.9205048534524403, 0.9271838545667874, 0.9335804264972017, 0.9396926207859083, 0.9455185755993167, 0.9510565162951535, 0.9563047559630354, 0.9612616959383189, 0.9659258262890683, 0.9702957262759965, 0.9743700647852352, 0.9781476007338056, 0.981627183447664, 0.984807753012208, 0.9876883405951378, 0.9902680687415703, 0.992546151641322, 0.9945218953682733, 0.9961946980917455, 0.9975640502598242, 0.9986295347545738, 0.9993908270190958, 0.9998476951563913, 1.0, 0.9998476951563913, 0.9993908270190958, 0.9986295347545738, 0.9975640502598242, 0.9961946980917455, 0.9945218953682734, 0.9925461516413221, 0.9902680687415704, 0.9876883405951377, 0.984807753012208, 0.981627183447664, 0.9781476007338057, 0.9743700647852352, 0.9702957262759965, 0.9659258262890683, 0.9612616959383189, 0.9563047559630355, 0.9510565162951536, 0.9455185755993168, 0.9396926207859084, 0.9335804264972017, 0.9271838545667874, 0.9205048534524404, 0.913545457642601, 0.90630778703665, 0.8987940462991669, 0.8910065241883679, 0.8829475928589271, 0.8746197071393959, 0.8660254037844387, 0.8571673007021123, 0.8480480961564261, 0.8386705679454239, 0.8290375725550417, 0.819152044288992, 0.8090169943749475, 0.7986355100472927, 0.788010753606722, 0.777145961456971, 0.766044443118978, 0.7547095802227718, 0.7431448254773942, 0.7313537016191706, 0.7193398003386514, 0.7071067811865476, 0.6946583704589971, 0.6819983600624986, 0.6691306063588583, 0.6560590289905073, 0.6427876096865395, 0.6293203910498377, 0.6156614753256584, 0.6018150231520482, 0.5877852522924732, 0.5735764363510464, 0.5591929034707469, 0.544639035015027, 0.5299192642332049, 0.5150380749100544, 0.49999999999999994, 0.48480962024633717, 0.4694715627858911, 0.45399049973954686, 0.4383711467890773, 0.4226182617406995, 0.40673664307580043, 0.39073112848927416, 0.37460659341591224, 0.3583679495453002, 0.3420201433256689, 0.32556815445715703, 0.3090169943749475, 0.29237170472273705, 0.27563735581699966, 0.258819045102521, 0.24192189559966773, 0.22495105434386478, 0.20791169081775931, 0.19080899537654497, 0.17364817766693028, 0.15643446504023098, 0.13917310096006574, 0.12186934340514755, 0.10452846326765373, 0.08715574274765864, 0.06975647374412552, 0.05233595624294381, 0.0348994967025007, 0.01745240643728344};
-float cosvals[180] = {1.0, 0.9998476951563913, 0.9993908270190958, 0.9986295347545738, 0.9975640502598242, 0.9961946980917455, 0.9945218953682733, 0.992546151641322, 0.9902680687415704, 0.9876883405951378, 0.984807753012208, 0.981627183447664, 0.9781476007338057, 0.9743700647852352, 0.9702957262759965, 0.9659258262890683, 0.9612616959383189, 0.9563047559630354, 0.9510565162951535, 0.9455185755993168, 0.9396926207859084, 0.9335804264972017, 0.9271838545667874, 0.9205048534524404, 0.9135454576426009, 0.9063077870366499, 0.898794046299167, 0.8910065241883679, 0.882947592858927, 0.8746197071393957, 0.8660254037844387, 0.8571673007021123, 0.848048096156426, 0.838670567945424, 0.8290375725550416, 0.8191520442889918, 0.8090169943749475, 0.7986355100472928, 0.788010753606722, 0.7771459614569709, 0.766044443118978, 0.7547095802227721, 0.7431448254773942, 0.7313537016191706, 0.7193398003386512, 0.7071067811865476, 0.6946583704589974, 0.6819983600624985, 0.6691306063588582, 0.6560590289905073, 0.6427876096865394, 0.6293203910498375, 0.6156614753256583, 0.6018150231520484, 0.5877852522924731, 0.5735764363510462, 0.5591929034707468, 0.5446390350150272, 0.5299192642332049, 0.5150380749100544, 0.5000000000000001, 0.4848096202463371, 0.46947156278589086, 0.4539904997395468, 0.43837114678907746, 0.42261826174069944, 0.4067366430758002, 0.39073112848927394, 0.37460659341591196, 0.3583679495453004, 0.3420201433256688, 0.32556815445715676, 0.30901699437494745, 0.29237170472273677, 0.27563735581699916, 0.25881904510252074, 0.2419218955996679, 0.22495105434386492, 0.20791169081775945, 0.19080899537654492, 0.17364817766693041, 0.15643446504023092, 0.1391731009600657, 0.12186934340514749, 0.10452846326765346, 0.08715574274765814, 0.06975647374412546, 0.052335956242943966, 0.03489949670250108, 0.017452406437283376, 6.123233995736766e-17, -0.017452406437283477, -0.03489949670250073, -0.05233595624294362, -0.06975647374412533, -0.08715574274765824, -0.10452846326765333, -0.12186934340514737, -0.13917310096006535, -0.15643446504023104, -0.1736481776669303, -0.1908089953765448, -0.20791169081775912, -0.2249510543438648, -0.24192189559966779, -0.25881904510252085, -0.27563735581699905, -0.29237170472273666, -0.30901699437494734, -0.3255681544571564, -0.3420201433256687, -0.35836794954530027, -0.37460659341591207, -0.3907311284892736, -0.40673664307580004, -0.42261826174069933, -0.4383711467890775, -0.4539904997395467, -0.46947156278589053, -0.484809620246337, -0.4999999999999998, -0.5150380749100543, -0.5299192642332048, -0.5446390350150271, -0.5591929034707467, -0.5735764363510458, -0.587785252292473, -0.6018150231520484, -0.6156614753256583, -0.6293203910498373, -0.6427876096865394, -0.6560590289905075, -0.6691306063588582, -0.6819983600624984, -0.694658370458997, -0.7071067811865475, -0.7193398003386512, -0.7313537016191705, -0.743144825477394, -0.754709580222772, -0.7660444431189779, -0.7771459614569707, -0.7880107536067219, -0.7986355100472929, -0.8090169943749473, -0.8191520442889916, -0.8290375725550416, -0.8386705679454242, -0.848048096156426, -0.8571673007021122, -0.8660254037844387, -0.8746197071393957, -0.8829475928589268, -0.8910065241883678, -0.898794046299167, -0.9063077870366499, -0.9135454576426008, -0.9205048534524402, -0.9271838545667873, -0.9335804264972017, -0.9396926207859083, -0.9455185755993167, -0.9510565162951535, -0.9563047559630354, -0.9612616959383187, -0.9659258262890682, -0.9702957262759965, -0.9743700647852352, -0.9781476007338057, -0.981627183447664, -0.984807753012208, -0.9876883405951377, -0.9902680687415703, -0.992546151641322, -0.9945218953682733, -0.9961946980917455, -0.9975640502598242, -0.9986295347545738, -0.9993908270190958, -0.9998476951563913};
-
-void hough_transform(unsigned char *hysteresis_data, struct pixel *image_in, int height, int width, struct pixel *image_out)
+int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int height, int width, struct pixel24 *image_out)
 {
-	// The rho resolution (in number of pixels). 1 is best resolution.
+	// Total cycle count to return (to try and measure algorithm performance)
+	int cycle_count = 0;
+	// The rho resolution (in number of pixels). 1 is best resolution. (Tried 2 but the line edges are pretty jagged)
 	int RHO_RESOLUTION = 1;
-	// How many values of rho do we go through? Sqrt(ROWS^2 + COLS^2) = 900, then subsampling reduces it.
-	int RHOS = (int)(sqrt(height*height + width*width)/RHO_RESOLUTION);
+	// Adjusting the height and width to reduce the number of cycles 
+	int height_adjusted = height*MASK_TR_Y; // y value of the top right corner of the mask
+	int width_adjusted = width*MASK_BR_X; // x value of the bottom right corner of the mask
+	printf("\nAdjusted Height = %d, Adjusted Width = %d\n", height_adjusted, width_adjusted);
+	// Originally have RHOS = diagnonal length of the image, but reducing it to reduce the number of cycles
+	int RHOS = (int)(sqrt(height_adjusted*height_adjusted + width_adjusted*width_adjusted)/RHO_RESOLUTION);
+	printf("Rho Range = -%d to %d\n", RHOS, RHOS);
 	int rho_range = RHOS*2;
 	// How many values of theta do we go through? Do 180/128 = 1.40625 degree resolution.
-	int THETAS = 180;
-
+	int THETAS = 180; 
 	int n = 0;
 	unsigned short accum_buff[rho_range][THETAS];
 	
@@ -38,28 +59,214 @@ void hough_transform(unsigned char *hysteresis_data, struct pixel *image_in, int
 		for (int i = 0; i < THETAS; i++)
 			accum_buff[j][i] = 0;
 	
-	#pragma ivdep
-	for (int y = 0; y < height; y++){
-		#pragma ivdep
-		for (int x = 0; x < width; x++){
-			if (hysteresis_data[n++] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
-				#pragma unroll 8
-				for (int theta = 0; theta < THETAS; theta++){
-					int rho = (x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
-					accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
+	// #pragma ivdep
+
+	// y starts from the bottom of the mask to the top of the mask
+	int starting_y = height*MASK_BL_Y;
+	// x starts from the left of the mask to the right of the mask
+	int starting_x = width*MASK_BL_X;
+	printf("\nStarting y index = %d, Ending y index = %d\n", starting_y, height_adjusted);
+	printf("Starting x index = %d, Ending x index = %d\n", starting_x, width_adjusted);
+
+	printf("\nReduced Width = %d, Reduced Height = %d\n", width_adjusted - starting_x ,height_adjusted - starting_y);
+
+    FILE *f = fopen("test_values/rho_results.txt", "w");
+	FILE *f2 = fopen("test_values/mask_values.txt", "w");
+	
+	for (int y = starting_y; y < height_adjusted; y++){
+		// #pragma ivdep
+		for (int x = starting_x; x < width_adjusted; x++){
+			// If the pixel is inside the mask only
+			fprintf(f2, "x = %d, y = %d, mask value = %d\n", x, y, mask[y*width + x].r);
+			
+			if (mask[y*width + x].r >= 0x0F && mask[y*width + x].g >= 0x0F && mask[y*width + x].b >= 0x0F){
+				if (hysteresis_data[y*width + x] != 0){ // If the pixel is an edge pixel (ie. not 0 or pure black)
+					// #pragma unroll 8
+					for (int theta = 0; theta < THETAS; theta++){
+						int rho_quantized_x = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta]);
+						int rho_quantized_y = DEQUANTIZE_I((y/RHO_RESOLUTION)*sinvals_quantized[theta]);
+						int rho = (rho_quantized_x + rho_quantized_y);
+						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
+						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
+						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
+						cycle_count++;
+					}
+				} else{
+					cycle_count++;
 				}
+			} else {
+				cycle_count++;
+			}		
+		}
+	}
+
+	fclose(f);
+	fclose(f2);
+	
+	// Printing out accum_buff values to a textfile for testing purposes
+	// FILE *f = fopen("accum_buff_results.txt", "w");
+	// if (f == NULL)
+	// {
+	//     printf("Error opening file!\n");
+	//     return -1;
+	// }
+	// for (int i = 0; i < rho_range; i++){
+	// 	for (int j = 0; j < THETAS; j++){
+	// 		fprintf(f, "%d\n", accum_buff[i][j]);
+	// 	}
+	// }
+	// fclose(f);
+
+	// // Array to hold the rho and theta values of the lines that meet the threshold
+	int left_rhos[100]; // Technically there can be rho_range*THETAS number of lines but bringing this down because of a segfault error
+	int left_thetas[100];
+	int left_index = 0;
+	int right_rhos[100];
+	int right_thetas[100];
+	int right_index = 0;
+
+	// Accumulate the lines that pass a certain threshold 
+	for(int i = 0; i < rho_range; i++){
+		for(int j = 0; j < THETAS; j++){
+			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
+				int margin = 10;
+				// Left lanes (since thetas around 90 are essentially horizontal lines, we want to have a bit of margin)
+				if (j > (90 + margin)){
+					left_rhos[left_index] = i-RHOS/RHO_RESOLUTION;
+					left_thetas[left_index] = j;
+					left_index++;
+				// Right lanes
+				} else if (j < (90 - margin)){
+					right_rhos[right_index] = i-RHOS/RHO_RESOLUTION;
+					right_thetas[right_index] = j;
+					right_index++;
+				}
+				cycle_count++;
+			} else {
+				cycle_count++;
 			}
 		}
 	}
 
-	// Now draw the highlighted lines on the original image_in
-	for(int i = 0; i < rho_range; i++){
-		for(int j=0; j< THETAS; j++){
-			if(accum_buff[i][j] >= HOUGH_TRANSFORM_THRESHOLD){
-			// Sending the rho and theta values to draw_lines function
-			draw_lines(height, width, i-RHOS/RHO_RESOLUTION, sinvals[j], cosvals[j], image_out);
-			}
-		}
-   }
+	printf("\nNumber of lines detected = %d\n", left_index + right_index);
+
+	// Printing out the rho and theta values of the lines that meet the threshold
+	for (int i = 0; i < left_index; i++){
+		printf("Detected Left Line %d: Theta = %d, Rho = %d\n", i, left_thetas[i], left_rhos[i]);
+	}
+	for (int i = 0; i < right_index; i++){
+		printf("Detected Right Line %d: Theta = %d, Rho = %d\n", i, right_thetas[i], right_rhos[i]);
+	}
+
+	// If no left of right lanes have been detected, return straight away
+	if (left_index == 0 && right_index == 0){
+		printf("\nNo lanes detected :(\n");
+		return cycle_count;
+	}
+	if (left_index == 0){
+		printf("\nNo left lanes detected :(\n");
+		return cycle_count;
+	}
+	if (right_index == 0){
+		printf("\nNo right lanes detected :(\n");
+		return cycle_count;
+	}
+
+	// Now we have to select a left and a right line to draw
+	int left_theta = 0; 
+	int left_rho = 0;
+	int right_theta = 0; 
+	int right_rho = 0;
+
+	// Variables to keep track of the best lines
+	int difference = 180;
+	int best_left_index = 0;
+	int best_right_index = 0;
+
+	// Finding the left and right lines which have the most symmetric thetas with respect to the y axis
+	// This is how we're going to simply choose our left and right lanes. 
+	// for (int left = 0; left < left_index; left++){
+	// 	for (int right = 0; right < right_index; right++){
+	// 		if (abs((180-left_thetas[left]) - (90-right_thetas[right])) < difference){
+	// 			difference = abs(abs(90-left_thetas[left]) - (90-right_thetas[right]));
+	// 			// printf("Difference = %d\n", difference);
+	// 			left_theta = left_thetas[left];
+	// 			left_rho = left_rhos[left];
+	// 			right_theta = right_thetas[right];
+	// 			right_rho = right_rhos[right];
+	// 			cycle_count++;
+	// 		} else {
+	// 			cycle_count++;
+	// 		}
+	// 		// If there are identical thetas, choosing the rho with the smallest value (might not need this)
+	// 		// else if (abs((180-left_thetas[left]) - (90-right_thetas[right])) == difference){
+	// 		// 	if (left_rhos[left] < left_rho){
+	// 		// 		left_theta = left_thetas[left];
+	// 		// 		left_rho = left_rhos[left];
+	// 		// 	}
+	// 		// 	if (right_rhos[right] < right_rho){
+	// 		// 		right_theta = right_thetas[right];
+	// 		// 		right_rho = right_rhos[right];
+	// 		// 	}
+	// 		// }
+		
+	// 	}
+	// }
+
+	// Finding the average theta and rho values of the left and right lines
+	int left_theta_avg = 0;
+	int left_rho_avg = 0;
+	int right_theta_avg = 0;
+	int right_rho_avg = 0;
+	for (int i = 0; i < left_index; i++){
+		left_theta_avg += left_thetas[i];
+		left_rho_avg += left_rhos[i];
+		cycle_count++;
+	}
+	for (int i = 0; i < right_index; i++){
+		right_theta_avg += right_thetas[i];
+		right_rho_avg += right_rhos[i];
+		cycle_count++;
+	}
+	left_theta_avg = left_theta_avg/left_index;
+	left_rho_avg = left_rho_avg/left_index;
+	right_theta_avg = right_theta_avg/right_index;
+	right_rho_avg = right_rho_avg/right_index;
+
+	// At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
+	if (left_theta_avg != 0) {
+		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
+		cycle_count += draw_lines24(height, width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
+		// cycle_count += draw_lines24(height, width, left_rho_avg, sinvals[left_theta_avg], cosvals[left_theta_avg], mask, image_out, RHO_RESOLUTION);
+	}
+	if (right_theta_avg != 0) {
+		printf("Drawing right line with theta = %d, rho = %d\n", right_theta_avg, right_rho_avg);
+		cycle_count += draw_lines24(height, width, right_rho_avg, sinvals_quantized[right_theta_avg], cosvals_quantized[right_theta_avg], mask, image_out, RHO_RESOLUTION);
+		// cycle_count += draw_lines24(height, width, right_rho_avg, sinvals[right_theta_avg], cosvals[right_theta_avg], mask, image_out, RHO_RESOLUTION);
+	}
+
+	// // At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
+	// if (left_theta != 0) {
+	// 	printf("Drawing left line with theta = %d, rho = %d\n", left_theta, left_rho);
+	// 	cycle_count += draw_lines24(width, left_rho, sinvals[left_theta], cosvals[left_theta], mask, image_out, RHO_RESOLUTION);
+	// }
+	// if (right_theta != 0) {
+	// 	printf("Drawing right line with theta = %d, rho = %d\n", right_theta, right_rho);
+	// 	cycle_count += draw_lines24(width, right_rho, sinvals[right_theta], cosvals[right_theta], mask, image_out, RHO_RESOLUTION);
+	// }
+
+	return cycle_count;
+	
+}
+
+// Function to draw/highlight hough lines on original image
+void draw_lines32(int width, int rho, float sin_val, float cos_val, struct pixel32 * mask, struct pixel32* image_out)
+{
+	// Will adjust once the 24-bit versions are finalized
+}
+
+void hough_transform32(unsigned char *hysteresis_data, struct pixel32 * mask, int height, int width, struct pixel32 *image_out)
+{
+	// Will adjust once the 24-bit versions are finalized
 	
 }

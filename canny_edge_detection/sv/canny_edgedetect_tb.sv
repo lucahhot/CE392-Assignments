@@ -3,9 +3,9 @@
 
 module canny_edgedetect_tb;
 
-localparam string IMG_IN_NAME  = "../images/copper_720_540.bmp";
+localparam string IMG_IN_NAME  = "/home/laa8390/Documents/CE392/CE392-Assignments/hough_transform/images/road_image_1280_720.bmp";
 localparam string IMG_OUT_NAME = "../images/output.bmp";
-localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
+localparam string IMG_CMP_NAME = "/home/laa8390/Documents/CE392/CE392-Assignments/hough_transform/images/stage1_gaussian.bmp";
 localparam CLOCK_PERIOD = 10;
 
 logic clock = 1'b1;
@@ -25,9 +25,9 @@ logic   in_write_done = '0;
 logic   out_read_done = '0;
 integer out_errors    = '0;
 
-localparam WIDTH = 720;
-localparam HEIGHT = 540;
-localparam BMP_HEADER_SIZE = 54;
+localparam WIDTH = 1280;
+localparam HEIGHT = 720;
+localparam BMP_HEADER_SIZE = 138;
 localparam BYTES_PER_PIXEL = 3;
 localparam BMP_DATA_SIZE = WIDTH*HEIGHT*BYTES_PER_PIXEL;
 

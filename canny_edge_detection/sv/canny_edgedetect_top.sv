@@ -122,97 +122,97 @@ gaussian_blur #(
     .in_rd_en(gaussian_rd_en),
     .in_empty(gaussian_empty),
     .in_dout(gaussian_dout),
-    .out_wr_en(sobel_wr_en),
-    .out_full(sobel_full),
-    .out_din(sobel_din)
-);
-
-fifo #(
-    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
-    .FIFO_DATA_WIDTH(8)
-) fifo_sobel_inst (
-    .reset(reset),
-    .wr_clk(clock),
-    .wr_en(sobel_wr_en),
-    .din(sobel_din),
-    .full(sobel_full),
-    .rd_clk(clock),
-    .rd_en(sobel_rd_en),
-    .dout(sobel_dout),
-    .empty(sobel_empty)
-);
-
-sobel #(
-    .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
-) sobel_inst(
-    .clock(clock),
-    .reset(reset),
-    .in_rd_en(sobel_rd_en),
-    .in_empty(sobel_empty),
-    .in_dout(sobel_dout),
-    .out_wr_en(nms_wr_en),
-    .out_full(nms_full),
-    .out_din(nms_din)
-);
-
-fifo #(
-    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
-    .FIFO_DATA_WIDTH(8)
-) fifo_nms_inst (
-    .reset(reset),
-    .wr_clk(clock),
-    .wr_en(nms_wr_en),
-    .din(nms_din),
-    .full(nms_full),
-    .rd_clk(clock),
-    .rd_en(nms_rd_en),
-    .dout(nms_dout),
-    .empty(nms_empty)
-);
-
-non_maximum_suppressor #(
-    .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
-) nms_inst(
-    .clock(clock),
-    .reset(reset),
-    .in_rd_en(nms_rd_en),
-    .in_empty(nms_empty),
-    .in_dout(nms_dout),
-    .out_wr_en(hysteresis_wr_en),
-    .out_full(hysteresis_full),
-    .out_din(hysteresis_din)
-);
-
-fifo #(
-    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
-    .FIFO_DATA_WIDTH(8)
-) fifo_hysteresis_inst (
-    .reset(reset),
-    .wr_clk(clock),
-    .wr_en(hysteresis_wr_en),
-    .din(hysteresis_din),
-    .full(hysteresis_full),
-    .rd_clk(clock),
-    .rd_en(hysteresis_rd_en),
-    .dout(hysteresis_dout),
-    .empty(hysteresis_empty)
-);
-
-hysteresis #(
-    .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
-) hysteresis_inst(
-    .clock(clock),
-    .reset(reset),
-    .in_rd_en(hysteresis_rd_en),
-    .in_empty(hysteresis_empty),
-    .in_dout(hysteresis_dout),
     .out_wr_en(img_out_wr_en),
     .out_full(img_out_full),
     .out_din(img_out_din)
 );
+
+// fifo #(
+//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
+//     .FIFO_DATA_WIDTH(8)
+// ) fifo_sobel_inst (
+//     .reset(reset),
+//     .wr_clk(clock),
+//     .wr_en(sobel_wr_en),
+//     .din(sobel_din),
+//     .full(sobel_full),
+//     .rd_clk(clock),
+//     .rd_en(sobel_rd_en),
+//     .dout(sobel_dout),
+//     .empty(sobel_empty)
+// );
+
+// sobel #(
+//     .WIDTH(WIDTH),
+//     .HEIGHT(HEIGHT)
+// ) sobel_inst(
+//     .clock(clock),
+//     .reset(reset),
+//     .in_rd_en(sobel_rd_en),
+//     .in_empty(sobel_empty),
+//     .in_dout(sobel_dout),
+//     .out_wr_en(nms_wr_en),
+//     .out_full(nms_full),
+//     .out_din(nms_din)
+// );
+
+// fifo #(
+//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
+//     .FIFO_DATA_WIDTH(8)
+// ) fifo_nms_inst (
+//     .reset(reset),
+//     .wr_clk(clock),
+//     .wr_en(nms_wr_en),
+//     .din(nms_din),
+//     .full(nms_full),
+//     .rd_clk(clock),
+//     .rd_en(nms_rd_en),
+//     .dout(nms_dout),
+//     .empty(nms_empty)
+// );
+
+// non_maximum_suppressor #(
+//     .WIDTH(WIDTH),
+//     .HEIGHT(HEIGHT)
+// ) nms_inst(
+//     .clock(clock),
+//     .reset(reset),
+//     .in_rd_en(nms_rd_en),
+//     .in_empty(nms_empty),
+//     .in_dout(nms_dout),
+//     .out_wr_en(hysteresis_wr_en),
+//     .out_full(hysteresis_full),
+//     .out_din(hysteresis_din)
+// );
+
+// fifo #(
+//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
+//     .FIFO_DATA_WIDTH(8)
+// ) fifo_hysteresis_inst (
+//     .reset(reset),
+//     .wr_clk(clock),
+//     .wr_en(hysteresis_wr_en),
+//     .din(hysteresis_din),
+//     .full(hysteresis_full),
+//     .rd_clk(clock),
+//     .rd_en(hysteresis_rd_en),
+//     .dout(hysteresis_dout),
+//     .empty(hysteresis_empty)
+// );
+
+// hysteresis #(
+//     .WIDTH(WIDTH),
+//     .HEIGHT(HEIGHT)
+// ) hysteresis_inst(
+//     .clock(clock),
+//     .reset(reset),
+//     .in_rd_en(hysteresis_rd_en),
+//     .in_empty(hysteresis_empty),
+//     .in_dout(hysteresis_dout),
+//     .out_wr_en(img_out_wr_en),
+//     .out_full(img_out_full),
+//     .out_din(img_out_din)
+// );
 
 fifo #(
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE),
