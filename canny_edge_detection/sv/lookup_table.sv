@@ -18,14 +18,15 @@ module lookup_table#(
       sin_val = $sin(i * 3.1415926535 / 180);
       cos_val = $cos(i * 3.1415926535 / 180);
 
-      sine_table[i] = real2fixed(sin_val, FRAC_BITS);
-      cosine_table[i] = real2fixed(cos_val, FRAC_BITS);
+      sine_table[i] = sin_val * (1 << FRAC_BITS);
+      cosine_table[i] = cos_val * (1 << FRAC_BITS);
+      // cosine_table[i] = real2fixed(cos_val, FRAC_BITS);
     end
   endfunction
 
-  function signed [DATA_WIDTH-1:0] real2fixed(real val, int frac_bits);
-      return signed'($rtoi(val * (1 << frac_bits)));
-  endfunction
+  // function signed [DATA_WIDTH-1:0] real2fixed(real val, int frac_bits);
+  //     return signed'($rtoi(val * (1 << frac_bits)));
+  // endfunction
 
   initial init_trig_tables();
 
