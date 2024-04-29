@@ -18,23 +18,24 @@ logic start = '0;
 logic done  = '0;
 logic [15:0] hough_output;
 
-logic        image_full;
-logic        image_wr_en  = '0;
-logic [23:0] image_din    = '0;
-logic        mask_full;
-logic        mask_wr_en   = '0;
-logic [23:0] mask_din     = '0;
-logic        hough_done;
-logic [0:THETA_UNROLL-1][$clog2(NUM_LANES/THETA_UNROLL)-1:0] left_index_out;
-logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][15:0] left_rhos_out;
-logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][7:0] left_thetas_out;
-logic [ACCUM_BUFF_WIDTH-1:0] output_data;
+logic                           image_full;
+logic                           image_wr_en  = '0;
+logic [23:0]                    image_din    = '0;
+logic                           mask_full;
+logic                           mask_wr_en   = '0;
+logic [23:0]                    mask_din     = '0;
+logic                           accum_buff_done;
+logic                           hough_done;
+logic [ACCUM_BUFF_WIDTH-1:0]    output_data;
+logic signed [15:0]             left_rho_out;
+logic signed [15:0]             right_rho_out;
+logic [THETA_BITS-1:0]          left_theta_out;
+logic [THETA_BITS-1:0]          right_theta_out;
 
 logic   hold_clock = '0;
 logic   in_write_done = '0;
 logic   mask_write_done = '0;
 logic   out_read_done = '0;
-integer FF_out_errors = '0;
 integer BRAM_out_errors = '0;
 
 localparam BMP_HEADER_SIZE = 138; // According to canny_and_hough.c
@@ -50,11 +51,13 @@ hough_top hough_top_inst (
     .mask_full(mask_full),
     .mask_wr_en(mask_wr_en),
     .mask_din(mask_din),
-    .done(hough_done),
-    .left_index_out(left_index_out),
-    .left_rhos_out(left_rhos_out),
-    .left_thetas_out(left_thetas_out),
-    .output_data(output_data)
+    .accum_buff_done(accum_buff_done),
+    .hough_done(hough_done),
+    .output_data(output_data),
+    .left_rho_out(left_rho_out),
+    .right_rho_out(right_rho_out),
+    .left_theta_out(left_theta_out),
+    .right_theta_out(right_theta_out)
 );
 
 always begin
@@ -90,7 +93,6 @@ initial begin : tb_process
     // report metrics
     $display("@ %0t: Simulation completed.", end_time);
     $display("Total simulation cycle count: %0d", (end_time-start_time)/CLOCK_PERIOD);
-    $display("Total FF error count: %0d", FF_out_errors);
     $display("Total BRAM error count: %0d", BRAM_out_errors);
 
     // end the simulation
@@ -176,7 +178,7 @@ initial begin : accum_buff_output_process
     // rho_file = $fopen("../source/test_values/rho_values.txt", "r");
 
     // Waiting until the hough transform is done (at least till the accum_buff has been filled out)
-    wait(hough_done);
+    wait(accum_buff_done);
     @(negedge clock); // Need to offset a bit or else we read the last value of the value that should be read (I think this is a simulator problem)
 
     $display("@ %0t: Comparing file %s...", $time, FILE_OUT_NAME);
@@ -195,11 +197,13 @@ initial begin : accum_buff_output_process
         @(negedge clock); // Remember that the RTL theta loop has to go an extra cycle due to the pipeline so we don't want to be reading output during this cycle cuz its wrong
     end
 
-    @(negedge clock);
     $fclose(out_file);
     $fclose(cmp_file);
-    // $fclose(results_file);
-    $fclose(rho_file);
+    $fclose(results_file);
+
+    wait(hough_done);
+    @(negedge clock);
+    // $fclose(rho_file);
     out_read_done = 1'b1;
 end
 

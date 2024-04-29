@@ -11,12 +11,15 @@ module hough_top (
     output  logic           mask_full,
     input   logic           mask_wr_en,
     input   logic [23:0]    mask_din,
-    // ACCUMULATOR OUTPUT
-    output  logic           done,
-    output logic [0:THETA_UNROLL-1][$clog2(NUM_LANES/THETA_UNROLL)-1:0] left_index_out,
-    output logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][15:0] left_rhos_out,
-    output logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][7:0] left_thetas_out,
-    output logic [ACCUM_BUFF_WIDTH-1:0] output_data
+    // DONE signals
+    output logic accum_buff_done,
+    output logic hough_done,
+    // LANE OUTPUTS
+    output logic [ACCUM_BUFF_WIDTH-1:0] output_data,
+    output logic signed [15:0] left_rho_out,
+    output logic signed [15:0] right_rho_out,
+    output logic [THETA_BITS-1:0] left_theta_out,
+    output logic [THETA_BITS-1:0] right_theta_out
 );
 
 // Input wires to image_loader
@@ -329,11 +332,13 @@ hough hough_inst (
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
     .mask_bram_rd_data(mask_bram_rd_data),
     .mask_bram_rd_addr(mask_bram_rd_addr),
-    .done(done),
-    .left_index_out(left_index_out),
-    .left_rhos_out(left_rhos_out),
-    .left_thetas_out(left_thetas_out),
-    .output_data(output_data)
+    .accum_buff_done(accum_buff_done),
+    .hough_done(hough_done),
+    .output_data(output_data),
+    .left_rho_out(left_rho_out),
+    .right_rho_out(right_rho_out),
+    .left_theta_out(left_theta_out),
+    .right_theta_out(right_theta_out)
 );
 
 endmodule
