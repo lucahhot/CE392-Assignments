@@ -3,17 +3,18 @@
 
 // This module will also importantly feed the pixels within the rectangle that encompasses the mask into another 
 // FIFO which the entire canny edge detection pipeline will read from. This will reduce the number of cycles needed
-// as the canny algorithm has to go through a smaller number of pixels. Even though this module itself will have to go 
-// through the entire image, the canny algorithm usually takes 2-3 cycles per pixel so we end up with IMAGE_SIZE * 2 
-// cycles needed whereas here we would have IMAGE_SIZE + REDUCED_IMAGE_SIZE * 2 cycles needed.
+// as the canny algorithm has to go through a smaller number of pixels. We would still need to go through the pixels 
+// from (0,0) to (STARTING_X,STARTING_Y) before we can start doing any processing.
 
 // IMAGE_SIZE = 1280 x 720 = 921600 
 // REDUCED_IMAGE_SIZE = 1035 x 226 = 233910 (1024 x 215 according to the mask_1280_720.bmp file) Note: we need 5 pixels of padding
 // on each side because we always have to fill the pixels around the edges of the masked pixels at every stage of the pipeline
 
-// Normal cycles count = 921600 * 2 = 1,843,200
-// Reduced cycles count = 921600 + 228882 * 2 = 1,389,420
-// Difference = 453,780 cycles saved or 24.6% less cycles needed
+// Normal cycles count = 921600 * 2 = 1,843,200 (ONLY UP FOR THE CANNY EDGE DETECTION PIPELINE)
+// Reduced cycles count = (31*1280 + 123) + 233910 * 2 = 507623 -72.5% reduction in cycles
+// Note that this not take into account the canny edge pipeline stalling that happens ie. when the FIFOs fill up.
+// This means that the actual number of cycles taken will be much greater but I believe that the improvement should remain
+// since processing the full image will also result in the same pipeline stalling.  
 
 // Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"

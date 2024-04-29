@@ -4,8 +4,8 @@ vlib work
 vmap work work
 
 # edgedetect architecture
-vlog -work work "../sv/bram.sv"
 vlog -work work "../sv/globals.sv"
+vlog -work work "../sv/bram.sv"
 vlog -work work "../sv/fifo.sv"
 vlog -work work "../sv/grayscale.sv"
 vlog -work work "../sv/grayscale_mask.sv"

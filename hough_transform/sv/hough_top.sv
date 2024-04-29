@@ -13,8 +13,10 @@ module hough_top (
     input   logic [23:0]    mask_din,
     // ACCUMULATOR OUTPUT
     output  logic           done,
-    output  logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out
-    
+    output logic [0:THETA_UNROLL-1][$clog2(NUM_LANES/THETA_UNROLL)-1:0] left_index_out,
+    output logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][15:0] left_rhos_out,
+    output logic [0:THETA_UNROLL-1][0:NUM_LANES/THETA_UNROLL-1][7:0] left_thetas_out,
+    output logic [ACCUM_BUFF_WIDTH-1:0] output_data
 );
 
 // Input wires to image_loader
@@ -328,7 +330,10 @@ hough hough_inst (
     .mask_bram_rd_data(mask_bram_rd_data),
     .mask_bram_rd_addr(mask_bram_rd_addr),
     .done(done),
-    .accum_buff_out(accum_buff_out)
+    .left_index_out(left_index_out),
+    .left_rhos_out(left_rhos_out),
+    .left_thetas_out(left_thetas_out),
+    .output_data(output_data)
 );
 
 endmodule

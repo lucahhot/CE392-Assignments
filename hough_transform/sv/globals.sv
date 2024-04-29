@@ -18,7 +18,18 @@ localparam REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT;
 
 localparam THETAS = 180;
 localparam RHOS = 1179;
-localparam RHO_RANGE = 2*RHOS;
+localparam RHO_RANGE = 2*RHOS; // 2358
+
+// Unroll factor for the accumulation stage (the theta loop)
+localparam THETA_UNROLL = 1;
+
+// Accum_buff BRAM width (was set to 16 in the original C code given but we can reduce to 8 bits)
+// It just has to be at least wide enough to go until HOUGH_TRANSFORM_THRESHOLD
+localparam ACCUM_BUFF_WIDTH = 8;
+
+// Lane selection constants
+localparam NUM_LANES = 100;
+localparam HOUGH_TRANSFORM_THRESHOLD = 150;
 
 // Quantization constants
 localparam BITS = 8;
