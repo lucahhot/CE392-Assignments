@@ -6,22 +6,37 @@ module hightlight#(
     DATA_WIDTH = 16,
     FRAC_BITS = 13,
     LINE_LENGTH = 1000,
+    THETA_BITS = 9
 ) (
     input  logic        clock,
     input  logic        reset,
     input  logic        start_draw_a_line;
-    input logic [$clog2(ANGLE_RANGE)-1:0] angle,
-    input logic [$clog2(IMAGE_SIZE)-1 : 0] radius,
+    input logic [THETA_BITS-1:0] left_angle,
+    input logic [THETA_BITS-1:0] right_angle,
+    input logic [$clog2(IMAGE_SIZE)-1 : 0] left_radius,
+    input logic [$clog2(IMAGE_SIZE)-1 : 0] right_radius,
     output logic finish_draw_a_line;
     output logic        out_wr_en,
     output logic [$clog2(IMAGE_SIZE)-1:0] out_addr;
     output logic [23:0]  out_din
 );
 
-typedef enum logic [1:0] {DRAWING_LINES, FINISHED_DRAWING} image_state_types;
+typedef enum logic [1:0] {DRAWING_LEFT_LINE, DRAWING_RIGHT_LINE, FINISHED_DRAWING} image_state_types;
 image_state_types image_state, next_image_state;
 
 logic signed [DATA_WIDTH-1:0] sine_angle, cosine_angle;
+
+logic [THETA_BITS-1:0] angle;
+
+assign angle = (state == DRAWING_LEFT_LINE) ? left_angle :
+               (state == DRAWING_RIGHT_LINE) ? right_angle :
+               '0;
+
+logic [$clog2(IMAGE_SIZE)-1 : 0] radius;
+
+assign radius = (state == DRAWING_LEFT_LINE) ? left_radius :
+               (state == DRAWING_RIGHT_LINE) ? right_radius :
+               '0;
 
 lookup_table #(
     .ANGLE_RANGE(ANGLE_RANGE),
@@ -63,12 +78,28 @@ end
 always_ff @(posedge clock) begin
     if(image_state==FINISHED_DRAWING) begin
         if(start_draw_a_line == 1'b1) begin
-            next_image_state = DRAWING_LINES;
+            next_image_state = DRAWING_LEFT_LINE;
             line_index = '0;
             out_wr_en = 1'b1;
             finish_draw_a_line = 1'b0;
         end
-    end else if(image_state==DRAWING_LINES) begin
+    end else if(image_state==DRAWING_LEFT_LINE) begin
+        if(line_index < LINE_LENGTH) begin
+            line_index++;
+            x_step = $signed(line_index) * (-sine_angle) >>> FRAC_BITS;
+            y_step = $signed(line_index) * cosine_angle >>> FRAC_BITS;
+            x1 = x0 + x_step;
+            y1 = y0 + y_step;
+            if(x1 >=0 && y1>=0 && x1 < WIDTH && y1 < HEIGHT) begin
+                line_image_index = y1 * WIDTH + x1;
+            end
+        end else begin
+            image_state = DRAWING_RIGHT_LINE;
+            line_index = '0;
+            // finish_draw_a_line = 1'b1;
+            // out_wr_en = 1'b0;
+        end
+    end else if(image_state==DRAWING_RIGHT_LINE) begin
         if(line_index < LINE_LENGTH) begin
             line_index++;
             x_step = $signed(line_index) * (-sine_angle) >>> FRAC_BITS;

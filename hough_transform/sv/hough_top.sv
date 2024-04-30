@@ -16,10 +16,15 @@ module hough_top (
     output logic hough_done,
     // LANE OUTPUTS
     output logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0] output_data,
-    output logic signed [15:0] left_rho_out,
-    output logic signed [15:0] right_rho_out,
-    output logic [THETA_BITS-1:0] left_theta_out,
-    output logic [THETA_BITS-1:0] right_theta_out
+    // output logic signed [15:0] left_rho_out,
+    // output logic signed [15:0] right_rho_out,
+    // output logic [THETA_BITS-1:0] left_theta_out,
+    // output logic [THETA_BITS-1:0] right_theta_out,
+
+    output logic finish_draw_a_line;
+    //BRAM output
+    input [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr,
+    output [23:0]                    image_bram_rd_data
 );
 
 // Input wires to image_loader
@@ -36,8 +41,8 @@ logic [23:0]    grayscale_din;
 logic                           image_bram_wr_en;
 logic [23:0]                    image_bram_wr_data;
 logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
-logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
-logic [23:0]                    image_bram_rd_data;
+// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+// logic [23:0]                    image_bram_rd_data;
 logic load_finished;
 
 // Input wires to grayscale function
@@ -104,6 +109,13 @@ logic [$clog2(IMAGE_SIZE)-1:0]  hysteresis_bram_wr_addr;
 logic [$clog2(IMAGE_SIZE)-1:0]  hysteresis_bram_rd_addr;
 logic [7:0]                     hysteresis_bram_rd_data;
 logic                           hough_start;
+
+
+// Output wires from hough
+logic signed [15:0] left_rho_out;
+logic signed [15:0] right_rho_out;
+logic [THETA_BITS-1:0] left_theta_out;
+logic [THETA_BITS-1:0] right_theta_out;
 
 fifo #(
     .FIFO_DATA_WIDTH(24),
@@ -342,8 +354,13 @@ hough hough_inst (
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
     .mask_bram_rd_data(mask_bram_rd_data),
     .mask_bram_rd_addr(mask_bram_rd_addr),
-    .done(done),
-    .accum_buff_out(accum_buff_out)
+    .accum_buff_done(accum_buff_done),
+    .hough_done(hough_done),
+    .output_data(output_data),
+    .left_rho_out(left_rho_out),
+    .right_rho_out(right_rho_out),
+    .left_theta_out(left_theta_out),
+    .right_theta_out(right_theta_out)
 );
 
 // logic finish_draw_a_line;
@@ -351,17 +368,20 @@ logic highlight_out_wr_en;
 logic [$clog2(IMAGE_SIZE)-1:0] highlight_out_addr;
 logic [23:0] highlight_out_din;
 logic total_start_draw_a_line;
-assign total_start_draw_a_line = start_draw_a_line & load_finished;
+assign total_start_draw_a_line = hough_done & load_finished;
 
 highlight #(
     .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
+    .HEIGHT(HEIGHT),
+    .THETA_BITS(THETA_BITS)
 ) highlight_inst (
     .clock(clock),
     .reset(reset),
     .start_draw_a_line(total_start_draw_a_line),
-    .angle(angle),
-    .radius(radius),
+    .left_angle(left_theta_out),
+    .right_angle(right_theta_out),
+    .left_radius(left_rho_out),
+    .right_radius(right_rho_out),
     .finish_draw_a_line(finish_draw_a_line),
     .out_wr_en(highlight_out_wr_en),
     .out_addr(highlight_out_addr),

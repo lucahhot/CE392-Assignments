@@ -1,9 +1,10 @@
 module lookup_table#(
   ANGLE_RANGE = 180,
   DATA_WIDTH = 16,
-  FRAC_BITS = 13
+  FRAC_BITS = 13,
+  THETA_BITS = 9
 ) (
-  input logic [$clog2(ANGLE_RANGE)-1:0] angle,
+  input logic [THETA_BITS-1:0] angle,
   output logic [DATA_WIDTH-1:0] sine,
   output logic [DATA_WIDTH-1:0] cosine
 );
