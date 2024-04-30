@@ -12,9 +12,9 @@
 
 // Normal cycles count = 921600 * 2 = 1,843,200 (ONLY UP FOR THE CANNY EDGE DETECTION PIPELINE)
 // Reduced cycles count = (31*1280 + 123) + 233910 * 2 = 507623 -72.5% reduction in cycles
-// Note that this not take into account the canny edge pipeline stalling that happens ie. when the FIFOs fill up.
-// This means that the actual number of cycles taken will be much greater but I believe that the improvement should remain
-// since processing the full image will also result in the same pipeline stalling.  
+// Note that this not take into account the fact that gaussian_blur uses the div.sv module which means it takes more than 2 cycles per 
+// pixel so the entire process takes a greater amount of cycles. If we are to use the "/" symbol instead, then canny does take
+// about 570,200 cycles to complete from the simulations.
 
 // Comment this line out for synthesis but uncomment for simulations
 `include "globals.sv"

@@ -300,11 +300,11 @@ always_comb begin
     div_done_right_theta_c = div_done_right_theta;
 
     // Default signals for the accum_buff BRAMs
-    for (int i = 0; i < THETA_UNROLL; i++) begin
-        accum_buff_wr_en[i] = 1'b0;
-        accum_buff_rd_addr[i] = 0;
-        accum_buff_wr_addr[i] = 0;
-        accum_buff_wr_data[i] = '0;
+    for (int j = 0; j < THETA_UNROLL; j++) begin
+        accum_buff_wr_en[j] = 1'b0;
+        accum_buff_rd_addr[j] = 0;
+        accum_buff_wr_addr[j] = 0;
+        accum_buff_wr_data[j] = '0;
     end
 
     output_data = '{default: '{default: '0}};
@@ -339,10 +339,10 @@ always_comb begin
         // Zero state that executes at the beginning after a reset to initialize all the accum_buff BRAMs to zero,
         // and is then called at the end to reset the BRAMs to zero after the selection of lanes is also done for the next iamge frame
         ZERO: begin
-            for (int i = theta; i < theta + THETA_UNROLL; i++) begin
-                accum_buff_wr_en[i-theta] = 1'b1;
-                accum_buff_wr_addr[i-theta] = (rho_index) * THETAS/THETA_UNROLL + (i >> THETA_DIVIDE_BITS);
-                accum_buff_wr_data[i-theta] = '0;
+            for (int j = 0; j < THETA_UNROLL; j++) begin
+                accum_buff_wr_en[j] = 1'b1;
+                accum_buff_wr_addr[j] = (rho_index) * THETAS/THETA_UNROLL + ((j+theta) >> THETA_DIVIDE_BITS);
+                accum_buff_wr_data[j] = '0;
             end
             // Increment theta by the unroll factor
             theta_c = theta + THETA_UNROLL;
@@ -419,35 +419,35 @@ always_comb begin
         THETA_LOOP: begin
             first_theta_cycle_c = 1'b0; // Reset this flag to 0 as soon as we enter this loop
             // For loop to perform the unrolled theta loop
-            for (int i = theta; i < theta + THETA_UNROLL; i++) begin
+            for (int j = 0; j < THETA_UNROLL; j++) begin
                 if (theta < THETAS) begin
                     // // Calculate the rho value using the x, y, and quantized trig values in globals.sv
-                    sin_quantized[i-theta] = SIN_QUANTIZED[i];
-                    cos_quantized[i-theta] = COS_QUANTIZED[i];
-                    // rho_unquantized_x[i-theta] = 16'(32'($signed(x) * $signed(cos_quantized[i-theta]))/256);
-                    rho_unquantized_x[i-theta] = DEQUANTIZE($signed(x) * $signed(cos_quantized[i-theta]));
-                    rho_unquantized_y[i-theta] = DEQUANTIZE($signed(y) * $signed(sin_quantized[i-theta]));
-                    rho_c[i-theta] = ($signed(rho_unquantized_x[i-theta]) + $signed(rho_unquantized_y[i-theta]));
+                    sin_quantized[j] = SIN_QUANTIZED[j+theta];
+                    cos_quantized[j] = COS_QUANTIZED[j+theta];
+                    // rho_unquantized_x[j-theta] = 16'(32'($signed(x) * $signed(cos_quantized[j-theta]))/256);
+                    rho_unquantized_x[j] = DEQUANTIZE($signed(x) * $signed(cos_quantized[j]));
+                    rho_unquantized_y[j] = DEQUANTIZE($signed(y) * $signed(sin_quantized[j]));
+                    rho_c[j] = ($signed(rho_unquantized_x[j]) + $signed(rho_unquantized_y[j]));
                     // Once we have calculated the rho value, we can set the addresses to read from the accum_buff BRAMs in the next cycle
-                    accum_buff_rd_addr[i-theta] = ($signed(rho_c[i-theta])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + ($signed(i) >> THETA_DIVIDE_BITS); 
-                    // accum_buff_c[rho_c + RHOS][i] = accum_buff[rho_c + RHOS][i] + 1;
+                    accum_buff_rd_addr[j] = ($signed(rho_c[j])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + ($signed(j+theta) >> THETA_DIVIDE_BITS); 
+                    // accum_buff_c[rho_c + RHOS][j] = accum_buff[rho_c + RHOS][j] + 1;
                 end
                 // Only accumulate if we are not in the first cycle since we have not read the first value from the BRAMs (happens in cycle 2)
                 if (first_theta_cycle == 1'b0) begin
-                    accum_buff_wr_en[i-theta] = 1'b1;
+                    accum_buff_wr_en[j] = 1'b1;
                     // The write address is using the previous value of rho (not the current cycle's one that is used in the new read address)
-                    accum_buff_wr_addr[i-theta] = ($signed(rho[i-theta])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + (($signed(i) - $signed(THETA_UNROLL)) >> THETA_DIVIDE_BITS); 
-                    // accum_buff_wr_addr[i-theta] = (rho+RHOS) * THETAS/THETA_UNROLL + i - THETA_UNROLL; 
+                    accum_buff_wr_addr[j] = ($signed(rho[j])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + (($signed(j+theta) - $signed(THETA_UNROLL)) >> THETA_DIVIDE_BITS); 
+                    // accum_buff_wr_addr[j-theta] = (rho+RHOS) * THETAS/THETA_UNROLL + j - THETA_UNROLL; 
 
                     // If we are going to go past 2^ACCUM_BUFF_WIDTH - 1, we will just saturate the value to 2^ACCUM_BUFF_WIDTH-1
                     // This is okay as long as the max value of the accum_buff is larger than HOUGH_TRANSFORM_THRESHOLD and it will save us resources for the BRAMs
                     // (might make it faster too)
-                    if (accum_buff_rd_data[i-theta] >= (2**ACCUM_BUFF_WIDTH - 1)) begin
-                        accum_buff_wr_data[i-theta] = 2**ACCUM_BUFF_WIDTH - 1;
+                    if (accum_buff_rd_data[j] >= (2**ACCUM_BUFF_WIDTH - 1)) begin
+                        accum_buff_wr_data[j] = 2**ACCUM_BUFF_WIDTH - 1;
                     end else begin
-                        accum_buff_wr_data[i-theta] = accum_buff_rd_data[i-theta] + 1;
+                        accum_buff_wr_data[j] = accum_buff_rd_data[j] + 1;
                     end
-                    // accum_buff_wr_data[i-theta] = accum_buff_rd_data[i-theta] + 1;
+                    // accum_buff_wr_data[j-theta] = accum_buff_rd_data[j-theta] + 1;
                 end
             end
             // Increment the theta value by the unroll factor
@@ -486,28 +486,28 @@ always_comb begin
         // add them to arrays to keep before averaging them later
         SELECT_LOOP: begin
             first_select_cycle_c = 1'b0; // Reset this flag to 0 as soon as we enter this loop 
-            for (int i = theta; i < theta + THETA_UNROLL; i++) begin
+            for (int j = 0; j < THETA_UNROLL; j++) begin
                 if (theta < THETAS)
                     // Set addresses to read from accum_buff BRAMs
-                    // accum_buff_rd_addr[i-theta] = $signed(rho_index) * $signed(THETAS/THETA_UNROLL) + ($signed(i) >> THETA_DIVIDE_BITS);
-                    accum_buff_rd_addr[i-theta] = (rho_index) * THETAS/THETA_UNROLL + (i >> THETA_DIVIDE_BITS);
+                    // accum_buff_rd_addr[j-theta] = $signed(rho_index) * $signed(THETAS/THETA_UNROLL) + ($signed(j) >> THETA_DIVIDE_BITS);
+                    accum_buff_rd_addr[j] = (rho_index) * THETAS/THETA_UNROLL + ((j+theta) >> THETA_DIVIDE_BITS);
             end
             // Only check the values inside the accum_buff BRAMs after the first cycle
             if (first_select_cycle == 1'b0) begin
                 accum_buff_done = 1'b1;
                 // Check if the value is greater than HOUGH_TRANSFORM_THRESHOLD
-                for (int i = theta; i < theta + THETA_UNROLL; i++) begin
-                    output_data[i-theta] = accum_buff_rd_data[i-theta];
-                    if (accum_buff_rd_data[i-theta] >= HOUGH_TRANSFORM_THRESHOLD) begin
+                for (int j = 0; j < THETA_UNROLL; j++) begin
+                    output_data[j] = accum_buff_rd_data[j];
+                    if (accum_buff_rd_data[j] >= HOUGH_TRANSFORM_THRESHOLD) begin
                         // Determine if this "lane" should be a left or right lane
-                        if (i > (90 + 10)) begin
-                            left_rhos_c[i-theta][left_index[i-theta]] = rho_index - RHOS;
-                            left_thetas_c[i-theta][left_index[i-theta]] = i - THETA_UNROLL;
-                            left_index_c[i-theta] = left_index[i-theta] + 1;
-                        end else if (i < (90 - 10)) begin
-                            right_rhos_c[i-theta][right_index[i-theta]] = rho_index - RHOS;
-                            right_thetas_c[i-theta][right_index[i-theta]] = i - THETA_UNROLL;
-                            right_index_c[i-theta] = right_index[i-theta] + 1;
+                        if ((j+theta) > (90 + 10)) begin
+                            left_rhos_c[j][left_index[j]] = rho_index - RHOS;
+                            left_thetas_c[j][left_index[j]] = (j+theta) - THETA_UNROLL;
+                            left_index_c[j] = left_index[j] + 1;
+                        end else if ((j+theta) < (90 - 10)) begin
+                            right_rhos_c[j][right_index[j]] = rho_index - RHOS;
+                            right_thetas_c[j][right_index[j]] = (j+theta) - THETA_UNROLL;
+                            right_index_c[j] = right_index[j] + 1;
                         end
                     end
                 end
@@ -671,11 +671,11 @@ always_comb begin
             div_done_right_rho_c = 'X;
             div_done_left_theta_c = 'X;
             div_done_right_theta_c = 'X;
-            for (int i = 0; i < THETA_UNROLL; i++) begin
-                accum_buff_wr_en[i] = 1'b0;
-                accum_buff_rd_addr[i] = 0;
-                accum_buff_wr_addr[i] = 0;
-                accum_buff_wr_data[i] = '0;
+            for (int j = 0; j < THETA_UNROLL; j++) begin
+                accum_buff_wr_en[j] = 1'b0;
+                accum_buff_rd_addr[j] = 0;
+                accum_buff_wr_addr[j] = 0;
+                accum_buff_wr_data[j] = '0;
             end
             output_data = '{default: '{default: '0}};
             left_rho_out = 'X;
