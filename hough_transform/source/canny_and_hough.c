@@ -401,15 +401,15 @@ int main(int argc, char *argv[]) {
    fprintf(sin_file_dequantized, "static const float sinvals[] = {");
    fprintf(cos_file_dequantized, "static const float cosvals[] = {");
    for (int i = 0; i < 179; i++) {
-      fprintf(sin_file, "10'h%x, ", QUANTIZE_F(sinvals[i]));
-      fprintf(cos_file, "10'h%x, ", QUANTIZE_F(cosvals[i]));
+      fprintf(sin_file, "%d, ", QUANTIZE_F(sinvals[i]));
+      fprintf(cos_file, "%d, ", QUANTIZE_F(cosvals[i]));
       // fprintf(sin_file, "%d, ", QUANTIZE_F(sinvals[i]));
       // fprintf(cos_file, "%d, ", QUANTIZE_F(cosvals[i]));
       fprintf(sin_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(sinvals[i])));
       fprintf(cos_file_dequantized, "%8.16f, ", DEQUANTIZE_F(QUANTIZE_F(cosvals[i])));
    }
-   fprintf(sin_file, "10'h%x", QUANTIZE_F(sinvals[179]));
-   fprintf(cos_file, "10'h%x", QUANTIZE_F(cosvals[179]));
+   fprintf(sin_file, "%d", QUANTIZE_F(sinvals[179]));
+   fprintf(cos_file, "%d", QUANTIZE_F(cosvals[179]));
    // fprintf(sin_file, "%d", QUANTIZE_F(sinvals[179]));
    // fprintf(cos_file, "%d", QUANTIZE_F(cosvals[179]));
    fprintf(sin_file_dequantized, "%8.16f", DEQUANTIZE_F(QUANTIZE_F(sinvals[179])));

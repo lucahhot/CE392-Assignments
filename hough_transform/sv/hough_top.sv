@@ -11,21 +11,15 @@ module hough_top (
     output  logic           mask_full,
     input   logic           mask_wr_en,
     input   logic [23:0]    mask_din,
-    // ACCUMULATOR OUTPUT
-    output  logic           done,
-    output  logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out,
-
-
-
-    //temp logic
-    input logic start_draw_a_line,
-    input logic [$clog2(ANGLE_RANGE)-1:0] angle,
-    input logic [$clog2(IMAGE_SIZE)-1 : 0] radius,
-    output logic finish_draw_a_line,
-
-    //image output
-    input [$clog2(IMAGE_SIZE)-1:0] image_bram_rd_addr,
-    output [23:0]                    image_bram_rd_data
+    // DONE signals
+    output logic accum_buff_done,
+    output logic hough_done,
+    // LANE OUTPUTS
+    output logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0] output_data,
+    output logic signed [15:0] left_rho_out,
+    output logic signed [15:0] right_rho_out,
+    output logic [THETA_BITS-1:0] left_theta_out,
+    output logic [THETA_BITS-1:0] right_theta_out
 );
 
 // Input wires to image_loader

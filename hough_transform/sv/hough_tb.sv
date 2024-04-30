@@ -16,20 +16,27 @@ logic clock = 1'b1;
 logic reset = '0;
 logic start = '0;
 logic done  = '0;
+logic [15:0] hough_output;
 
-logic        image_full;
-logic        image_wr_en  = '0;
-logic [23:0] image_din    = '0;
-logic        mask_full;
-logic        mask_wr_en   = '0;
-logic [23:0] mask_din     = '0;
-logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out;
+logic                           image_full;
+logic                           image_wr_en  = '0;
+logic [23:0]                    image_din    = '0;
+logic                           mask_full;
+logic                           mask_wr_en   = '0;
+logic [23:0]                    mask_din     = '0;
+logic                           accum_buff_done;
+logic                           hough_done;
+logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0]    output_data;
+logic signed [15:0]             left_rho_out;
+logic signed [15:0]             right_rho_out;
+logic [THETA_BITS-1:0]          left_theta_out;
+logic [THETA_BITS-1:0]          right_theta_out;
 
-logic   hold_clock    = '0;
+logic   hold_clock = '0;
 logic   in_write_done = '0;
 logic   mask_write_done = '0;
 logic   out_read_done = '0;
-integer out_errors    = '0;
+integer BRAM_out_errors = '0;
 
 localparam BMP_HEADER_SIZE = 138; // According to canny_and_hough.c
 localparam BYTES_PER_PIXEL = 3; // According to canny_and_hough.c
@@ -44,8 +51,13 @@ hough_top hough_top_inst (
     .mask_full(mask_full),
     .mask_wr_en(mask_wr_en),
     .mask_din(mask_din),
-    .done(hough_done),
-    .accum_buff_out(accum_buff_out)
+    .accum_buff_done(accum_buff_done),
+    .hough_done(hough_done),
+    .output_data(output_data),
+    .left_rho_out(left_rho_out),
+    .right_rho_out(right_rho_out),
+    .left_theta_out(left_theta_out),
+    .right_theta_out(right_theta_out)
 );
 
 always begin
@@ -81,7 +93,7 @@ initial begin : tb_process
     // report metrics
     $display("@ %0t: Simulation completed.", end_time);
     $display("Total simulation cycle count: %0d", (end_time-start_time)/CLOCK_PERIOD);
-    $display("Total error count: %0d", out_errors);
+    $display("Total BRAM error count: %0d", BRAM_out_errors);
 
     // end the simulation
     $finish;
@@ -155,49 +167,80 @@ end
 initial begin : accum_buff_output_process
     int i, r;
     int cmp_val;
-    int out_file, cmp_file, cmp_out_file;
+    int out_file, cmp_file, results_file, rho_file;
 
     @(negedge reset);
     @(negedge clock);
 
     out_file = $fopen(FILE_OUT_NAME, "w");
     cmp_file = $fopen(FILE_CMP_NAME, "r");
-    // cmp_out_file = $fopen("../source/cmp_out.txt", "w");
+    results_file = $fopen("../source/accum_buff_comparison.txt", "w");
+    // rho_file = $fopen("../source/test_values/rho_values.txt", "r");
 
     // Waiting until the hough transform is done (at least till the accum_buff has been filled out)
-    wait(hough_done);
+    wait(accum_buff_done);
+    @(negedge clock); // Need to offset a bit or else we read the last value of the value that should be read (I think this is a simulator problem)
 
     $display("@ %0t: Comparing file %s...", $time, FILE_OUT_NAME);
 
     // Write the accum_buff_out to a file
     for (int i = 0; i < RHO_RANGE; i++) begin
-        for (int j = 0; j < THETAS; j++) begin
-            $fwrite(out_file, "%0d\n", accum_buff_out[i][j]);
-        end
-    end
-
-    // Compare the accum_buff_out to the expected results 
-    for (int i = -100; i < 100; i++) begin
-        for (int j = 80; j < 100; j++) begin
-            if ($feof(cmp_file)) begin
-                $display("@ %0t: ERROR: File %s is shorter than expected.", $time, FILE_CMP_NAME);
-                $fclose(out_file);
-                $fclose(cmp_file);
-                $finish;
+        for (int j = 0; j < THETAS; j = j + THETA_UNROLL) begin
+            r = $fscanf(cmp_file, "%d", cmp_val);
+            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j, output_data[0], cmp_val);
+            if (output_data[0] != cmp_val) begin
+                BRAM_out_errors += 1;
+                $fwrite(results_file, "ERROR: BRAM accum_buff[0]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[0], cmp_val, i-RHOS, i, j);
             end
             r = $fscanf(cmp_file, "%d", cmp_val);
-            // $fwrite(cmp_out_file, "%0d\n", cmp_val);
-            if (cmp_val != accum_buff_out[i][j]) begin
-                out_errors += 1;
-                $write("@ %0t: ERROR: %0d != %0d at index %0d.\n", $time, accum_buff_out[i][j], cmp_val, (i*RHO_RANGE)+j);
+            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+1, output_data[1], cmp_val);
+            if (output_data[1] != cmp_val) begin
+                BRAM_out_errors += 1;
+                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[1], cmp_val, i-RHOS, i, j+1);
             end
+            r = $fscanf(cmp_file, "%d", cmp_val);
+            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+2, output_data[2], cmp_val);
+            if (output_data[2] != cmp_val) begin
+                BRAM_out_errors += 1;
+                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[2], cmp_val, i-RHOS, i, j+2);
+            end
+            r = $fscanf(cmp_file, "%d", cmp_val);
+            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+3, output_data[3], cmp_val);
+            if (output_data[3] != cmp_val) begin
+                BRAM_out_errors += 1;
+                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[3], cmp_val, i-RHOS, i, j+3);
+            end
+            @(negedge clock);
         end
+        @(negedge clock); // Remember that the RTL theta loop has to go an extra cycle due to the pipeline so we don't want to be reading output during this cycle cuz its wrong
     end
 
-    @(negedge clock);
     $fclose(out_file);
     $fclose(cmp_file);
-    // $fclose(cmp_out_file);
+    $fclose(results_file);
+
+    wait(hough_done);
+    @(negedge clock);
+
+    if (left_rho_out != -163) begin
+        $display("ERROR: Left rho value is not -163, it is %0d.", left_rho_out);
+    end
+    if (right_rho_out != 575) begin
+        $display("ERROR: Right rho value is not 163, it is %0d.", right_rho_out);
+    end
+    if (left_theta_out != 128) begin
+        $display("ERROR: Left theta value is not 0, it is %0d.", left_theta_out);
+    end
+    if (right_theta_out != 60) begin
+        $display("ERROR: Right theta value is not 179, it is %0d.", right_theta_out);
+    end
+
+    $display("Left rho = %0d.", left_rho_out);
+    $display("Left theta = %0d.", left_theta_out);
+    $display("Right rho = %0d.", right_rho_out);
+    $display("Right theta = %0d.", right_theta_out);
+    
+    // $fclose(rho_file);
     out_read_done = 1'b1;
 end
 

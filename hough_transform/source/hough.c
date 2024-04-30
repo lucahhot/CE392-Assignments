@@ -68,14 +68,17 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	printf("\nStarting y index = %d, Ending y index = %d\n", starting_y, height_adjusted);
 	printf("Starting x index = %d, Ending x index = %d\n", starting_x, width_adjusted);
 
-	printf("\nReduced Width = %d, Reduced Height = %d\n", width_adjusted - starting_x ,height_adjusted - starting_y);
+	printf("\nReduced Width = %d, Reduced Height = %d\n", width_adjusted - starting_x + 1 ,height_adjusted - starting_y + 1);
 
     FILE *f = fopen("test_values/rho_results.txt", "w");
 	FILE *f2 = fopen("test_values/mask_values.txt", "w");
+	FILE *f3 = fopen("test_values/rho_values.txt", "w");
+
+	int accum_buff_count = 0;
 	
-	for (int y = starting_y; y < height_adjusted; y++){
+	for (int y = starting_y; y <= height_adjusted; y++){
 		// #pragma ivdep
-		for (int x = starting_x; x < width_adjusted; x++){
+		for (int x = starting_x; x <= width_adjusted; x++){
 			// If the pixel is inside the mask only
 			fprintf(f2, "x = %d, y = %d, mask value = %d\n", x, y, mask[y*width + x].r);
 			
@@ -86,9 +89,11 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 						int rho_quantized_x = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta]);
 						int rho_quantized_y = DEQUANTIZE_I((y/RHO_RESOLUTION)*sinvals_quantized[theta]);
 						int rho = (rho_quantized_x + rho_quantized_y);
-						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
+						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, rho_quantized_x = %d, rho_quantized_y = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, rho_quantized_x, rho_quantized_y, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
 						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
+						fprintf(f3, "%d\n", rho);
 						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
+						accum_buff_count++;
 						cycle_count++;
 					}
 				} else{
@@ -102,20 +107,28 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 
 	fclose(f);
 	fclose(f2);
+	fclose(f3);
 	
 	// Printing out accum_buff values to a textfile for testing purposes
-	// FILE *f = fopen("accum_buff_results.txt", "w");
-	// if (f == NULL)
-	// {
-	//     printf("Error opening file!\n");
-	//     return -1;
-	// }
-	// for (int i = 0; i < rho_range; i++){
-	// 	for (int j = 0; j < THETAS; j++){
-	// 		fprintf(f, "%d\n", accum_buff[i][j]);
-	// 	}
-	// }
-	// fclose(f);
+	FILE * accum_file = fopen("accum_buff_results.txt", "w");
+	if (f == NULL)
+	{
+	    printf("Error opening file!\n");
+	    return -1;
+	}
+	for (int i = 0; i < rho_range; i++){
+		for (int j = 0; j < THETAS; j++){
+			// If accum_buff[i][j] > 255 (max value for 8 bits), write in 255
+			// The rationale is that since our current HOUGH_TRANSFORM_THRESHOLD is 150, there's no point counting higher than that 
+			if (accum_buff[i][j] > 255)
+				fprintf(accum_file, "%d\n", 255);
+			else
+				fprintf(accum_file, "%d\n", accum_buff[i][j]);
+		}
+	}
+	fclose(accum_file);
+
+	printf("Accum_buff count = %d\n", accum_buff_count);
 
 	// // Array to hold the rho and theta values of the lines that meet the threshold
 	int left_rhos[100]; // Technically there can be rho_range*THETAS number of lines but bringing this down because of a segfault error
@@ -235,7 +248,7 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 
 	// At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
 	if (left_theta_avg != 0) {
-		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
+		printf("\nDrawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
 		cycle_count += draw_lines24(height, width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 		// cycle_count += draw_lines24(height, width, left_rho_avg, sinvals[left_theta_avg], cosvals[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}
