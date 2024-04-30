@@ -33,6 +33,9 @@ add wave -noupdate -group hough_tb/hough_top_inst/hough_inst -radix hexadecimal 
 add wave -noupdate -group hough_tb/hough_top_inst/hough_inst/genblk1[0]/accum_buff_bram
 add wave -noupdate -group hough_tb/hough_top_inst/hough_inst/genblk1[0]/accum_buff_bram -radix hexadecimal /hough_tb/hough_top_inst/hough_inst/genblk1[0]/accum_buff_bram/*
 
+add wave -noupdate -group hough_tb/hough_top_inst/hough_inst/div_left_rho
+add wave -noupdate -group hough_tb/hough_top_inst/hough_inst/div_left_rho -radix hexadecimal /hough_tb/hough_top_inst/hough_inst/div_left_rho/*
+
 add wave -noupdate -group hough_tb/hough_top_inst/fifo_image_inst
 add wave -noupdate -group hough_tb/hough_top_inst/fifo_image_inst -radix hexadecimal /hough_tb/hough_top_inst/fifo_image_inst/*
 

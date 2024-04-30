@@ -68,7 +68,7 @@ logic start_div, div_valid_out;
 logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
 logic [7:0] divisor;
 
-div #(
+div_unsigned #(
     .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
     .DIVISOR_WIDTH(8)
 ) divider_inst (

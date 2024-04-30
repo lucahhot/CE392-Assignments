@@ -1,6 +1,5 @@
-// Adapted for UNSIGNED division for the Canny Edge Detection project (gaussian_blur module)
 
-module div #(
+module div_signed #(
     parameter DIVIDEND_WIDTH = 16,
     parameter DIVISOR_WIDTH = 8
 ) (
@@ -10,9 +9,7 @@ module div #(
     input  logic [DIVIDEND_WIDTH-1:0]   dividend,
     input  logic [DIVISOR_WIDTH-1:0]    divisor,
     output logic [DIVIDEND_WIDTH-1:0]   quotient,
-    // output logic [DIVISOR_WIDTH-1:0]    remainder,
     output logic                        valid_out
-    // output logic                        overflow
 );
 
     // Define the state machine states
@@ -20,15 +17,16 @@ module div #(
     state_t state, next_state;
 
     // Define internal signals
-    logic [DIVIDEND_WIDTH-1:0] a, a_c;
-    logic [DIVISOR_WIDTH-1:0] b, b_c;
-    logic [DIVIDEND_WIDTH-1:0] q, q_c;
-    logic [DIVIDEND_WIDTH-1:0] p;
+    logic signed [DIVIDEND_WIDTH-1:0] a, a_c;
+    logic signed [DIVISOR_WIDTH-1:0] b, b_c;
+    logic signed [DIVIDEND_WIDTH-1:0] q, q_c;
+    logic signed [DIVIDEND_WIDTH-1:0] p;
+    logic internal_sign;
 
-    logic [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
-    logic [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
+    logic signed [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
+    logic signed [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
 
-    // Wires for msb_a and msb_b
+    // Registered values for msb(a) and msb_b
     logic [$clog2(DIVIDEND_WIDTH)-1:0] msb_a;
     logic [$clog2(DIVIDEND_WIDTH)-1:0] msb_b;
 
@@ -39,8 +37,6 @@ module div #(
             a <= '0;
             b <= '0;
             q <= '0;
-            dividend_temp <= '0;
-            divisor_temp <= '0;
         end else begin
             state <= next_state;
             a <= a_c;
@@ -81,11 +77,8 @@ module div #(
         a_c = a;
         b_c = b;
         q_c = q;
-        valid_out = '0;
         quotient = '0;
-        // remainder = '0;
         valid_out = 1'b0;
-        // overflow =  1'b0;
         dividend_temp_c = dividend_temp;
         divisor_temp_c = divisor_temp;
 
@@ -94,11 +87,10 @@ module div #(
             INIT: begin
                 // Only assign stuff is valid_in is high
                 if (valid_in == 1'b1) begin
-                    // overflow = 1'b0;
-                    a_c = dividend;
-                    b_c = divisor;
+                    a_c = (dividend[DIVIDEND_WIDTH-1] == 1'b0) ? dividend : -dividend;
+                    b_c = (divisor[DIVISOR_WIDTH-1] == 1'b0) ? divisor : -divisor;
                     q_c = '0;
-                    
+
                     // Set temp dividend and divisor registers
                     dividend_temp_c = dividend;
                     divisor_temp_c = divisor;
@@ -106,7 +98,6 @@ module div #(
                     if (divisor == 1) begin
                         next_state = B_EQ_1;
                     end else if (divisor == 0) begin
-                        // overflow = 1'b1;
                         next_state = B_EQ_1;
                     end else begin
                         next_state = LOOP;
@@ -123,6 +114,7 @@ module div #(
                 next_state = INIT;
             end
 
+
             LOOP: begin
 
                 msb_a = get_msb_pos(a,(DIVIDEND_WIDTH-1));
@@ -138,12 +130,22 @@ module div #(
                     a_c = a - (b << p);
                     next_state = LOOP;
                 end else begin
-                    // next_state = EPILOGUE;
-                    quotient = q_c;
-                    // remainder = a_c;
+                    internal_sign = dividend_temp[DIVIDEND_WIDTH-1] ^ divisor_temp[DIVISOR_WIDTH-1];
+                    quotient = (internal_sign == 1'b0) ? q_c : -q_c;
                     valid_out = 1'b1;
                     next_state = INIT;
                 end
+            end
+
+            default: begin
+                next_state = INIT;
+                a_c = 'X;
+                b_c = 'X;
+                q_c = 'X;
+                valid_out = 1'b0;
+                quotient = 'X;
+                dividend_temp_c = 'X;
+                divisor_temp_c = 'X;
             end
 
         endcase

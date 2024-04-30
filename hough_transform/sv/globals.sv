@@ -21,7 +21,8 @@ localparam RHOS = 1179;
 localparam RHO_RANGE = 2*RHOS; // 2358
 
 // Unroll factor for the accumulation stage (the theta loop)
-localparam THETA_UNROLL = 1;
+localparam THETA_UNROLL = 4;
+localparam THETA_DIVIDE_BITS = 2; // So that we don't have to divide by a non-power of 2 number (this means THEAT_UNROLL must be a power of 2)
 
 // Accum_buff BRAM width (was set to 16 in the original C code given but we can reduce to 8 bits)
 // It just has to be at least wide enough to go until HOUGH_TRANSFORM_THRESHOLD
@@ -39,18 +40,18 @@ localparam TRIG_DATA_SIZE = 12;
 localparam DEQUANTIZE_DATA_SIZE = 32;
 
 // DEQUANTIZE function
-function logic signed [TRIG_DATA_SIZE-1:0] DEQUANTIZE(logic signed [DEQUANTIZE_DATA_SIZE-1:0] i);
+function logic signed [15:0] DEQUANTIZE(logic signed [DEQUANTIZE_DATA_SIZE-1:0] i);
     // Arithmetic right shift doesn't work well with negative number rounding so switch the sign 
     // to perform the right shift then apply the negative sign to the results
     if (i < 0) 
-        DEQUANTIZE = (TRIG_DATA_SIZE'(-(-i >>> BITS)));
+        DEQUANTIZE = (16'(-(-i >>> BITS)));
     else 
-        DEQUANTIZE = TRIG_DATA_SIZE'(i >>> BITS);
+        DEQUANTIZE = 16'(i >>> BITS);
 endfunction
 
 // QUANTIZE function
-function logic signed [TRIG_DATA_SIZE-1:0] QUANTIZE(logic signed [TRIG_DATA_SIZE-1:0] i);
-    QUANTIZE = TRIG_DATA_SIZE'(i << BITS);
+function logic signed [15:0] QUANTIZE(logic signed [15:0] i);
+    QUANTIZE = 16'(i << BITS);
 endfunction
 
 // Quantized trig values (quantized using 8 bits for the fractional part)

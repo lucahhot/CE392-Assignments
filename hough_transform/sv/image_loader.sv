@@ -62,9 +62,9 @@ always_comb begin
     next_state = state;
     in_rd_en = 1'b0;
     fifo_out_wr_en = 1'b0;
-    fifo_out_din = 24'b0;
+    fifo_out_din = '0;
     bram_out_wr_en = 1'b0;
-    bram_out_wr_data = 24'b0;
+    bram_out_wr_data = '0;
     bram_out_wr_addr = 0;
 
     case(state)
@@ -112,9 +112,9 @@ always_comb begin
             next_state = IDLE;
             in_rd_en = 1'b0;
             fifo_out_wr_en = 1'b0;
-            fifo_out_din = 24'b0;
+            fifo_out_din = '0;
             bram_out_wr_en = 1'b0;
-            bram_out_wr_data = 24'b0;
+            bram_out_wr_data = '0;
             bram_out_wr_addr = 0;
         end
 

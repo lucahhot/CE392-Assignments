@@ -174,6 +174,7 @@ case(state)
                 col_c = col + 1;
             end
         end
+        
         default: begin
             next_state = PROLOGUE;
             in_rd_en = 1'b0;
@@ -186,6 +187,8 @@ case(state)
             shift_reg_c = '{default: '{default: '0}};
             hysteresis_c = 'X;
             hough_start = 1'b0;
+            x_c = 'X;
+            y_c = 'X;
         end
     endcase
 end

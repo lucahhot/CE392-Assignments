@@ -89,7 +89,7 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 						int rho_quantized_x = DEQUANTIZE_I((x/RHO_RESOLUTION)*cosvals_quantized[theta]);
 						int rho_quantized_y = DEQUANTIZE_I((y/RHO_RESOLUTION)*sinvals_quantized[theta]);
 						int rho = (rho_quantized_x + rho_quantized_y);
-						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
+						fprintf(f, "rho = %d, x = %d, y = %d, theta = %d, rho_quantized_x = %d, rho_quantized_y = %d, sin_quantized = %d, cos_quantized %d, hysteresis = %d, mask = %d\n", rho, x, y, theta, rho_quantized_x, rho_quantized_y, sinvals_quantized[theta], cosvals_quantized[theta], hysteresis_data[y*width + x], mask[y*width + x].r);
 						// int rho =(x/RHO_RESOLUTION)*cosvals[theta] + (y/RHO_RESOLUTION)*sinvals[theta];
 						fprintf(f3, "%d\n", rho);
 						accum_buff[rho+RHOS/RHO_RESOLUTION][theta] += 1;
@@ -248,7 +248,7 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 
 	// At this point, we should have 2 lines to draw, if the theta equals 0, it means there is no line so we don't draw it
 	if (left_theta_avg != 0) {
-		printf("Drawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
+		printf("\nDrawing left line with theta = %d, rho = %d\n", left_theta_avg, left_rho_avg);
 		cycle_count += draw_lines24(height, width, left_rho_avg, sinvals_quantized[left_theta_avg], cosvals_quantized[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 		// cycle_count += draw_lines24(height, width, left_rho_avg, sinvals[left_theta_avg], cosvals[left_theta_avg], mask, image_out, RHO_RESOLUTION);
 	}

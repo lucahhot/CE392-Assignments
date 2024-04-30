@@ -15,7 +15,7 @@ module hough_top (
     output logic accum_buff_done,
     output logic hough_done,
     // LANE OUTPUTS
-    output logic [ACCUM_BUFF_WIDTH-1:0] output_data,
+    output logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0] output_data,
     output logic signed [15:0] left_rho_out,
     output logic signed [15:0] right_rho_out,
     output logic [THETA_BITS-1:0] left_theta_out,
