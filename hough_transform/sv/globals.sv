@@ -5,6 +5,8 @@ localparam IMAGE_SIZE = WIDTH * HEIGHT;
 localparam FIFO_BUFFER_SIZE = 8;
 
 // Adjusted height and width to save cycles (pre-calculated or else the fractions create problems)
+localparam ANGLE_RANGE = 180;
+
 localparam ENDING_X = 1152 + 5; // 1157 = WIDTH * MASK_BR_X + 5
 localparam ENDING_Y = 251 + 5; // 256 = HEIGHT * MASK_TR_Y + 5
 

@@ -13,8 +13,19 @@ module hough_top (
     input   logic [23:0]    mask_din,
     // ACCUMULATOR OUTPUT
     output  logic           done,
-    output  logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out
-    
+    output  logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out,
+
+
+
+    //temp logic
+    input logic start_draw_a_line,
+    input logic [$clog2(ANGLE_RANGE)-1:0] angle,
+    input logic [$clog2(IMAGE_SIZE)-1 : 0] radius,
+    output logic finish_draw_a_line,
+
+    //image output
+    input [$clog2(IMAGE_SIZE)-1:0] image_bram_rd_addr,
+    output [23:0]                    image_bram_rd_data
 );
 
 // Input wires to image_loader
@@ -31,8 +42,9 @@ logic [23:0]    grayscale_din;
 logic                           image_bram_wr_en;
 logic [23:0]                    image_bram_wr_data;
 logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
-logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
-logic [23:0]                    image_bram_rd_data;
+// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+// logic [23:0]                    image_bram_rd_data;
+logic load_finished;
 
 // Input wires to grayscale function
 logic [23:0]    grayscale_dout;
@@ -125,8 +137,17 @@ image_loader image_loader_inst (
     .fifo_out_din(grayscale_din),
     .bram_out_wr_en(image_bram_wr_en),
     .bram_out_wr_addr(image_bram_wr_addr),
-    .bram_out_wr_data(image_bram_wr_data)
+    .bram_out_wr_data(image_bram_wr_data),
+    .load_finished(load_finished)
 );
+
+logic image_bram_total_wr_en;
+logic [$clog2(IMAGE_SIZE)-1:0] image_bram_total_wr_addr;
+logic [23:0] image_bram_total_wr_data;
+
+assign image_bram_total_wr_en = load_finished ? highlight_out_wr_en : image_bram_wr_en;
+assign image_bram_total_wr_addr = load_finished ? highlight_out_addr : image_bram_wr_addr;
+assign image_bram_total_wr_data = load_finished ? highlight_out_din : image_bram_wr_data;
 
 bram #(
     .BRAM_DATA_WIDTH(24),
@@ -134,9 +155,9 @@ bram #(
 ) image_bram_inst (
     .clock(clock),
     .rd_addr(image_bram_rd_addr),
-    .wr_addr(image_bram_wr_addr),
-    .wr_en(image_bram_wr_en),
-    .wr_data(image_bram_wr_data),
+    .wr_addr(image_bram_total_wr_addr),
+    .wr_en(image_bram_total_wr_en),
+    .wr_data(image_bram_total_wr_data),
     .rd_data(image_bram_rd_data)
 );
 
@@ -329,6 +350,28 @@ hough hough_inst (
     .mask_bram_rd_addr(mask_bram_rd_addr),
     .done(done),
     .accum_buff_out(accum_buff_out)
+);
+
+// logic finish_draw_a_line;
+logic highlight_out_wr_en;
+logic [$clog2(IMAGE_SIZE)-1:0] highlight_out_addr;
+logic [23:0] highlight_out_din;
+logic total_start_draw_a_line;
+assign total_start_draw_a_line = start_draw_a_line & load_finished;
+
+highlight #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) highlight_inst (
+    .clock(clock),
+    .reset(reset),
+    .start_draw_a_line(total_start_draw_a_line),
+    .angle(angle),
+    .radius(radius),
+    .finish_draw_a_line(finish_draw_a_line),
+    .out_wr_en(highlight_out_wr_en),
+    .out_addr(highlight_out_addr),
+    .out_din(highlight_out_din)
 );
 
 endmodule

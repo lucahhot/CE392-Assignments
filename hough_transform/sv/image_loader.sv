@@ -31,7 +31,8 @@ module image_loader (
     // OUTPUT to image BRAM
     output logic                            bram_out_wr_en,
     output logic [$clog2(IMAGE_SIZE)-1:0]   bram_out_wr_addr,
-    output logic [23:0]                     bram_out_wr_data
+    output logic [23:0]                     bram_out_wr_data,
+    output logic    load_finished;
 );
 
 typedef enum logic [1:0] {IDLE, OUTPUT} state_types;
@@ -65,6 +66,7 @@ always_comb begin
     bram_out_wr_en = 1'b0;
     bram_out_wr_data = 24'b0;
     bram_out_wr_addr = 0;
+    load_finished = 1'b0;
 
     case(state)
         IDLE: begin
@@ -95,6 +97,7 @@ always_comb begin
                 if (x == WIDTH-1) begin
                     if (y == HEIGHT-1) 
                         next_state = IDLE;    
+                        load_finished = 1'b1;
                     else begin
                         x_c = 0;
                         y_c = y + 1;
