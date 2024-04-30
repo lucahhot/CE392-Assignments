@@ -17,7 +17,9 @@ module bram #(
   
   always_ff @(posedge clock) begin
     read_addr <= rd_addr;
-    if (wr_en) mem[wr_addr] <= wr_data; 
+    if (wr_en) begin 
+      mem[wr_addr] <= wr_data;
+    end
   end
 
 endmodule

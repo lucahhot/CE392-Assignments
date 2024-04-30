@@ -42,8 +42,8 @@ logic [23:0]    grayscale_din;
 logic                           image_bram_wr_en;
 logic [23:0]                    image_bram_wr_data;
 logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
-// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
-// logic [23:0]                    image_bram_rd_data;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+logic [23:0]                    image_bram_rd_data;
 logic load_finished;
 
 // Input wires to grayscale function
