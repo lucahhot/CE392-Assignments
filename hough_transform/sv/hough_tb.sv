@@ -7,7 +7,7 @@ module hough_tb;
 localparam string IMG_IN_NAME  = "../images/road_image_1280_720.bmp";
 localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 localparam string IMG_OUT_NAME = "../images/output.bmp";
-localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
+localparam string IMG_CMP_NAME = "../images/road_image_1280_720.bmp";
 localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
 localparam CLOCK_PERIOD = 10;
@@ -31,6 +31,9 @@ logic signed [15:0]             left_rho_out;
 logic signed [15:0]             right_rho_out;
 logic [THETA_BITS-1:0]          left_theta_out;
 logic [THETA_BITS-1:0]          right_theta_out;
+logic finish_draw_a_line;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+logic [23:0]                    image_bram_rd_data;
 
 logic   hold_clock = '0;
 logic   in_write_done = '0;
@@ -54,10 +57,13 @@ hough_top hough_top_inst (
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done),
     .output_data(output_data),
-    .left_rho_out(left_rho_out),
-    .right_rho_out(right_rho_out),
-    .left_theta_out(left_theta_out),
-    .right_theta_out(right_theta_out)
+    // .left_rho_out(left_rho_out),
+    // .right_rho_out(right_rho_out),
+    // .left_theta_out(left_theta_out),
+    // .right_theta_out(right_theta_out)
+    .finish_draw_a_line(finish_draw_a_line),
+    .image_bram_rd_addr(image_bram_rd_addr),
+    .image_bram_rd_data(image_bram_rd_data)
 );
 
 always begin
@@ -244,50 +250,43 @@ initial begin : accum_buff_output_process
     out_read_done = 1'b1;
 end
 
-// initial begin : img_write_process
-//     int i, r;
-//     int out_file;
-//     int cmp_file;
-//     logic [23:0] cmp_dout;
-//     logic [7:0] bmp_header [0:BMP_HEADER_SIZE-1];
+initial begin : img_write_process
+    int i, r;
+    int out_file;
+    int cmp_file;
+    logic [23:0] cmp_dout;
+    logic [7:0] bmp_header [0:BMP_HEADER_SIZE-1];
 
-//     @(negedge reset);
-//     @(negedge clock);
+    @(negedge reset);
+    @(negedge clock);
 
-//     $display("@ %0t: Comparing file %s...", $time, IMG_OUT_NAME);
+    @(posedge finish_draw_a_line);
+
+    $display("@ %0t: Comparing file %s...", $time, IMG_OUT_NAME);
     
-//     out_file = $fopen(IMG_OUT_NAME, "wb");
-//     cmp_file = $fopen(IMG_CMP_NAME, "rb");
-//     out_rd_en = 1'b0;
+    out_file = $fopen(IMG_OUT_NAME, "wb");
+    cmp_file = $fopen(IMG_CMP_NAME, "rb");
     
-//     // Copy the BMP header
-//     r = $fread(bmp_header, cmp_file, 0, BMP_HEADER_SIZE);
-//     for (i = 0; i < BMP_HEADER_SIZE; i++) begin
-//         $fwrite(out_file, "%c", bmp_header[i]);
-//     end
+    // Copy the BMP header
+    r = $fread(bmp_header, cmp_file, 0, BMP_HEADER_SIZE);
+    for (i = 0; i < BMP_HEADER_SIZE; i++) begin
+        $fwrite(out_file, "%c", bmp_header[i]);
+    end
 
-//     i = 0;
-//     while (i < BMP_DATA_SIZE) begin
-//         @(negedge clock);
-//         out_rd_en = 1'b0;
-//         if (out_empty == 1'b0) begin
-//             r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
-//             $fwrite(out_file, "%c%c%c", out_dout, out_dout, out_dout);
+    image_bram_rd_addr = 0;
+    while (image_bram_rd_addr < IMAGE_SIZE) begin
+        @(negedge clock);
+            r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+            $fwrite(out_file, "%c%c%c", image_bram_rd_data[23:16], image_bram_rd_data[15:8], image_bram_rd_data[7:0]);
 
-//             if (cmp_dout != {3{out_dout}}) begin
-//                 out_errors += 1;
-//                 // $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{out_dout}}, cmp_dout, i);
-//             end
-//             out_rd_en = 1'b1;
-//             i += BYTES_PER_PIXEL;
-//         end
-//     end
+            
+            image_bram_rd_addr ++;
+    end
 
-//     @(negedge clock);
-//     out_rd_en = 1'b0;
-//     $fclose(out_file);
-//     $fclose(cmp_file);
-//     out_read_done = 1'b1;
-// end
+    @(negedge clock);
+    $fclose(out_file);
+    $fclose(cmp_file);
+    out_read_done = 1'b1;
+end
 
 endmodule

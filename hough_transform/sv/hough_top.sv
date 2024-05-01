@@ -21,7 +21,7 @@ module hough_top (
     // output logic [THETA_BITS-1:0] left_theta_out,
     // output logic [THETA_BITS-1:0] right_theta_out,
 
-    output logic finish_draw_a_line;
+    output logic finish_draw_a_line,
     //BRAM output
     input [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr,
     output [23:0]                    image_bram_rd_data
@@ -117,6 +117,11 @@ logic signed [15:0] right_rho_out;
 logic [THETA_BITS-1:0] left_theta_out;
 logic [THETA_BITS-1:0] right_theta_out;
 
+// Output wires from highlight
+logic highlight_out_wr_en;
+logic [$clog2(IMAGE_SIZE)-1:0] highlight_out_addr;
+logic [23:0] highlight_out_din;
+logic total_start_draw_a_line;
 fifo #(
     .FIFO_DATA_WIDTH(24),
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
@@ -364,10 +369,7 @@ hough hough_inst (
 );
 
 // logic finish_draw_a_line;
-logic highlight_out_wr_en;
-logic [$clog2(IMAGE_SIZE)-1:0] highlight_out_addr;
-logic [23:0] highlight_out_din;
-logic total_start_draw_a_line;
+
 assign total_start_draw_a_line = hough_done & load_finished;
 
 highlight #(

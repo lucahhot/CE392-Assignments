@@ -33,7 +33,7 @@ module image_loader (
     output logic                            bram_out_wr_en,
     output logic [$clog2(IMAGE_SIZE)-1:0]   bram_out_wr_addr,
     output logic [23:0]                     bram_out_wr_data,
-    output logic    load_finished;
+    output logic    load_finished
 );
 
 typedef enum logic [1:0] {IDLE, OUTPUT} state_types;
@@ -96,10 +96,10 @@ always_comb begin
                 next_state = OUTPUT;
                 // Calculate the next address to write to (if we are at the end, go back to IDLE)
                 if (x == WIDTH-1) begin
-                    if (y == HEIGHT-1) 
+                    if (y == HEIGHT-1) begin
                         next_state = IDLE;    
                         load_finished = 1'b1;
-                    else begin
+                    end else begin
                         x_c = 0;
                         y_c = y + 1;
                     end                
