@@ -57,10 +57,10 @@ hough_top hough_top_inst (
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done),
     .output_data(output_data),
-    // .left_rho_out(left_rho_out),
-    // .right_rho_out(right_rho_out),
-    // .left_theta_out(left_theta_out),
-    // .right_theta_out(right_theta_out)
+    .left_rho_out_cp(left_rho_out),
+    .right_rho_out_cp(right_rho_out),
+    .left_theta_out_cp(left_theta_out),
+    .right_theta_out_cp(right_theta_out),
     .finish_draw_a_line(finish_draw_a_line),
     .image_bram_rd_addr(image_bram_rd_addr),
     .image_bram_rd_data(image_bram_rd_data)
@@ -247,7 +247,7 @@ initial begin : accum_buff_output_process
     $display("Right theta = %0d.", right_theta_out);
     
     // $fclose(rho_file);
-    out_read_done = 1'b1;
+    // out_read_done = 1'b1;
 end
 
 initial begin : img_write_process

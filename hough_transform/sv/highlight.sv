@@ -5,7 +5,7 @@ module highlight#(
     ANGLE_RANGE = 180,
     DATA_WIDTH = 16,
     FRAC_BITS = 13,
-    LINE_LENGTH = 1000,
+    LINE_LENGTH = 10000,
     THETA_BITS = 9
 ) (
     input  logic        clock,
@@ -18,7 +18,8 @@ module highlight#(
     output logic finish_draw_a_line,
     output logic        out_wr_en,
     output logic [$clog2(IMAGE_SIZE)-1:0] out_addr,
-    output logic [23:0]  out_din
+    output logic [23:0]  out_din,
+    input load_finished
 );
 
 typedef enum logic [1:0] {DRAWING_LEFT_LINE, DRAWING_RIGHT_LINE, FINISHED_DRAWING} image_state_types;
@@ -28,14 +29,20 @@ logic signed [DATA_WIDTH-1:0] sine_angle, cosine_angle;
 
 logic [THETA_BITS-1:0] angle;
 
-assign angle = (image_state == DRAWING_LEFT_LINE) ? left_angle :
-               (image_state == DRAWING_RIGHT_LINE) ? right_angle :
+// logic start_draw_a_line_cp;
+logic [THETA_BITS-1:0] left_angle_cp;
+logic [THETA_BITS-1:0] right_angle_cp;
+logic [15 : 0] left_radius_cp;
+logic [15 : 0] right_radius_cp;
+
+assign angle = (image_state == DRAWING_LEFT_LINE) ? left_angle_cp :
+               (image_state == DRAWING_RIGHT_LINE) ? right_angle_cp :
                '0;
 
 logic [$clog2(IMAGE_SIZE)-1 : 0] radius;
 
-assign radius = (image_state == DRAWING_LEFT_LINE) ? left_radius :
-               (image_state == DRAWING_RIGHT_LINE) ? right_radius :
+assign radius = (image_state == DRAWING_LEFT_LINE) ? left_radius_cp :
+               (image_state == DRAWING_RIGHT_LINE) ? right_radius_cp :
                '0;
 
 lookup_table #(
@@ -48,7 +55,7 @@ lookup_table #(
     .cosine(cosine_angle)
 );
 
-logic [$clog2(LINE_LENGTH):0] line_index;
+logic signed [$clog2(LINE_LENGTH)+1:0] line_index;
 
 logic signed [2*$clog2(IMAGE_SIZE)-1 : 0] x0, y0;
 logic signed [2*$clog2(IMAGE_SIZE)-1 : 0] x_step, y_step;
@@ -59,6 +66,7 @@ logic [$clog2(IMAGE_SIZE)-1:0] line_image_index;
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         image_state <= FINISHED_DRAWING;
+        next_image_state <= FINISHED_DRAWING;
         line_index <= '0;
         finish_draw_a_line <= 1'b0;
         out_wr_en <= 1'b0;
@@ -70,19 +78,28 @@ always_ff @(posedge clock or posedge reset) begin
     end
 end
 
-always_comb begin
-    x0 = cosine_angle * $signed(radius) >>> FRAC_BITS;
-    y0 = sine_angle * $signed(radius) >>> FRAC_BITS;
+always_ff @(posedge start_draw_a_line) begin
+    // start_draw_a_line_cp <= 1'b1;
+    left_angle_cp <= left_angle;
+    right_angle_cp <= right_angle;
+    left_radius_cp <= left_radius;
+    right_radius_cp <= right_radius;
 end
 
-always_ff @(posedge clock) begin
+always_comb begin
+    x0 = $signed(cosine_angle) * $signed(radius) >>> FRAC_BITS;
+    y0 = $signed(sine_angle) * $signed(radius) >>> FRAC_BITS;
+end
+
+always_ff @(posedge clock or posedge start_draw_a_line) begin
     if(image_state==FINISHED_DRAWING) begin
         if(start_draw_a_line == 1'b1) begin
             next_image_state = DRAWING_LEFT_LINE;
-            line_index = '0;
+            line_index = -LINE_LENGTH;
             out_wr_en = 1'b1;
             finish_draw_a_line = 1'b0;
         end
+    end else if(load_finished==1'b0)begin
     end else if(image_state==DRAWING_LEFT_LINE) begin
         if(line_index < LINE_LENGTH) begin
             line_index++;
@@ -94,8 +111,8 @@ always_ff @(posedge clock) begin
                 line_image_index = y1 * WIDTH + x1;
             end
         end else begin
+            line_index = -LINE_LENGTH;
             next_image_state = DRAWING_RIGHT_LINE;
-            line_index = '0;
             // finish_draw_a_line = 1'b1;
             // out_wr_en = 1'b0;
         end
@@ -113,6 +130,7 @@ always_ff @(posedge clock) begin
             next_image_state = FINISHED_DRAWING;
             finish_draw_a_line = 1'b1;
             out_wr_en = 1'b0;
+            // start_draw_a_line_cp = 1'b0;
         end
     end
 end

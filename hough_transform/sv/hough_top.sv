@@ -16,10 +16,10 @@ module hough_top (
     output logic hough_done,
     // LANE OUTPUTS
     output logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0] output_data,
-    // output logic signed [15:0] left_rho_out,
-    // output logic signed [15:0] right_rho_out,
-    // output logic [THETA_BITS-1:0] left_theta_out,
-    // output logic [THETA_BITS-1:0] right_theta_out,
+    output logic signed [15:0] left_rho_out_cp,
+    output logic signed [15:0] right_rho_out_cp,
+    output logic [THETA_BITS-1:0] left_theta_out_cp,
+    output logic [THETA_BITS-1:0] right_theta_out_cp,
 
     output logic finish_draw_a_line,
     //BRAM output
@@ -116,6 +116,12 @@ logic signed [15:0] left_rho_out;
 logic signed [15:0] right_rho_out;
 logic [THETA_BITS-1:0] left_theta_out;
 logic [THETA_BITS-1:0] right_theta_out;
+
+assign left_rho_out_cp = left_rho_out;
+assign right_rho_out_cp = right_rho_out;
+assign left_theta_out_cp = left_theta_out;
+assign right_theta_out_cp = right_theta_out;
+
 
 // Output wires from highlight
 logic highlight_out_wr_en;
@@ -370,7 +376,7 @@ hough hough_inst (
 
 // logic finish_draw_a_line;
 
-assign total_start_draw_a_line = hough_done & load_finished;
+assign total_start_draw_a_line = hough_done;
 
 highlight #(
     .WIDTH(WIDTH),
@@ -387,7 +393,8 @@ highlight #(
     .finish_draw_a_line(finish_draw_a_line),
     .out_wr_en(highlight_out_wr_en),
     .out_addr(highlight_out_addr),
-    .out_din(highlight_out_din)
+    .out_din(highlight_out_din),
+    .load_finished(load_finished)
 );
 
 endmodule

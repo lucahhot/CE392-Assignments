@@ -50,10 +50,15 @@ always_ff @(posedge clock or posedge reset) begin
         state <= IDLE;
         x <= '0;
         y <= '0;
+        load_finished <= 1'b0;
     end else begin
         state <= next_state;
         x <= x_c;
         y <= y_c;
+
+        if (state==OUTPUT & next_state==IDLE) begin
+            load_finished <= 1'b1;
+        end
     end
 end
 
@@ -67,7 +72,7 @@ always_comb begin
     bram_out_wr_en = 1'b0;
     bram_out_wr_data = '0;
     bram_out_wr_addr = 0;
-    load_finished = 1'b0;
+    // load_finished = 1'b0;
 
     case(state)
         IDLE: begin
@@ -98,7 +103,7 @@ always_comb begin
                 if (x == WIDTH-1) begin
                     if (y == HEIGHT-1) begin
                         next_state = IDLE;    
-                        load_finished = 1'b1;
+                        // load_finished = 1'b1;
                     end else begin
                         x_c = 0;
                         y_c = y + 1;
