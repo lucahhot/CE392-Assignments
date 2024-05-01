@@ -18,13 +18,13 @@ module div_signed #(
 
     // Define internal signals
     logic signed [DIVIDEND_WIDTH-1:0] a, a_c;
-    logic signed [DIVISOR_WIDTH-1:0] b, b_c;
+    logic [DIVISOR_WIDTH-1:0] b, b_c;
     logic signed [DIVIDEND_WIDTH-1:0] q, q_c;
     logic signed [DIVIDEND_WIDTH-1:0] p;
     logic internal_sign;
 
     logic signed [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
-    logic signed [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
+    logic [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
 
     // Registered values for msb(a) and msb_b
     logic [$clog2(DIVIDEND_WIDTH)-1:0] msb_a;
@@ -88,7 +88,7 @@ module div_signed #(
                 // Only assign stuff is valid_in is high
                 if (valid_in == 1'b1) begin
                     a_c = (dividend[DIVIDEND_WIDTH-1] == 1'b0) ? dividend : -dividend;
-                    b_c = (divisor[DIVISOR_WIDTH-1] == 1'b0) ? divisor : -divisor;
+                    b_c = divisor;
                     q_c = '0;
 
                     // Set temp dividend and divisor registers
@@ -130,7 +130,7 @@ module div_signed #(
                     a_c = a - (b << p);
                     next_state = LOOP;
                 end else begin
-                    internal_sign = dividend_temp[DIVIDEND_WIDTH-1] ^ divisor_temp[DIVISOR_WIDTH-1];
+                    internal_sign = dividend_temp[DIVIDEND_WIDTH-1];
                     quotient = (internal_sign == 1'b0) ? q_c : -q_c;
                     valid_out = 1'b1;
                     next_state = INIT;

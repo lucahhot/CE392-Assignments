@@ -186,29 +186,15 @@ initial begin : accum_buff_output_process
     // Write the accum_buff_out to a file
     for (int i = 0; i < RHO_RANGE; i++) begin
         for (int j = 0; j < THETAS; j = j + THETA_UNROLL) begin
-            r = $fscanf(cmp_file, "%d", cmp_val);
-            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j, output_data[0], cmp_val);
-            if (output_data[0] != cmp_val) begin
-                BRAM_out_errors += 1;
-                $fwrite(results_file, "ERROR: BRAM accum_buff[0]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[0], cmp_val, i-RHOS, i, j);
-            end
-            r = $fscanf(cmp_file, "%d", cmp_val);
-            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+1, output_data[1], cmp_val);
-            if (output_data[1] != cmp_val) begin
-                BRAM_out_errors += 1;
-                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[1], cmp_val, i-RHOS, i, j+1);
-            end
-            r = $fscanf(cmp_file, "%d", cmp_val);
-            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+2, output_data[2], cmp_val);
-            if (output_data[2] != cmp_val) begin
-                BRAM_out_errors += 1;
-                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[2], cmp_val, i-RHOS, i, j+2);
-            end
-            r = $fscanf(cmp_file, "%d", cmp_val);
-            $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+3, output_data[3], cmp_val);
-            if (output_data[3] != cmp_val) begin
-                BRAM_out_errors += 1;
-                $fwrite(results_file, "ERROR: BRAM accum_buff[1]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", output_data[3], cmp_val, i-RHOS, i, j+3);
+            for (int k = 0; k < THETA_UNROLL; k++) begin
+                if (k+j < THETAS) begin
+                    r = $fscanf(cmp_file, "%d", cmp_val);
+                    $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+k, output_data[k], cmp_val);
+                    if (output_data[k] != cmp_val) begin
+                        BRAM_out_errors += 1;
+                        $fwrite(results_file, "ERROR: BRAM accum_buff[%0d]: %0d != %0d at rho = %0d (rho index = %0d), theta = %0d.\n", k, output_data[k], cmp_val, i-RHOS, i, j+k);
+                    end
+                end
             end
             @(negedge clock);
         end

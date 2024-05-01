@@ -1,4 +1,4 @@
-`include "globals.sv"
+// `include "globals.sv"
 
 module hough_top (
     input   logic           clock,

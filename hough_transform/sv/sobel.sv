@@ -1,5 +1,5 @@
 // Comment this line out for synthesis but uncomment for simulations
-`include "globals.sv"
+// `include "globals.sv"
 
 module sobel (
     input  logic        clock,

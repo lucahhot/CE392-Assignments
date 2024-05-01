@@ -17,7 +17,7 @@
 // about 570,200 cycles to complete from the simulations.
 
 // Comment this line out for synthesis but uncomment for simulations
-`include "globals.sv"
+// `include "globals.sv"
 
 module image_loader (
     input  logic            clock,

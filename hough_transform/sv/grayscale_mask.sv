@@ -1,7 +1,7 @@
 // Same as the grayscale for the image but to write the grayscaled mask to a 2D BRAM
 
 // Comment this line out for synthesis but uncomment for simulations
-`include "globals.sv"
+// `include "globals.sv"
 
 module grayscale_mask (
     input  logic        clock,
