@@ -1,7 +1,7 @@
 // Image dimensions
 localparam WIDTH = 1280;
 localparam HEIGHT = 720;
-localparam IMAGE_SIZE = WIDTH * HEIGHT;
+localparam IMAGE_SIZE = WIDTH * HEIGHT; // 921600
 localparam FIFO_BUFFER_SIZE = 8;
 
 // Adjusted height and width to save cycles (pre-calculated or else the fractions create problems)
@@ -14,7 +14,7 @@ localparam STARTING_Y = 36 - 5; // 31 = HEIGHT * MASK_BL_Y - 5
 // Reduced image dimensions (rectangle that encompasses the mask)
 localparam REDUCED_WIDTH = ENDING_X - STARTING_X + 1; // 1157 - 123 + 1 = 1035 (need to include the last point as part of the width)
 localparam REDUCED_HEIGHT = ENDING_Y - STARTING_Y + 1; // 256 - 31 + 1 = 226 (need to include the last point as part of the height)
-localparam REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT; 
+localparam REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT; // 233910 -74.6% reduction in size
 
 localparam THETAS = 180;
 localparam RHOS = 1179;

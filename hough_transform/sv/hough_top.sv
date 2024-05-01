@@ -49,17 +49,20 @@ logic [23:0]    mask_dout;
 logic           mask_empty;
 logic           mask_rd_en;
 
+logic          hough_done_internal;
+assign hough_done = hough_done_internal;
+
 // Output wires from grayscale function to gaussian_blur FIFO
 logic           gaussian_wr_en;
 logic           gaussian_full;
 logic [7:0]     gaussian_din;
 
 // Output wires from grayscale_mask function to mask_bram
-logic                           mask_bram_wr_en;
-logic [7:0]                     mask_bram_wr_data;
-logic [$clog2(IMAGE_SIZE)-1:0]  mask_bram_wr_addr;
-logic [$clog2(IMAGE_SIZE)-1:0]  mask_bram_rd_addr;
-logic [7:0]                     mask_bram_rd_data;
+logic                                   mask_bram_wr_en;
+logic [7:0]                             mask_bram_wr_data;
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_wr_addr;
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_rd_addr;
+logic [7:0]                             mask_bram_rd_data;
 
 // Input wires to gaussian_blur function
 logic [7:0]     gaussian_dout;
@@ -97,12 +100,12 @@ logic           hysteresis_empty;
 logic           hysteresis_rd_en;
 
 // Output wires from hysteresis function to hysteresis_bram
-logic                           hysteresis_bram_wr_en;
-logic [7:0]                     hysteresis_bram_wr_data;
-logic [$clog2(IMAGE_SIZE)-1:0]  hysteresis_bram_wr_addr;
-logic [$clog2(IMAGE_SIZE)-1:0]  hysteresis_bram_rd_addr;
-logic [7:0]                     hysteresis_bram_rd_data;
-logic                           hough_start;
+logic                                   hysteresis_bram_wr_en;
+logic [7:0]                             hysteresis_bram_wr_data;
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  hysteresis_bram_wr_addr;
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  hysteresis_bram_rd_addr;
+logic [7:0]                             hysteresis_bram_rd_data;
+logic                                   hough_start;
 
 fifo #(
     .FIFO_DATA_WIDTH(24),
@@ -192,6 +195,7 @@ grayscale_mask mask_grayscale_inst(
     .in_rd_en(mask_rd_en),
     .in_empty(mask_empty),
     .in_dout(mask_dout),
+    .hough_done(hough_done_internal),
     .out_wr_en(mask_bram_wr_en),
     .out_wr_addr(mask_bram_wr_addr),
     .out_wr_data(mask_bram_wr_data)
@@ -199,7 +203,7 @@ grayscale_mask mask_grayscale_inst(
 
 bram #(
     .BRAM_DATA_WIDTH(8),
-    .IMAGE_SIZE(IMAGE_SIZE)
+    .IMAGE_SIZE(REDUCED_IMAGE_SIZE)
 ) mask_bram_inst (
     .clock(clock),
     .rd_addr(mask_bram_rd_addr),
@@ -314,7 +318,7 @@ hysteresis hysteresis_inst (
 
 bram #(
     .BRAM_DATA_WIDTH(8),
-    .IMAGE_SIZE(IMAGE_SIZE)
+    .IMAGE_SIZE(REDUCED_IMAGE_SIZE)
 ) hysteresis_bram_inst (
     .clock(clock),
     .rd_addr(hysteresis_bram_rd_addr),
@@ -333,7 +337,7 @@ hough hough_inst (
     .mask_bram_rd_data(mask_bram_rd_data),
     .mask_bram_rd_addr(mask_bram_rd_addr),
     .accum_buff_done(accum_buff_done),
-    .hough_done(hough_done),
+    .hough_done(hough_done_internal),
     .output_data(output_data),
     .left_rho_out(left_rho_out),
     .right_rho_out(right_rho_out),

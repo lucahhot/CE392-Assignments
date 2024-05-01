@@ -8,9 +8,9 @@ module hysteresis (
     input  logic        in_empty,
     input  logic [7:0]  in_dout,
     // Output wires to write to BRAM
-    output logic                            out_wr_en,
-    output logic [$clog2(IMAGE_SIZE)-1:0]   out_wr_addr,
-    output logic [7:0]                      out_wr_data,
+    output logic                                    out_wr_en,
+    output logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]   out_wr_addr,
+    output logic [7:0]                              out_wr_data,
     // Start signal to tell hough that it can start 
     output logic hough_start
 );
@@ -153,9 +153,9 @@ case(state)
         OUTPUT: begin
             out_wr_data = hysteresis;
             out_wr_en = 1'b1;
-            // Have to adjust row and col because they're rows and columns for the REDUCED_IMAGE_SIZE but we still want the 
-            // hysteresis BRAM to be addressed in terms of the normal IMAGE_SIZE coordinates
-            out_wr_addr = (y * WIDTH) + x;
+            // Write to hysteresis BRAM in terms of the reduced image dimensions since we do not need the hysteresis values outside of the mask
+            // later in the hough transform
+            out_wr_addr = (row * REDUCED_WIDTH) + col;
             next_state = HYSTERESIS;
             // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
             if (col == REDUCED_WIDTH-1) begin

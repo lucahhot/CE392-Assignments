@@ -13,11 +13,11 @@ module hough (
     input  logic        reset,
     input  logic        start,
     // HYSTERESIS INPUTS from bram_2d
-    input  logic [7:0]                      hysteresis_bram_rd_data,
-    output logic [$clog2(IMAGE_SIZE)-1:0]   hysteresis_bram_rd_addr,
+    input  logic [7:0]                              hysteresis_bram_rd_data,
+    output logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]   hysteresis_bram_rd_addr,
     // MASK INPUTs from bram_2d
-    input  logic [7:0]                      mask_bram_rd_data,
-    output logic [$clog2(IMAGE_SIZE)-1:0]   mask_bram_rd_addr,
+    input  logic [7:0]                              mask_bram_rd_data,
+    output logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]   mask_bram_rd_addr,
     // DONE signals
     output logic accum_buff_done,
     output logic hough_done,
@@ -40,6 +40,10 @@ state_types state, next_state;
 // Giving it 1 extra bit since we are making them signed for the dequantization to work
 logic signed [$clog2(ENDING_X):0] x, x_c;
 logic signed [$clog2(ENDING_Y):0] y, y_c;
+
+// Indices to read the hysteresis and mask values from the BRAMs (will be from 0 to REDUCED_WIDTH-1 / REDUCED_HEIGHT-1)
+logic [$clog2(REDUCED_WIDTH)-1:0] x_mask, x_mask_c;
+logic [$clog2(REDUCED_HEIGHT)-1:0] y_mask, y_mask_c;
 
 // Read values from the hyseteresis and mask BRAMs 
 logic [7:0] hysteresis, mask;
@@ -181,6 +185,8 @@ always_ff @(posedge clock or posedge reset) begin
         x <= '0;
         y <= '0;
         theta <= '0;
+        x_mask <= '0;
+        y_mask <= '0;
         // accum_buff <= '{default: '{default: '{default: '0}}};
         rho_index <= '0;
         first_theta_cycle <= 1'b0;
@@ -223,6 +229,8 @@ always_ff @(posedge clock or posedge reset) begin
         x <= x_c;
         y <= y_c;
         theta <= theta_c;
+        x_mask <= x_mask_c;
+        y_mask <= y_mask_c;
         // accum_buff <= accum_buff_c;
         rho_index <= rho_index_c;
         first_theta_cycle <= first_theta_cycle_c;
@@ -268,6 +276,8 @@ always_comb begin
     x_c = x;
     y_c = y;
     theta_c = theta;
+    x_mask_c = x_mask;
+    y_mask_c = y_mask;
     rho_index_c = rho_index;
     first_theta_cycle_c = first_theta_cycle;
     first_select_cycle_c = first_select_cycle;
@@ -373,15 +383,18 @@ always_comb begin
         IDLE: begin
             if (start == 1'b1) begin
                 next_state = ACCUMULATE;
-                // Set the hysteresis and mask BRAM addresses so the BRAM output can be read in the next cycle
-                // We start at STARTING_X and STARTING_Y to save cycles
-                // Note: we start at STARTING_X + 5 and STARTING_Y + 5 because the mask is 5 pixels away from the edge
-                // of our starting and ending points due to padding for the canny edge detection algorithm
-                hysteresis_bram_rd_addr = (STARTING_Y+5) * WIDTH + (STARTING_X+5);
-                mask_bram_rd_addr = (STARTING_Y+5) * WIDTH + (STARTING_X+5);
-                // Set the initial x and y coordinates
+                // Set the initial x and y coordinates. Note: we start at STARTING_X + 5 and STARTING_Y + 5 because the 
+                // mask is 5 pixels away from the edge of our starting and ending points due to padding for the canny edge detection algorithm.
+                // These coordinates will be used to calculate the rho value for each pixel.
                 x_c = STARTING_X + 5;
                 y_c = STARTING_Y + 5;
+                // Set the initial x and y mask coordinates (start at 5 since we have 5 pixels of padding). These coordinates will be used to 
+                // read from both the hysteresis and mask BRAMs since they are different dimensions than the original image.
+                x_mask_c = 5;
+                y_mask_c = 5;
+                // Set the hysteresis and mask BRAM addresses so the BRAM output can be read in the next cycle
+                hysteresis_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
             end
         end
 
@@ -408,15 +421,19 @@ always_comb begin
                     end else begin
                         x_c = STARTING_X + 5;
                         y_c = y + 1;
+                        // The mask coordinates will be changed at the same time as x and y since they follow the same width and height but different actual values
+                        x_mask_c = 5;
+                        y_mask_c = y_mask + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                        hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
-                        mask_bram_rd_addr = y_c * WIDTH + x_c;
+                        hysteresis_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                        mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
                     end 
                 end else begin
                     x_c = x + 1;
+                    x_mask_c = x_mask + 1;
                     // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                    hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
-                    mask_bram_rd_addr = y_c * WIDTH + x_c;
+                    hysteresis_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                    mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
                 end
             end
         end
@@ -474,8 +491,7 @@ always_comb begin
             if (theta_c >= THETAS + THETA_UNROLL) begin
                 next_state = ACCUMULATE;
                 theta_c = 0;
-                // We need to update the x and y coordinates to and set the addresses for the next pixel
-                // so the BRAM outputs can be ready in the next cycle
+                // Increment the x and y values to move to the next pixel
                 if (x == ENDING_X - 5) begin
                     if (y == ENDING_Y - 5) begin
                         // We've reached the end of the image so we're done
@@ -486,15 +502,19 @@ always_comb begin
                     end else begin
                         x_c = STARTING_X + 5;
                         y_c = y + 1;
+                        // The mask coordinates will be changed at the same time as x and y since they follow the same width and height but different actual values
+                        x_mask_c = 5;
+                        y_mask_c = y_mask + 1;
                         // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                        hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
-                        mask_bram_rd_addr = y_c * WIDTH + x_c;
+                        hysteresis_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                        mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
                     end 
                 end else begin
                     x_c = x + 1;
+                    x_mask_c = x_mask + 1;
                     // Set the addresses for the next pixel so the BRAM outputs can be ready in the next cycle
-                    hysteresis_bram_rd_addr = y_c * WIDTH + x_c;
-                    mask_bram_rd_addr = y_c * WIDTH + x_c;
+                    hysteresis_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                    mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
                 end
             end else
                 // Go back to THETA_LOOP_MULTIPLY
@@ -658,6 +678,8 @@ always_comb begin
             x_c = 'X;
             y_c = 'X;
             theta_c = 'X;
+            x_mask_c = 'X;
+            y_mask_c = 'X;
             rho_index_c = 'X;
             first_theta_cycle_c = 'X;
             first_select_cycle_c = 'X;
