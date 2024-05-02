@@ -4,7 +4,7 @@
 // and then stop. This will also allow us to have a smaller BRAM size for the mask.
 
 // Comment this line out for synthesis but uncomment for simulations
-// `include "globals.sv"
+`include "globals.sv"
 
 module grayscale_mask (
     input  logic        clock,

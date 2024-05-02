@@ -6,7 +6,7 @@
 // values for the left and right lanes for the highlight module to draw them out. 
 
 // Comment this line out for synthesis but uncomment for simulations
-// `include "globals.sv"
+`include "globals.sv"
 
 module hough (
     input  logic        clock,
