@@ -1,11 +1,10 @@
 #--  Synopsys, Inc.
 #--  Version O-2018.09-SP1
 #--  Project file /home/laa8390/Documents/CE392/CE392-Assignments/hough_transform/syn/hough.prj
-#--  Written on Tue Apr 30 11:43:44 2024
+#--  Written on Thu May  2 23:50:34 2024
 
 
 #project files
-add_file -verilog -vlog_std sysv "../sv/globals.sv"
 add_file -verilog -vlog_std sysv "../sv/bram.sv"
 add_file -verilog -vlog_std sysv "../sv/div_signed.sv"
 add_file -verilog -vlog_std sysv "../sv/div_unsigned.sv"

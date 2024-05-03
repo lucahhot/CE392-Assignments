@@ -1,6 +1,5 @@
 
 `timescale 1 ns / 1 ns
-`include "globals.sv"
 
 module hough_tb;
 
@@ -11,6 +10,15 @@ localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
 localparam CLOCK_PERIOD = 10;
+
+localparam WIDTH = 1280;
+localparam HEIGHT = 720;
+localparam THETAS = 180;
+localparam RHOS = 1179;
+localparam RHO_RANGE = 2*RHOS; // 2358
+localparam THETA_UNROLL = 16;
+localparam ACCUM_BUFF_WIDTH = 8;
+localparam THETA_BITS = 9;
 
 logic clock = 1'b1;
 logic reset = '0;

@@ -23,7 +23,7 @@ module div_unsigned #(
     logic [DIVIDEND_WIDTH-1:0] a, a_c;
     logic [DIVISOR_WIDTH-1:0] b, b_c;
     logic [DIVIDEND_WIDTH-1:0] q, q_c;
-    logic [DIVIDEND_WIDTH-1:0] p;
+    logic [DIVIDEND_WIDTH-1:0] p, p_c;
 
     logic [DIVIDEND_WIDTH-1:0] dividend_temp, dividend_temp_c;
     logic [DIVISOR_WIDTH-1:0] divisor_temp, divisor_temp_c;
@@ -41,6 +41,7 @@ module div_unsigned #(
             q <= '0;
             dividend_temp <= '0;
             divisor_temp <= '0;
+            p <= '0;
         end else begin
             state <= next_state;
             a <= a_c;
@@ -48,33 +49,46 @@ module div_unsigned #(
             q <= q_c;
             dividend_temp <= dividend_temp_c;
             divisor_temp <= divisor_temp_c;
+            p <= p_c;
         end
     end
 
-    // Recursive get_msb
-    function automatic logic [$clog2(DIVIDEND_WIDTH)-1:0] get_msb_pos(logic [DIVIDEND_WIDTH-1:0] input_vector, logic [$clog2(DIVIDEND_WIDTH)-1:0] index);
-    
-        logic [$clog2(DIVIDEND_WIDTH)-1:0] left_result;
-        logic [$clog2(DIVIDEND_WIDTH)-1:0] right_result;
-
-        if (input_vector[index] == 1'b1) 
-            return index;
-        else if (index == 1'b0) 
-            return '0;
-        else begin
-
-            left_result = get_msb_pos(input_vector, index - 1);
-            right_result = get_msb_pos(input_vector, (index - 1) / 2);
-
-            if (left_result >= '0) 
-                return left_result;
-            else if (right_result >= '0)  
-                return right_result;
-            else 
-                return '0;
-
+    // Calculate the most significant bit position of a non-negative number
+    function automatic logic [$clog2(DIVIDEND_WIDTH)-1:0] get_msb_pos(logic [DIVIDEND_WIDTH-1:0] input_vector);
+        int pos;
+        localparam POS_WIDTH = $clog2(DIVIDEND_WIDTH);
+        for (pos = DIVIDEND_WIDTH-1; pos >= 0; pos--) begin
+            if (input_vector[pos] == 1'b1) begin
+                return POS_WIDTH'(pos);
+            end
         end
+        return -1; // Return -1 if the number is zero
     endfunction
+
+    // Recursive get_msb
+    // function automatic logic [$clog2(DIVIDEND_WIDTH)-1:0] get_msb_pos(logic [DIVIDEND_WIDTH-1:0] input_vector, logic [$clog2(DIVIDEND_WIDTH)-1:0] index);
+    
+    //     logic [$clog2(DIVIDEND_WIDTH)-1:0] left_result;
+    //     logic [$clog2(DIVIDEND_WIDTH)-1:0] right_result;
+
+    //     if (input_vector[index] == 1'b1) 
+    //         return index;
+    //     else if (index == 1'b0) 
+    //         return '0;
+    //     else begin
+
+    //         left_result = get_msb_pos(input_vector, index - 1);
+    //         right_result = get_msb_pos(input_vector, (index - 1) / 2);
+
+    //         if (left_result >= '0) 
+    //             return left_result;
+    //         else if (right_result >= '0)  
+    //             return right_result;
+    //         else 
+    //             return '0;
+
+    //     end
+    // endfunction
 
     always_comb begin
         next_state = state;
@@ -87,6 +101,7 @@ module div_unsigned #(
         // overflow =  1'b0;
         dividend_temp_c = dividend_temp;
         divisor_temp_c = divisor_temp;
+        p_c = p;
 
         case (state)
 
@@ -124,17 +139,14 @@ module div_unsigned #(
 
             LOOP: begin
 
-                msb_a = get_msb_pos(a,(DIVIDEND_WIDTH-1));
-                msb_b = get_msb_pos(b,(DIVISOR_WIDTH-1));
+                p_c = get_msb_pos(a) - get_msb_pos(b);
 
-                p = msb_a - msb_b;
-
-                p = ((b << p) > a) ? p - 1 : p;
+                p_c = ((b << p) > a) ? DIVIDEND_WIDTH'(p_c - 1) : p_c;
                 
-                q_c = q + (1 << p);
+                q_c = DIVIDEND_WIDTH'(q + (1 << p_c));
 
                 if ((b != '0) && (b <= a)) begin
-                    a_c = a - (b << p);
+                    a_c = a - (b << p_c);
                     next_state = LOOP;
                 end else begin
                     // next_state = EPILOGUE;
@@ -154,6 +166,7 @@ module div_unsigned #(
                 quotient = 'X;
                 divisor_temp_c = 'X;
                 dividend_temp_c = 'X;
+                p_c = 'X;
             end
 
         endcase

@@ -60,8 +60,8 @@ add wave -noupdate -group hough_tb/hough_top_inst/fifo_hysteresis_inst -radix he
 add wave -noupdate -group hough_tb/hough_top_inst/mask_bram_inst
 add wave -noupdate -group hough_tb/hough_top_inst/mask_bram_inst -radix hexadecimal /hough_tb/hough_top_inst/mask_bram_inst/*
 
-add wave -noupdate -group hough_tb/hough_top_inst/image_bram_inst
-add wave -noupdate -group hough_tb/hough_top_inst/image_bram_inst -radix hexadecimal /hough_tb/hough_top_inst/image_bram_inst/*
+# add wave -noupdate -group hough_tb/hough_top_inst/image_bram_inst
+# add wave -noupdate -group hough_tb/hough_top_inst/image_bram_inst -radix hexadecimal /hough_tb/hough_top_inst/image_bram_inst/*
 
 add wave -noupdate -group hough_tb/hough_top_inst/hysteresis_bram_inst
 add wave -noupdate -group hough_tb/hough_top_inst/hysteresis_bram_inst -radix hexadecimal /hough_tb/hough_top_inst/hysteresis_bram_inst/*

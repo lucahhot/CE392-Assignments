@@ -1,6 +1,6 @@
 module bram #(
   parameter BRAM_DATA_WIDTH = 8,
-  parameter IMAGE_SIZE = 388800
+  parameter IMAGE_SIZE = 100
 ) ( 
   input  logic                            clock,
   input  logic [$clog2(IMAGE_SIZE)-1:0]   rd_addr,
@@ -10,7 +10,7 @@ module bram #(
   output logic [BRAM_DATA_WIDTH-1:0]      rd_data
 );
 
-  logic [0:IMAGE_SIZE-1][BRAM_DATA_WIDTH-1:0] mem;
+  logic [BRAM_DATA_WIDTH-1:0] mem [0:IMAGE_SIZE-1];
   logic [$clog2(IMAGE_SIZE)-1:0] read_addr;
   
   assign rd_data = mem[read_addr];

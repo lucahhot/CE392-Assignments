@@ -38,21 +38,20 @@ localparam HOUGH_TRANSFORM_THRESHOLD = 150;
 // Quantization constants
 localparam BITS = 8;
 localparam TRIG_DATA_SIZE = 12;
-localparam DEQUANTIZE_DATA_SIZE = 32;
 
 // DEQUANTIZE function
-function logic signed [15:0] DEQUANTIZE(logic signed [DEQUANTIZE_DATA_SIZE-1:0] i);
+function logic signed [15:0] DEQUANTIZE(logic signed [31:0] i);
     // Arithmetic right shift doesn't work well with negative number rounding so switch the sign 
     // to perform the right shift then apply the negative sign to the results
     if (i < 0) 
-        DEQUANTIZE = (16'(-(-i >>> BITS)));
+        DEQUANTIZE = (16'(-(-i >>> 8)));
     else 
-        DEQUANTIZE = 16'(i >>> BITS);
+        DEQUANTIZE = 16'(i >>> 8);
 endfunction
 
 // QUANTIZE function
 function logic signed [15:0] QUANTIZE(logic signed [15:0] i);
-    QUANTIZE = 16'(i << BITS);
+    QUANTIZE = 16'(i << 8);
 endfunction
 
 // Quantized trig values (quantized using 8 bits for the fractional part)

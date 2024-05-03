@@ -1,6 +1,48 @@
-`include "globals.sv"
 
-module hough_top (
+// Defining the parameters here because there are always problems with the parameters in the globals file
+
+module hough_top #(
+    // Image dimensions
+    parameter WIDTH = 1280,
+    parameter HEIGHT = 720,
+    parameter IMAGE_SIZE = WIDTH * HEIGHT, // 921600
+    parameter FIFO_BUFFER_SIZE = 8,
+
+    // Adjusted height and width to save cycles (pre-calculated or else the fractions create problems)
+    parameter ENDING_X = 1152 + 5, // 1157 = WIDTH * MASK_BR_X + 5
+    parameter ENDING_Y = 251 + 5, // 256 = HEIGHT * MASK_TR_Y + 5
+
+    parameter STARTING_X = 128 - 5, // 123 = WIDTH * MASK_BL_X - 5
+    parameter STARTING_Y = 36 - 5, // 31 = HEIGHT * MASK_BL_Y - 5
+
+    // Reduced image dimensions (rectangle that encompasses the mask)
+    parameter REDUCED_WIDTH = ENDING_X - STARTING_X + 1, // 1157 - 123 + 1 = 1035 (need to include the last point as part of the width)
+    parameter REDUCED_HEIGHT = ENDING_Y - STARTING_Y + 1, // 256 - 31 + 1 = 226 (need to include the last point as part of the height)
+    parameter REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT, // 233910 -74.6% reduction in size
+
+    parameter THETAS = 180,
+    parameter RHOS = 1179,
+    parameter RHO_RANGE = 2*RHOS, // 2358
+
+    // Unroll factor for the accumulation stage (the theta loop)
+    parameter THETA_UNROLL = 16,
+    parameter THETA_DIVIDE_BITS = 4, // So that we don't have to divide by a non-power of 2 number (this means THEAT_UNROLL must be a power of 2)
+    parameter THETA_FACTOR = 12, // ceil(THETAS/THETA_UNROLL) = 23, this is necessary if THETAS%THETA_UNROLL != 0
+
+    // Accum_buff BRAM width (was set to 16 in the original C code given but we can reduce to 8 bits)
+    // It just has to be at least wide enough to go until HOUGH_TRANSFORM_THRESHOLD
+    parameter ACCUM_BUFF_WIDTH = 8,
+
+    // Theta bits (includes an extra bit just so we can always treat thetas as a signed number even though it'll always be positive)
+    parameter THETA_BITS = 9,
+    // Lane selection constants
+    parameter NUM_LANES = 100,
+    parameter HOUGH_TRANSFORM_THRESHOLD = 150,
+
+    // Quantization constants
+    parameter BITS = 8,
+    parameter TRIG_DATA_SIZE = 12
+)(
     input   logic           clock,
     input   logic           reset,
     // IMAGE INPUT
@@ -32,12 +74,12 @@ logic           grayscale_wr_en;
 logic           grayscale_full;
 logic [23:0]    grayscale_din;
 
-// Output wires from image_loader to image_BRAM
-logic                           image_bram_wr_en;
-logic [23:0]                    image_bram_wr_data;
-logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
-logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
-logic [23:0]                    image_bram_rd_data;
+// // Output wires from image_loader to image_BRAM
+// logic                           image_bram_wr_en;
+// logic [23:0]                    image_bram_wr_data;
+// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
+// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+// logic [23:0]                    image_bram_rd_data;
 
 // Input wires to grayscale function
 logic [23:0]    grayscale_dout;
@@ -122,7 +164,14 @@ fifo #(
     .empty(image_empty)
 );
 
-image_loader image_loader_inst (
+image_loader #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y),
+    .ENDING_X(ENDING_X),
+    .ENDING_Y(ENDING_Y)
+) image_loader_inst (
     .clock(clock),
     .reset(reset),
     .in_rd_en(image_rd_en),
@@ -130,23 +179,23 @@ image_loader image_loader_inst (
     .in_dout(image_dout),
     .fifo_out_wr_en(grayscale_wr_en),
     .fifo_out_full(grayscale_full),
-    .fifo_out_din(grayscale_din),
-    .bram_out_wr_en(image_bram_wr_en),
-    .bram_out_wr_addr(image_bram_wr_addr),
-    .bram_out_wr_data(image_bram_wr_data)
+    .fifo_out_din(grayscale_din)
+    // .bram_out_wr_en(image_bram_wr_en),
+    // .bram_out_wr_addr(image_bram_wr_addr),
+    // .bram_out_wr_data(image_bram_wr_data)
 );
 
-bram #(
-    .BRAM_DATA_WIDTH(24),
-    .IMAGE_SIZE(IMAGE_SIZE)
-) image_bram_inst (
-    .clock(clock),
-    .rd_addr(image_bram_rd_addr),
-    .wr_addr(image_bram_wr_addr),
-    .wr_en(image_bram_wr_en),
-    .wr_data(image_bram_wr_data),
-    .rd_data(image_bram_rd_data)
-);
+// bram #(
+//     .BRAM_DATA_WIDTH(24),
+//     .IMAGE_SIZE(IMAGE_SIZE)
+// ) image_bram_inst (
+//     .clock(clock),
+//     .rd_addr(image_bram_rd_addr),
+//     .wr_addr(image_bram_wr_addr),
+//     .wr_en(image_bram_wr_en),
+//     .wr_data(image_bram_wr_data),
+//     .rd_data(image_bram_rd_data)
+// );
 
 fifo #(
     .FIFO_DATA_WIDTH(24),
@@ -189,7 +238,17 @@ grayscale img_grayscale_inst(
     .out_din(gaussian_din)
 );
 
-grayscale_mask mask_grayscale_inst(
+grayscale_mask #(
+    .REDUCED_IMAGE_SIZE(REDUCED_IMAGE_SIZE),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y),
+    .ENDING_X(ENDING_X),
+    .ENDING_Y(ENDING_Y)
+) mask_grayscale_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(mask_rd_en),
@@ -228,7 +287,14 @@ fifo #(
     .empty(gaussian_empty)
 );
 
-gaussian_blur gaussian_inst(
+gaussian_blur #(
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y)
+) gaussian_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(gaussian_rd_en),
@@ -254,7 +320,14 @@ fifo #(
     .empty(sobel_empty)
 );
 
-sobel sobel_inst(
+sobel #(
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),   
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y)
+) sobel_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(sobel_rd_en),
@@ -266,7 +339,8 @@ sobel sobel_inst(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(8)
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_nms_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -279,7 +353,14 @@ fifo #(
     .empty(nms_empty)
 );
 
-non_maximum_suppressor nms_inst(
+non_maximum_suppressor #(
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y)
+) nms_inst(
     .clock(clock),
     .reset(reset),
     .in_rd_en(nms_rd_en),
@@ -291,7 +372,8 @@ non_maximum_suppressor nms_inst(
 );
 
 fifo #(
-    .FIFO_DATA_WIDTH(8)
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
 ) fifo_hysteresis_inst (
     .reset(reset),
     .wr_clk(clock),
@@ -304,7 +386,15 @@ fifo #(
     .empty(hysteresis_empty)
 );
 
-hysteresis hysteresis_inst (
+hysteresis #(
+    .REDUCED_IMAGE_SIZE(REDUCED_IMAGE_SIZE),
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y)
+) hysteresis_inst (
     .clock(clock),
     .reset(reset),
     .in_rd_en(hysteresis_rd_en),
@@ -328,7 +418,29 @@ bram #(
     .rd_data(hysteresis_bram_rd_data)
 );
 
-hough hough_inst (
+hough #(
+    .REDUCED_IMAGE_SIZE(REDUCED_IMAGE_SIZE),
+    .REDUCED_WIDTH(REDUCED_WIDTH),
+    .REDUCED_HEIGHT(REDUCED_HEIGHT),
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y),
+    .ENDING_X(ENDING_X),
+    .ENDING_Y(ENDING_Y),
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT),
+    .THETAS(THETAS),
+    .RHOS(RHOS),
+    .RHO_RANGE(RHO_RANGE),
+    .THETA_UNROLL(THETA_UNROLL),
+    .THETA_DIVIDE_BITS(THETA_DIVIDE_BITS),
+    .THETA_FACTOR(THETA_FACTOR),
+    .ACCUM_BUFF_WIDTH(ACCUM_BUFF_WIDTH),
+    .THETA_BITS(THETA_BITS),
+    .NUM_LANES(NUM_LANES),
+    .HOUGH_TRANSFORM_THRESHOLD(HOUGH_TRANSFORM_THRESHOLD),
+    .BITS(BITS),
+    .TRIG_DATA_SIZE(TRIG_DATA_SIZE)
+) hough_inst (
     .clock(clock),
     .reset(reset),
     .start(hough_start),

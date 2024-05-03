@@ -1,7 +1,12 @@
-// Comment this line out for synthesis but uncomment for simulations
-`include "globals.sv"
 
-module non_maximum_suppressor (
+module non_maximum_suppressor #(
+    parameter REDUCED_WIDTH = 1035,
+    parameter REDUCED_HEIGHT = 226,
+    parameter WIDTH = 1280,
+    parameter HEIGHT = 720,
+    parameter STARTING_X = 123,
+    parameter STARTING_Y = 31
+) (
     input  logic        clock,
     input  logic        reset,
     output logic        in_rd_en,
@@ -12,8 +17,8 @@ module non_maximum_suppressor (
     output logic [7:0]  out_din
 );
 
-parameter SHIFT_REG_LEN = 2*REDUCED_WIDTH+3;
-parameter PIXEL_COUNT = REDUCED_WIDTH*REDUCED_HEIGHT;
+localparam SHIFT_REG_LEN = 2*REDUCED_WIDTH+3;
+localparam PIXEL_COUNT = REDUCED_WIDTH*REDUCED_HEIGHT;
 
 typedef enum logic [1:0] {PROLOGUE, SUPPRESSION, OUTPUT} state_types;
 state_types state, next_state;
@@ -36,13 +41,18 @@ logic [$clog2(REDUCED_HEIGHT)-1:0] row, row_c;
 
 // Wires to hold temporary pixel values
 logic [7:0] pixel1, pixel2, pixel3, pixel4, pixel5, pixel6, pixel7, pixel8, pixel9;
+logic [7:0] pixel1_c, pixel2_c, pixel3_c, pixel4_c, pixel5_c, pixel6_c, pixel7_c, pixel8_c, pixel9_c;
 
 // Wires to hold gradient values (9 bits wide to account for overflow)
 logic [8:0] north_south, east_west, north_west, north_east;
+logic [8:0] north_south_c, east_west_c, north_west_c, north_east_c;
+
+localparam X_WIDTH = $clog2(WIDTH);
+localparam Y_WIDTH = $clog2(HEIGHT);
 
 // X and Y wires to know where we are in reference to the actual image
-logic [$clog2(WIDTH)-1:0] x;
-logic [$clog2(HEIGHT)-1:0] y;
+logic [X_WIDTH-1:0] x, x_c;
+logic [Y_WIDTH-1:0] y, y_c;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -52,6 +62,21 @@ always_ff @(posedge clock or posedge reset) begin
         col <= '0;
         row <= '0;
         out <= '0;
+        x <= '0;
+        y <= '0;
+        pixel1 <= '0;
+        pixel2 <= '0;
+        pixel3 <= '0;
+        pixel4 <= '0;
+        pixel5 <= '0;
+        pixel6 <= '0;
+        pixel7 <= '0;
+        pixel8 <= '0;
+        pixel9 <= '0;
+        north_south <= '0;
+        east_west <= '0;
+        north_west <= '0;
+        north_east <= '0;
     end else begin
         state <= next_state;
         shift_reg <= shift_reg_c;
@@ -59,6 +84,21 @@ always_ff @(posedge clock or posedge reset) begin
         col <= col_c;
         row <= row_c;
         out <= out_c;
+        x <= x_c;
+        y <= y_c;
+        pixel1 <= pixel1_c;
+        pixel2 <= pixel2_c;
+        pixel3 <= pixel3_c;
+        pixel4 <= pixel4_c;
+        pixel5 <= pixel5_c;
+        pixel6 <= pixel6_c;
+        pixel7 <= pixel7_c;
+        pixel8 <= pixel8_c;
+        pixel9 <= pixel9_c;
+        north_south <= north_south_c;
+        east_west <= east_west_c;
+        north_west <= north_west_c;
+        north_east <= north_east_c;
     end
 end
 
@@ -72,6 +112,21 @@ always_comb begin
     row_c = row;
     shift_reg_c = shift_reg;
     out_c = out;
+    x_c = x;
+    y_c = y;
+    pixel1_c = pixel1;
+    pixel2_c = pixel2;
+    pixel3_c = pixel3;
+    pixel4_c = pixel4;
+    pixel5_c = pixel5;
+    pixel6_c = pixel6;
+    pixel7_c = pixel7;
+    pixel8_c = pixel8;
+    pixel9_c = pixel9;
+    north_south_c = north_south;
+    east_west_c = east_west;
+    north_west_c = north_west;
+    north_east_c = north_east;
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // sobel function can go through every single pixel
@@ -104,49 +159,49 @@ always_comb begin
         // non_maximum suppressor
         SUPPRESSION: begin
 
-            x = col + STARTING_X;
-            y = row + STARTING_Y;
+            x_c = X_WIDTH'(col + STARTING_X);
+            y_c = Y_WIDTH'(row + STARTING_Y);
 
             if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1)) begin
                 // If we are on an edge pixel, the NMS value will be zero
-                if (y != 0 && y != (HEIGHT - 1) && x != 0 && x != (WIDTH - 1)) begin
+                if (y_c != 0 && y_c != (HEIGHT - 1) && x_c != 0 && x_c != (WIDTH - 1)) begin
                     
                     // Grabbing pixel values from the shift register
-                    pixel1 = shift_reg[0];
-                    pixel2 = shift_reg[1];
-                    pixel3 = shift_reg[2];
-                    pixel4 = shift_reg[REDUCED_WIDTH];
-                    pixel5 = shift_reg[REDUCED_WIDTH+1];
-                    pixel6 = shift_reg[REDUCED_WIDTH+2];
-                    pixel7 = shift_reg[REDUCED_WIDTH*2];
-                    pixel8 = shift_reg[REDUCED_WIDTH*2+1];
-                    pixel9 = shift_reg[REDUCED_WIDTH*2+2];
+                    pixel1_c = shift_reg[0];
+                    pixel2_c = shift_reg[1];
+                    pixel3_c = shift_reg[2];
+                    pixel4_c = shift_reg[REDUCED_WIDTH];
+                    pixel5_c = shift_reg[REDUCED_WIDTH+1];
+                    pixel6_c = shift_reg[REDUCED_WIDTH+2];
+                    pixel7_c = shift_reg[REDUCED_WIDTH*2];
+                    pixel8_c = shift_reg[REDUCED_WIDTH*2+1];
+                    pixel9_c = shift_reg[REDUCED_WIDTH*2+2];
 
                     // Calculate the gradient values
-                    north_south = pixel2 + pixel8;
-                    east_west = pixel4 + pixel6;
-                    north_west = pixel1 + pixel9;
-                    north_east = pixel3 + pixel7;
+                    north_south_c = pixel2_c + pixel8_c;
+                    east_west_c = pixel4_c + pixel6_c;
+                    north_west_c = pixel1_c + pixel9_c;
+                    north_east_c = pixel3_c + pixel7_c;
 
                     out_c = '0;
 
                     // if statements for non_maximum_suppressor
                     // consider if having multiple states instead of nested loops will impact performance
-                    if (north_south >= east_west && north_south >= north_west && north_south >= north_east) begin
-                        if (pixel5 > pixel4 && pixel5 >= pixel6) begin
-                            out_c = pixel5;
+                    if (north_south_c >= east_west_c && north_south_c >= north_west_c && north_south_c >= north_east_c) begin
+                        if (pixel5_c > pixel4_c && pixel5_c >= pixel6_c) begin
+                            out_c = pixel5_c;
                         end
-                    end else if (east_west >= north_west && east_west >= north_east) begin
-                        if (pixel5 > pixel2 && pixel5 >= pixel8) begin
-                            out_c = pixel5;
+                    end else if (east_west_c >= north_west_c && east_west_c >= north_east_c) begin
+                        if (pixel5_c > pixel2_c && pixel5_c >= pixel8_c) begin
+                            out_c = pixel5_c;
                         end
-                    end else if (north_west >= north_east) begin
-                        if (pixel5 > pixel3 && pixel5 >= pixel7) begin
-                            out_c = pixel5;
+                    end else if (north_west_c >= north_east_c) begin
+                        if (pixel5_c > pixel3_c && pixel5_c >= pixel7_c) begin
+                            out_c = pixel5_c;
                         end
                     end else begin
-                        if (pixel5 > pixel1 && pixel5 >= pixel9) begin
-                            out_c = pixel5;
+                        if (pixel5_c > pixel1_c && pixel5_c >= pixel9_c) begin
+                            out_c = pixel5_c;
                         end
                     end
 
@@ -192,6 +247,21 @@ always_comb begin
             row_c = 'X;
             out_c = 'X;
             shift_reg_c = '{default: '{default: '0}};
+            x_c = 'X;
+            y_c = 'X;
+            pixel1_c = 'X;
+            pixel2_c = 'X;
+            pixel3_c = 'X;
+            pixel4_c = 'X;
+            pixel5_c = 'X;
+            pixel6_c = 'X;
+            pixel7_c = 'X;
+            pixel8_c = 'X;
+            pixel9_c = 'X;
+            north_south_c = 'X;
+            east_west_c = 'X;
+            north_west_c = 'X;
+            north_east_c = 'X;
         end
     endcase
 
