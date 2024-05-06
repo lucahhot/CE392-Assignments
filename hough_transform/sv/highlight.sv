@@ -20,6 +20,8 @@ module highlight #(
     parameter REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT,
     parameter STARTING_X = 123,
     parameter STARTING_Y = 31,
+    parameter ENDING_X = 1157,
+    parameter ENDING_Y = 256,
     parameter THETA_BITS = 9,
     parameter BITS = 8,
     parameter TRIG_DATA_SIZE = 12,
@@ -172,11 +174,18 @@ always_comb begin
                 // Calculate x and y values
                 x_c = DEQUANTIZE($signed(rho) * $signed(cos_val) - $signed(k) * $signed(sin_val));
                 y_c = DEQUANTIZE($signed(rho) * $signed(sin_val) + $signed(k) * $signed(cos_val));
-                // Set the mask read address to be read in the next state
-                x_mask_c = x_c - STARTING_X;
-                y_mask_c = y_c - STARTING_Y;
-                mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
-                next_state = MASK;
+                // If the mask addresses are outside of STARTING_X/Y AND ENDING_X/Y, then move on to the next k value
+                // (The mask is within these bounds so if the x and y values are outside of these bounds, then the mask value will be 0)
+                if (x_c >= STARTING_X && x_c <= ENDING_X && y_c >= STARTING_Y && y_c <= ENDING_Y) begin
+                    // Set the mask read address to be read in the next state
+                    x_mask_c = x_c - STARTING_X;
+                    y_mask_c = y_c - STARTING_Y;
+                    mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                    next_state = MASK;
+                end else begin
+                    k_c = k + 1;
+                    next_state = K_LOOP;
+                end
             end else begin
                 // If we are done with the K values, then move on to the next lane
                 if (left_done == 1'b0) begin
