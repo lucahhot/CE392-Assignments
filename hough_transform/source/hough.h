@@ -21,6 +21,10 @@
 // and optimize, we can constrain them more later on hopefully
 #define K_START -1000
 #define K_END 1000
+#define STARTING_X 123
+#define STARTING_Y 31
+#define ENDING_X 1157
+#define ENDING_Y 256
 
 // The mask factors for all 4 corners
 #define MASK_BL_X 0.1

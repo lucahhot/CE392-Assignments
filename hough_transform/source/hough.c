@@ -12,24 +12,27 @@ int draw_lines24(int height, int width, int rho, int sin_val, int cos_val, struc
 		// int x = ((rho * cos_val) + k * (-sin_val))*rho_resolution;
 		// int y = ((rho * sin_val) + k * (cos_val))*rho_resolution;
 
-		// Check that the pixel is inside the mask (will naturally be inside the image if this is the case)
-		if (mask[y*width + x].r == 0xFF && mask[y*width + x].g == 0xFF && mask[y*width + x].b == 0xFF) {
+		if (x >= STARTING_X && x <= ENDING_X && y >= STARTING_Y && y <= ENDING_Y){
+			
+			// Check that the pixel is inside the mask (will naturally be inside the image if this is the case)
+			if ((mask[y*width + x].r + mask[y*width + x].g + mask[y*width + x].b)/3 >= 0x0F) {
 
-			int offset_width = 8;
+				int offset_width = 8;
 
-			// Highlighting left and right of the main pixel, and 1 pixel above and below
-			for (int offset = -offset_width; offset < offset_width; offset++){
+				// Highlighting left and right of the main pixel, and 1 pixel above and below
+				for (int offset = -offset_width; offset < offset_width; offset++){
 
-				// Will need to check if the pixel is within the image bounds (only check the x + offset since y is already checked in the mask)
-				if ((x + offset) >= 0 && (x + offset) <= width){
-					image_out[y*width + x + offset].r = 0xFF; 
-					image_out[y*width + x + offset].g = 0x00;
-					image_out[y*width + x + offset].b = 0x00;
+					// Will need to check if the pixel is within the image bounds (only check the x + offset since y is already checked in the mask)
+					if ((x + offset) >= 0 && (x + offset) < width){
+						image_out[y*width + x + offset].r = 0xFF; 
+						image_out[y*width + x + offset].g = 0x00;
+						image_out[y*width + x + offset].b = 0x00;
+					}
+					cycle_count++;
 				}
+			} else {
 				cycle_count++;
 			}
-		} else {
-			cycle_count++;
 		}
    	}
 	return cycle_count;

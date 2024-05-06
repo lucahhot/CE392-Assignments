@@ -24,6 +24,10 @@ module highlight_top #(
     input logic signed [15:0]       right_rho_in,
     input logic [THETA_BITS-1:0]    left_theta_in,
     input logic [THETA_BITS-1:0]    right_theta_in,
+    // IMAGE INPUT
+    output  logic           image_full,
+    input   logic           image_wr_en,
+    input   logic [23:0]    image_din,
     // MASK INPUT
     output  logic           mask_full,
     input   logic           mask_wr_en,
@@ -57,6 +61,11 @@ logic [23:0]    mask_dout;
 logic           mask_empty;
 logic           mask_rd_en;
 
+// Input wires to image BRAM
+logic [23:0]    image_dout;
+logic           image_empty;
+logic           image_rd_en;
+
 // Output wires from grayscale_mask function to mask_bram
 logic                                   mask_bram_wr_en;
 logic [7:0]                             mask_bram_wr_data;
@@ -80,6 +89,21 @@ bram #(
     .wr_en(image_bram_wr_en),
     .wr_data(image_bram_wr_data),
     .rd_data(image_bram_rd_data)
+);
+
+fifo #(
+    .FIFO_DATA_WIDTH(24),
+    .FIFO_BUFFER_SIZE(8)
+) fifo_image_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(image_wr_en),
+    .din(image_din),
+    .full(image_full),
+    .rd_clk(clock),
+    .rd_en(image_rd_en),
+    .dout(image_dout),
+    .empty(image_empty)
 );
 
 fifo #(
@@ -171,25 +195,32 @@ always_comb begin
 
     hough_done = 1'b0;
 
+    image_rd_en = 1'b0;
+
     case(state)
 
         ZERO: begin
-            image_bram_wr_en = 1'b1;
-            image_bram_wr_addr = y * WIDTH + x;
-            // Default is all black
-            image_bram_wr_data = 24'h0;
-            if (x == WIDTH - 1) begin
-                if (y == HEIGHT - 1) begin
-                    next_state = HIGHLIGHT;
-                    hough_done = 1'b1;
-                    x_c = 0;
-                    y_c = 0;
+            // Write into image BRAM from the image FIFO
+            if (image_empty == 1'b0) begin
+                image_rd_en = 1'b1;
+                image_bram_wr_en = 1'b1;
+                image_bram_wr_addr = y * WIDTH + x;
+                // Writing in image data from the image FIFO
+                image_bram_wr_data = image_dout;
+                // image_bram_wr_data = 24'b0;
+                if (x == WIDTH - 1) begin
+                    if (y == HEIGHT - 1) begin
+                        next_state = HIGHLIGHT;
+                        hough_done = 1'b1;
+                        x_c = 0;
+                        y_c = 0;
+                    end else begin
+                        x_c = 0;
+                        y_c = y + 1;
+                    end
                 end else begin
-                    x_c = 0;
-                    y_c = y + 1;
+                    x_c = x + 1;
                 end
-            end else begin
-                x_c = x + 1;
             end
         end
 

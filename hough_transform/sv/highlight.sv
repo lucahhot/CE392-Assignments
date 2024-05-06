@@ -230,7 +230,7 @@ always_comb begin
             end
             // Increment offset
             offset_c = offset + 1;
-            if (offset == (x + OFFSET)) begin
+            if (offset == (x + OFFSET) - 1) begin
                 // If we have written all the highlighted pixels, then move on to the next k value
                 k_c = k + 1;
                 next_state = K_LOOP;
