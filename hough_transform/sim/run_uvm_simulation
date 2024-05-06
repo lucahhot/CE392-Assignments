@@ -7,4 +7,6 @@ make -f Makefile.questa dpi_lib32 LIBDIR=lib
  
 # vsim -c -do functions_sim.do
 
-vsim -do hough_sim.do
+vsim -do highlight_sim.do
+
+# vsim -do hough_sim.do

@@ -64,6 +64,10 @@ module hough_top #(
     output logic [THETA_BITS-1:0] right_theta_out
 );
 
+// Trig values to be used by both hough and highlight as parameters
+localparam logic signed [0:179] [TRIG_DATA_SIZE-1:0] SIN_QUANTIZED = '{0, 4, 8, 13, 17, 22, 26, 31, 35, 40, 44, 48, 53, 57, 61, 66, 70, 74, 79, 83, 87, 91, 95, 100, 104, 108, 112, 116, 120, 124, 128, 131, 135, 139, 143, 146, 150, 154, 157, 161, 164, 167, 171, 174, 177, 181, 184, 187, 190, 193, 196, 198, 201, 204, 207, 209, 212, 214, 217, 219, 221, 223, 226, 228, 230, 232, 233, 235, 237, 238, 240, 242, 243, 244, 246, 247, 248, 249, 250, 251, 252, 252, 253, 254, 254, 255, 255, 255, 255, 255, 256, 255, 255, 255, 255, 255, 254, 254, 253, 252, 252, 251, 250, 249, 248, 247, 246, 244, 243, 242, 240, 238, 237, 235, 233, 232, 230, 228, 226, 223, 221, 219, 217, 214, 212, 209, 207, 204, 201, 198, 196, 193, 190, 187, 184, 181, 177, 174, 171, 167, 164, 161, 157, 154, 150, 146, 143, 139, 135, 131, 128, 124, 120, 116, 112, 108, 104, 100, 95, 91, 87, 83, 79, 74, 70, 66, 61, 57, 53, 48, 44, 40, 35, 31, 26, 22, 17, 13, 8, 4};
+localparam logic signed [0:179] [TRIG_DATA_SIZE-1:0] COS_QUANTIZED = '{256, 255, 255, 255, 255, 255, 254, 254, 253, 252, 252, 251, 250, 249, 248, 247, 246, 244, 243, 242, 240, 238, 237, 235, 233, 232, 230, 228, 226, 223, 221, 219, 217, 214, 212, 209, 207, 204, 201, 198, 196, 193, 190, 187, 184, 181, 177, 174, 171, 167, 164, 161, 157, 154, 150, 146, 143, 139, 135, 131, 128, 124, 120, 116, 112, 108, 104, 100, 95, 91, 87, 83, 79, 74, 70, 66, 61, 57, 53, 48, 44, 40, 35, 31, 26, 22, 17, 13, 8, 4, 0, -4, -8, -13, -17, -22, -26, -31, -35, -40, -44, -48, -53, -57, -61, -66, -70, -74, -79, -83, -87, -91, -95, -100, -104, -108, -112, -116, -120, -124, -128, -131, -135, -139, -143, -146, -150, -154, -157, -161, -164, -167, -171, -174, -177, -181, -184, -187, -190, -193, -196, -198, -201, -204, -207, -209, -212, -214, -217, -219, -221, -223, -226, -228, -230, -232, -233, -235, -237, -238, -240, -242, -243, -244, -246, -247, -248, -249, -250, -251, -252, -252, -253, -254, -254, -255, -255, -255, -255, -255};
+
 // Input wires to image_loader
 logic [23:0]    image_dout;
 logic           image_empty;
@@ -91,7 +95,7 @@ logic [23:0]    mask_dout;
 logic           mask_empty;
 logic           mask_rd_en;
 
-logic          hough_done_internal;
+logic hough_done_internal, hough_done_registered;
 assign hough_done = hough_done_internal;
 
 // Output wires from grayscale function to gaussian_blur FIFO
@@ -105,6 +109,14 @@ logic [7:0]                             mask_bram_wr_data;
 logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_wr_addr;
 logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_rd_addr;
 logic [7:0]                             mask_bram_rd_data;
+
+// Additional signals for reading from mask BRAM from hough and highlight
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_rd_addr_hough, mask_bram_rd_addr_highlight;
+logic [7:0]                             mask_bram_rd_data_hough, mask_bram_rd_data_highlight;
+
+// Logic to determine which mask BRAM read signals to use depending on the value of hough_done_registered
+assign mask_bram_rd_addr = (hough_done_registered == 1'b0) ? mask_bram_rd_addr_hough : mask_bram_rd_addr_highlight;
+assign mask_bram_rd_data = (hough_done_registered == 1'b0) ? mask_bram_rd_data_hough : mask_bram_rd_data_highlight;
 
 // Input wires to gaussian_blur function
 logic [7:0]     gaussian_dout;
@@ -439,15 +451,17 @@ hough #(
     .NUM_LANES(NUM_LANES),
     .HOUGH_TRANSFORM_THRESHOLD(HOUGH_TRANSFORM_THRESHOLD),
     .BITS(BITS),
-    .TRIG_DATA_SIZE(TRIG_DATA_SIZE)
+    .TRIG_DATA_SIZE(TRIG_DATA_SIZE),
+    .SIN_QUANTIZED(SIN_QUANTIZED),
+    .COS_QUANTIZED(COS_QUANTIZED)
 ) hough_inst (
     .clock(clock),
     .reset(reset),
     .start(hough_start),
     .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
-    .mask_bram_rd_data(mask_bram_rd_data),
-    .mask_bram_rd_addr(mask_bram_rd_addr),
+    .mask_bram_rd_data(mask_bram_rd_data_hough),
+    .mask_bram_rd_addr(mask_bram_rd_add_hough),
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done_internal),
     .output_data(output_data),
@@ -456,5 +470,17 @@ hough #(
     .left_theta_out(left_theta_out),
     .right_theta_out(right_theta_out)
 );
+
+// Block to assign value to hough_done_registered
+always_ff @(posedge clock or posedge reset) begin
+    if (reset == 1'b1) begin
+        hough_done_registered <= 1'b0;
+    end else begin
+        // We want hough_done_registered to be 1 when hough_done_internal is 1 and stay as 1 (hough_done_internal will go back to 0)
+        if (hough_done_internal == 1'b1) begin
+            hough_done_registered <= 1'b1;
+        end
+    end
+end
 
 endmodule
