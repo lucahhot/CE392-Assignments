@@ -263,7 +263,7 @@ always_comb begin
                     // start_div = 1'b1;
                     // dividend = 0;
                     // divisor = 1;
-                    // next_state = OUTPUT;
+                    next_state = OUTPUT;
                 end
             end
         end
@@ -281,7 +281,7 @@ always_comb begin
                         denominator_sum_c = denominator_sum_c + denominator[i];
                     end
                     // gaussian_blur = div_quotient_out;
-                    gaussian_blur_c = numerator_sum / denominator_sum;
+                    gaussian_blur_c = numerator_sum_c / denominator_sum_c;
                     // Accounting for saturation
                     gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
                     out_din = 8'(gaussian_blur_c);

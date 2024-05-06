@@ -79,8 +79,8 @@ logic signed [X_WIDTH:0] x, x_c;
 logic signed [Y_WIDTH:0] y, y_c;
 
 // Indices to read the hysteresis and mask values from the BRAMs (will be from 0 to REDUCED_WIDTH-1 / REDUCED_HEIGHT-1)
-localparam X_MASK_WIDTH = $clog2(ENDING_X);
-localparam Y_MASK_WIDTH = $clog2(ENDING_Y);
+localparam X_MASK_WIDTH = $clog2(REDUCED_WIDTH);
+localparam Y_MASK_WIDTH = $clog2(REDUCED_HEIGHT);
 
 logic [X_MASK_WIDTH:0] x_mask, x_mask_c;
 logic [Y_MASK_WIDTH:0] y_mask, y_mask_c;
@@ -465,8 +465,8 @@ always_comb begin
                 first_theta_cycle_c = 1'b1;
             end else begin
                 // Increment the x and y values to move to the next pixel
-                if (x == ENDING_X - 3'd5) begin
-                    if (y == ENDING_Y - 3'd5) begin
+                if (x == ENDING_X - 5) begin
+                    if (y == ENDING_Y - 5) begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT_LOOP;
                         first_select_cycle_c = 1'b1;

@@ -152,7 +152,7 @@ case(state)
         HYSTERESIS: begin
 
             x_c = X_WIDTH'(col + STARTING_X);
-            y_c = Y_WIDTH'(col + STARTING_Y);
+            y_c = Y_WIDTH'(row + STARTING_Y);
 
             // Only calculate hysteresis value if there is input from the input FIFO 
             if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1)) begin

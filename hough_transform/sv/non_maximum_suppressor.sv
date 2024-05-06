@@ -205,7 +205,6 @@ always_comb begin
                         end
                     end
 
-
                 end else begin
                     out_c = '0;
                 end
