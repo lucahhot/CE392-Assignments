@@ -49,11 +49,6 @@ module hough #(
     // output logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff_out
 );
 
-localparam SMALL_BRAM_ADDR_WIDTH = $clog2(REDUCED_IMAGE_SIZE);
-
-localparam LANES_PER_BRAM = NUM_LANES/THETA_UNROLL + 1;
-localparam LANE_INDEX_LENGTH = $clog2(LANES_PER_BRAM) + 1;
-
 localparam logic signed [0:179] [TRIG_DATA_SIZE-1:0] SIN_QUANTIZED = '{0, 4, 8, 13, 17, 22, 26, 31, 35, 40, 44, 48, 53, 57, 61, 66, 70, 74, 79, 83, 87, 91, 95, 100, 104, 108, 112, 116, 120, 124, 128, 131, 135, 139, 143, 146, 150, 154, 157, 161, 164, 167, 171, 174, 177, 181, 184, 187, 190, 193, 196, 198, 201, 204, 207, 209, 212, 214, 217, 219, 221, 223, 226, 228, 230, 232, 233, 235, 237, 238, 240, 242, 243, 244, 246, 247, 248, 249, 250, 251, 252, 252, 253, 254, 254, 255, 255, 255, 255, 255, 256, 255, 255, 255, 255, 255, 254, 254, 253, 252, 252, 251, 250, 249, 248, 247, 246, 244, 243, 242, 240, 238, 237, 235, 233, 232, 230, 228, 226, 223, 221, 219, 217, 214, 212, 209, 207, 204, 201, 198, 196, 193, 190, 187, 184, 181, 177, 174, 171, 167, 164, 161, 157, 154, 150, 146, 143, 139, 135, 131, 128, 124, 120, 116, 112, 108, 104, 100, 95, 91, 87, 83, 79, 74, 70, 66, 61, 57, 53, 48, 44, 40, 35, 31, 26, 22, 17, 13, 8, 4};
 localparam logic signed [0:179] [TRIG_DATA_SIZE-1:0] COS_QUANTIZED = '{256, 255, 255, 255, 255, 255, 254, 254, 253, 252, 252, 251, 250, 249, 248, 247, 246, 244, 243, 242, 240, 238, 237, 235, 233, 232, 230, 228, 226, 223, 221, 219, 217, 214, 212, 209, 207, 204, 201, 198, 196, 193, 190, 187, 184, 181, 177, 174, 171, 167, 164, 161, 157, 154, 150, 146, 143, 139, 135, 131, 128, 124, 120, 116, 112, 108, 104, 100, 95, 91, 87, 83, 79, 74, 70, 66, 61, 57, 53, 48, 44, 40, 35, 31, 26, 22, 17, 13, 8, 4, 0, -4, -8, -13, -17, -22, -26, -31, -35, -40, -44, -48, -53, -57, -61, -66, -70, -74, -79, -83, -87, -91, -95, -100, -104, -108, -112, -116, -120, -124, -128, -131, -135, -139, -143, -146, -150, -154, -157, -161, -164, -167, -171, -174, -177, -181, -184, -187, -190, -193, -196, -198, -201, -204, -207, -209, -212, -214, -217, -219, -221, -223, -226, -228, -230, -232, -233, -235, -237, -238, -240, -242, -243, -244, -246, -247, -248, -249, -250, -251, -252, -252, -253, -254, -254, -255, -255, -255, -255, -255};
 
@@ -67,23 +62,27 @@ function logic signed [15:0] DEQUANTIZE(logic signed [31:0] i);
         DEQUANTIZE = 16'(i >>> BITS);
 endfunction
 
+localparam SMALL_BRAM_ADDR_WIDTH = $clog2(REDUCED_IMAGE_SIZE);
+localparam LANES_PER_BRAM = NUM_LANES/THETA_UNROLL + 1;
+localparam LANE_INDEX_LENGTH = $clog2(LANES_PER_BRAM) + 1;
+
 typedef enum logic [3:0] {ZERO,IDLE,ACCUMULATE,THETA_LOOP_MULTIPLY,THETA_LOOP_ACCUM,SELECT_LOOP,AVERAGE_1,AVERAGE_2,DIVIDE_START,DIVIDE_WAIT,OUTPUT} state_types;
 state_types state, next_state;
 
 // X and Y indices for the accumulation stage (using the adjusted width and height)
 // Giving it 1 extra bit since we are making them signed for the dequantization to work
-localparam X_WIDTH = $clog2(ENDING_X);
-localparam Y_WIDTH = $clog2(ENDING_Y);
+localparam X_WIDTH = $clog2(ENDING_X) + 1;
+localparam Y_WIDTH = $clog2(ENDING_Y) + 1;
 
-logic signed [X_WIDTH:0] x, x_c;
-logic signed [Y_WIDTH:0] y, y_c;
+logic signed [X_WIDTH-1:0] x, x_c;
+logic signed [Y_WIDTH-1:0] y, y_c;
 
 // Indices to read the hysteresis and mask values from the BRAMs (will be from 0 to REDUCED_WIDTH-1 / REDUCED_HEIGHT-1)
-localparam X_MASK_WIDTH = $clog2(REDUCED_WIDTH);
-localparam Y_MASK_WIDTH = $clog2(REDUCED_HEIGHT);
+localparam X_MASK_WIDTH = $clog2(REDUCED_WIDTH) + 1;
+localparam Y_MASK_WIDTH = $clog2(REDUCED_HEIGHT) + 1;
 
-logic [X_MASK_WIDTH:0] x_mask, x_mask_c;
-logic [Y_MASK_WIDTH:0] y_mask, y_mask_c;
+logic [X_MASK_WIDTH-1:0] x_mask, x_mask_c;
+logic [Y_MASK_WIDTH-1:0] y_mask, y_mask_c;
 
 // Read values from the hyseteresis and mask BRAMs 
 logic [7:0] hysteresis, hysteresis_c, mask, mask_c;
@@ -108,7 +107,7 @@ logic first_theta_cycle, first_theta_cycle_c;
 // First cycle signals for the SELECT_LOOP
 logic first_select_cycle, first_select_cycle_c;
 
-// // Accumulator buffer BRAM signals
+// Accumulator buffer BRAM signals
 localparam ACCUM_BUFF_ADDR_WIDTH = $clog2(RHO_RANGE*THETA_FACTOR);
 logic [0:THETA_UNROLL-1][ACCUM_BUFF_ADDR_WIDTH-1:0] accum_buff_rd_addr, accum_buff_rd_addr_c;
 logic [0:THETA_UNROLL-1][ACCUM_BUFF_ADDR_WIDTH-1:0] accum_buff_wr_addr;
@@ -120,9 +119,6 @@ logic [0:THETA_UNROLL-1][ACCUM_BUFF_WIDTH-1:0]      accum_buff_rd_data;
 logic [0:THETA_UNROLL-1][LANE_INDEX_LENGTH-1:0] left_index, left_index_c, right_index, right_index_c;
 logic signed [0:THETA_UNROLL-1][0:LANES_PER_BRAM-1][15:0] left_rhos, left_rhos_c, right_rhos, right_rhos_c;
 logic [0:THETA_UNROLL-1][0:LANES_PER_BRAM-1][THETA_BITS-1:0] left_thetas, left_thetas_c, right_thetas, right_thetas_c;
-
-// 3D flip flop array for the accumulator buffer for testing only (not enough registers on the de10nano to synthesize this)
-// logic [0:RHO_RANGE-1][0:THETAS-1][15:0] accum_buff, accum_buff_c;
 
 // Lane sums to be able to average the values of rhos and thetas
 logic signed [0:THETA_UNROLL-1][23:0] left_rho_sum, left_rho_sum_c, right_rho_sum, right_rho_sum_c;
@@ -145,7 +141,7 @@ generate
         bram #(
             .BRAM_DATA_WIDTH(ACCUM_BUFF_WIDTH),
             .IMAGE_SIZE(RHO_RANGE*THETA_FACTOR)
-        ) accum_buff_bram_i (
+        ) accum_buff_bram (
             .clock(clock),
             .rd_addr(accum_buff_rd_addr_c[i]),
             .wr_addr(accum_buff_wr_addr[i]),
@@ -167,7 +163,7 @@ logic [LANE_INDEX_LENGTH-1:0] divisor_left_rho, divisor_right_rho, divisor_left_
 logic div_done_left_rho, div_done_left_rho_c, div_done_right_rho, div_done_right_rho_c, div_done_left_theta, div_done_left_theta_c, div_done_right_theta, div_done_right_theta_c;
 
 // Registers to keep the quotients until all 4 divides are completed
-logic signed [23:0] left_rho_quotient, left_rho_quotient_c, right_rho_quotient, right_rho_quotient_c;
+logic signed [15:0] left_rho_quotient, left_rho_quotient_c, right_rho_quotient, right_rho_quotient_c;
 logic [15:0] left_theta_quotient, left_theta_quotient_c, right_theta_quotient, right_theta_quotient_c;
 
 // Left and right rho divides are SIGNED
@@ -318,7 +314,7 @@ always_ff @(posedge clock or posedge reset) begin
         div_done_left_rho <= div_done_left_rho_c;
         div_done_right_rho <= div_done_right_rho_c;
         div_done_left_theta <= div_done_left_theta_c;
-        div_done_right_theta <= div_done_right_theta_c;        
+        div_done_right_theta <= div_done_right_theta_c;
     end
 end
 
@@ -338,7 +334,6 @@ always_comb begin
     hysteresis_c = hysteresis;
     mask_c = mask;
     accum_buff_rd_addr_c = accum_buff_rd_addr;
-    // accum_buff_c = accum_buff;
     // Lane selection
     left_index_c = left_index;
     right_index_c = right_index;
@@ -423,12 +418,12 @@ always_comb begin
             // If we've reached the end of thetas, increment the rho index
             if (theta_c >= THETAS) begin
                 theta_c = 0;
-                rho_index_c = rho_index + 1'b1;
+                rho_index_c = RHO_INDEX_WIDTH'(rho_index + 1);
                 // If we've reached the end of rhos, we're done zeroing the BRAMs
                 if (rho_index_c == RHO_RANGE) begin
                     next_state = IDLE;
-                    rho_index_c = '0;
-                    theta_c = '0;
+                    rho_index_c = 0;
+                    theta_c = 0;
                 end
             end
         end
@@ -470,8 +465,8 @@ always_comb begin
                         // We've reached the end of the image so we're done
                         next_state = SELECT_LOOP;
                         first_select_cycle_c = 1'b1;
-                        rho_index_c = '0;
-                        theta_c = '0;
+                        rho_index_c = 0;
+                        theta_c = 0;
                     end else begin
                         x_c = X_WIDTH'(STARTING_X + 5);
                         y_c = Y_WIDTH'(y + 1'b1);
@@ -630,14 +625,14 @@ always_comb begin
                 theta_unroll_counter_c = THETA_UNROLL_WIDTH'(theta_unroll_counter + 1'b1);
                 if (theta_unroll_counter == THETA_UNROLL-1) begin
                     // We have finished going through all the UNROLL sets so we can move to the next stage
-                    theta_unroll_counter_c = '0;
-                    left_sum_counter_c = '0;
-                    right_sum_counter_c = '0;
+                    theta_unroll_counter_c = 0;
+                    left_sum_counter_c = 0;
+                    right_sum_counter_c = 0;
                     next_state = AVERAGE_2;
                 end else begin
                     // If not, increment theta_unroll_counter and reset left and right sum counters
-                    left_sum_counter_c = '0;
-                    right_sum_counter_c = '0;
+                    left_sum_counter_c = 0;
+                    right_sum_counter_c = 0;
                     theta_unroll_counter_c = THETA_UNROLL_WIDTH'(theta_unroll_counter + 1'b1);
                 end
             end else begin
@@ -646,14 +641,14 @@ always_comb begin
                     // Summing up the left rhos and thetas
                     left_rho_sum_c[theta_unroll_counter] = $signed(left_rho_sum_c[theta_unroll_counter]) + $signed(left_rhos[theta_unroll_counter][left_sum_counter]);
                     left_theta_sum_c[theta_unroll_counter] = left_theta_sum_c[theta_unroll_counter] + left_thetas[theta_unroll_counter][left_sum_counter];
-                    left_sum_counter_c = left_sum_counter + 1'b1;
+                    left_sum_counter_c = LANE_INDEX_LENGTH'(left_sum_counter + 1);
                 end
                 // If we have more right lanes to average
                 if (right_sum_counter < right_index[theta_unroll_counter]) begin
                     // Summing up the right rhos and thetas
                     right_rho_sum_c[theta_unroll_counter] = $signed(right_rho_sum_c[theta_unroll_counter]) + $signed(right_rhos[theta_unroll_counter][right_sum_counter]);
                     right_theta_sum_c[theta_unroll_counter] = right_theta_sum_c[theta_unroll_counter] + right_thetas[theta_unroll_counter][right_sum_counter];
-                    right_sum_counter_c = right_sum_counter + 1'b1;
+                    right_sum_counter_c = LANE_INDEX_LENGTH'(right_sum_counter + 1);
                 end
             end
         end
@@ -700,11 +695,11 @@ always_comb begin
                 // If a divide is finished, set the div_done flag to 1, clock the quotients, and wait for the other divides to finish
                 if (div_valid_out_left_rho == 1'b1) begin
                     div_done_left_rho_c = 1'b1;
-                    left_rho_quotient_c = div_quotient_out_left_rho;
+                    left_rho_quotient_c = 16'(div_quotient_out_left_rho);
                 end
                 if (div_valid_out_right_rho == 1'b1) begin
                     div_done_right_rho_c = 1'b1;
-                    right_rho_quotient_c = div_quotient_out_right_rho;
+                    right_rho_quotient_c = 16'(div_quotient_out_right_rho);
                 end
                 if (div_valid_out_left_theta == 1'b1) begin
                     div_done_left_theta_c = 1'b1;
@@ -719,8 +714,8 @@ always_comb begin
 
         // Assign the output signals to the quotient register values and assert hough_done
         OUTPUT: begin
-            left_rho_out = 16'(left_rho_quotient);
-            right_rho_out = 16'(right_rho_quotient);
+            left_rho_out = left_rho_quotient;
+            right_rho_out = right_rho_quotient;
             left_theta_out = THETA_BITS'(left_theta_quotient);
             right_theta_out = THETA_BITS'(right_theta_quotient);
             hough_done = 1'b1;
@@ -742,7 +737,7 @@ always_comb begin
             rho_unquantized_y_c = 'X;
             hysteresis_c = 'X;
             mask_c = 'X;
-            // accum_buff_c = accum_buff;
+            accum_buff_rd_addr_c = '{default: '{default: '0}};
             left_index_c = '{default: '{default: '0}};
             right_index_c = '{default: '{default: '0}};
             left_rhos_c = '{default: '{default: '{default: '0}}};
@@ -772,7 +767,7 @@ always_comb begin
             div_done_right_theta_c = 'X;
             for (int j = 0; j < THETA_UNROLL; j++) begin
                 accum_buff_wr_en[j] = 1'b0;
-                accum_buff_rd_addr_c[j] = 0;
+                // accum_buff_rd_addr[j] = 0;
                 accum_buff_wr_addr[j] = 0;
                 accum_buff_wr_data[j] = '0;
             end
