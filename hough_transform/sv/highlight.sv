@@ -61,7 +61,7 @@ function logic signed [15:0] DEQUANTIZE(logic signed [31:0] i);
         DEQUANTIZE = 16'(i >>> BITS);
 endfunction
 
-typedef enum logic [2:0] {IDLE,LANE_SELECT,K_LOOP,MASK,PIXEL_LOOP} state_types;
+typedef enum logic [2:0] {IDLE,LANE_SELECT,K_LOOP,MASK_ADDR,MASK,PIXEL_LOOP} state_types;
 state_types state, next_state;
 
 // Calculated X and Y values for both lanes
@@ -168,24 +168,13 @@ always_comb begin
             k_c = K_START;
         end
 
-        // Loop through the K values, calculate x and y and set the mask read addresses to be read in the next state
+        // Loop through the K values, calculate x and y (had to split up this stage to make it run faster)
         K_LOOP: begin
             if (k_c < K_END) begin
                 // Calculate x and y values
                 x_c = DEQUANTIZE($signed(rho) * $signed(cos_val) - $signed(k) * $signed(sin_val));
                 y_c = DEQUANTIZE($signed(rho) * $signed(sin_val) + $signed(k) * $signed(cos_val));
-                // If the mask addresses are outside of STARTING_X/Y AND ENDING_X/Y, then move on to the next k value
-                // (The mask is within these bounds so if the x and y values are outside of these bounds, then the mask value will be 0)
-                if (x_c >= STARTING_X && x_c <= ENDING_X && y_c >= STARTING_Y && y_c <= ENDING_Y) begin
-                    // Set the mask read address to be read in the next state
-                    x_mask_c = x_c - STARTING_X;
-                    y_mask_c = y_c - STARTING_Y;
-                    mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
-                    next_state = MASK;
-                end else begin
-                    k_c = k + 1;
-                    next_state = K_LOOP;
-                end
+                next_state = MASK_ADDR;
             end else begin
                 // If we are done with the K values, then move on to the next lane
                 if (left_done == 1'b0) begin
@@ -196,6 +185,22 @@ always_comb begin
                     highlight_done = 1'b1;
                     next_state = IDLE;
                 end
+            end
+        end
+
+        // Calculate the mask address to read from the mask BRAM
+        MASK_ADDR: begin
+            // If the mask addresses are outside of STARTING_X/Y AND ENDING_X/Y, then move on to the next k value
+            // (The mask is within these bounds so if the x and y values are outside of these bounds, then the mask value will be 0)
+            if (x >= STARTING_X && x <= ENDING_X && y >= STARTING_Y && y <= ENDING_Y) begin
+                // Set the mask read address to be read in the next state
+                x_mask_c = x - STARTING_X;
+                y_mask_c = y - STARTING_Y;
+                mask_bram_rd_addr = y_mask_c * REDUCED_WIDTH + x_mask_c;
+                next_state = MASK;
+            end else begin
+                k_c = k + 1;
+                next_state = K_LOOP;
             end
         end
 
