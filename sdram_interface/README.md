@@ -5,3 +5,4 @@ This is a test project folder where I'll try and build something that can read a
 https://github.com/zangman/de10-nano/blob/master/docs/FPGA-SDRAM-Communication_-Introduction.md provides a tutorial on how to do this and I will attempt to follow this tutorial in this project folder. 
 
 Below is a screenshot from that tutorial that shows the architecture of this mini-project:
+![sdram_user_experience](https://github.com/lucahhot/CE392-Assignments/assets/92898337/5f71e5c7-45a2-4c73-bc06-95eb2ce235a3)
