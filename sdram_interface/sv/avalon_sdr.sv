@@ -13,7 +13,7 @@ module avalon_sdr (
     output  logic [31:0]  avm_m0_address, // Default address width is 32 bits.
     input   logic [31:0]  avm_m0_readdata,
     input   logic         avm_m0_readdatavalid,
-    output  logic [31:0]  avm_m0_byteenable,
+    output  logic [3:0]   avm_m0_byteenable, // 4 bits wide since our data width is 32 bits.
     input   logic         avm_m0_waitrequest,
     output  logic [10:0]  avm_m0_burstcount,
 

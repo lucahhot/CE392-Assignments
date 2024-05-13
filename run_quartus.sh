@@ -1,0 +1,1 @@
+exec "/home/laa8390/intelFPGA_lite/23.1std/quartus/bin/quartus"
