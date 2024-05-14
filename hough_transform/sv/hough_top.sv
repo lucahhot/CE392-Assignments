@@ -115,8 +115,8 @@ logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  mask_bram_rd_addr_hough, mask_bram_rd_ad
 logic [7:0]                             mask_bram_rd_data_hough, mask_bram_rd_data_highlight;
 
 // Logic to determine which mask BRAM read signals to use depending on the value of hough_done_registered
-assign mask_bram_rd_addr = (hough_done_registered == 1'b0) ? mask_bram_rd_addr_hough : mask_bram_rd_addr_highlight;
-assign mask_bram_rd_data = (hough_done_registered == 1'b0) ? mask_bram_rd_data_hough : mask_bram_rd_data_highlight;
+// assign mask_bram_rd_addr = (hough_done_registered == 1'b0) ? mask_bram_rd_addr_hough : mask_bram_rd_addr_highlight;
+// assign mask_bram_rd_data = (hough_done_registered == 1'b0) ? mask_bram_rd_data_hough : mask_bram_rd_data_highlight;
 
 // Input wires to gaussian_blur function
 logic [7:0]     gaussian_dout;
@@ -460,8 +460,8 @@ hough #(
     .start(hough_start),
     .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
-    .mask_bram_rd_data(mask_bram_rd_data_hough),
-    .mask_bram_rd_addr(mask_bram_rd_add_hough),
+    .mask_bram_rd_data(mask_bram_rd_data),
+    .mask_bram_rd_addr(mask_bram_rd_addr),
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done_internal),
     .output_data(output_data),
