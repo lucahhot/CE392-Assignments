@@ -5,8 +5,8 @@ module hough_tb;
 
 localparam string IMG_IN_NAME  = "../images/road_image_1280_720.bmp";
 localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
-// localparam string IMG_OUT_NAME = "../images/output.bmp";
-// localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
+localparam string IMG_OUT_NAME = "../images/output.bmp";
+localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
 localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
 localparam CLOCK_PERIOD = 10;
@@ -19,6 +19,7 @@ localparam RHO_RANGE = 2*RHOS; // 2358
 localparam THETA_UNROLL = 16;
 localparam ACCUM_BUFF_WIDTH = 8;
 localparam THETA_BITS = 9;
+localparam IMAGE_SIZE = WIDTH*HEIGHT;
 
 logic clock = 1'b1;
 logic reset = '0;
@@ -39,12 +40,16 @@ logic signed [15:0]             left_rho_out;
 logic signed [15:0]             right_rho_out;
 logic [THETA_BITS-1:0]          left_theta_out;
 logic [THETA_BITS-1:0]          right_theta_out;
+logic highlight_done;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
+logic [23:0]                    image_bram_rd_data;
 
 logic   hold_clock = '0;
 logic   in_write_done = '0;
 logic   mask_write_done = '0;
 logic   out_read_done = '0;
 integer BRAM_out_errors = '0;
+
 
 localparam BMP_HEADER_SIZE = 138; // According to canny_and_hough.c
 localparam BYTES_PER_PIXEL = 3; // According to canny_and_hough.c
@@ -65,7 +70,10 @@ hough_top hough_top_inst (
     .left_rho_out(left_rho_out),
     .right_rho_out(right_rho_out),
     .left_theta_out(left_theta_out),
-    .right_theta_out(right_theta_out)
+    .right_theta_out(right_theta_out),
+    .highlight_done(highlight_done),
+    .image_bram_rd_addr(image_bram_rd_addr),
+    .image_bram_rd_data(image_bram_rd_data)
 );
 
 always begin
@@ -235,6 +243,46 @@ initial begin : accum_buff_output_process
     $display("Right theta = %0d.", right_theta_out);
     
     // $fclose(rho_file);
+    // out_read_done = 1'b1;
+end
+
+
+initial begin : img_write_process
+    int i, r;
+    int out_file;
+    int cmp_file;
+    logic [23:0] cmp_dout;
+    logic [7:0] bmp_header [0:BMP_HEADER_SIZE-1];
+
+    @(negedge reset);
+    @(negedge clock);
+
+    wait(highlight_done);
+
+    $display("@ %0t: Comparing file %s...", $time, IMG_OUT_NAME);
+    
+    out_file = $fopen(IMG_OUT_NAME, "wb");
+    cmp_file = $fopen(IMG_CMP_NAME, "rb");
+    
+    // Copy the BMP header
+    r = $fread(bmp_header, cmp_file, 0, BMP_HEADER_SIZE);
+    for (i = 0; i < BMP_HEADER_SIZE; i++) begin
+        $fwrite(out_file, "%c", bmp_header[i]);
+    end
+
+    image_bram_rd_addr = 0;
+    while (image_bram_rd_addr < IMAGE_SIZE) begin
+        @(negedge clock);
+            r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+            $fwrite(out_file, "%c%c%c", image_bram_rd_data[23:16], image_bram_rd_data[15:8], image_bram_rd_data[7:0]);
+
+            
+            image_bram_rd_addr ++;
+    end
+
+    @(negedge clock);
+    $fclose(out_file);
+    $fclose(cmp_file);
     out_read_done = 1'b1;
 end
 

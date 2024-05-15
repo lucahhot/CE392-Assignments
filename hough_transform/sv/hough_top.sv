@@ -61,7 +61,11 @@ module hough_top #(
     output logic signed [15:0] left_rho_out,
     output logic signed [15:0] right_rho_out,
     output logic [THETA_BITS-1:0] left_theta_out,
-    output logic [THETA_BITS-1:0] right_theta_out
+    output logic [THETA_BITS-1:0] right_theta_out,
+
+    output logic highlight_done,
+    input logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr,
+    output logic [23:0]                    image_bram_rd_data
 );
 
 // Trig values to be used by both hough and highlight as parameters
@@ -78,12 +82,13 @@ logic           grayscale_wr_en;
 logic           grayscale_full;
 logic [23:0]    grayscale_din;
 
-// // Output wires from image_loader to image_BRAM
-// logic                           image_bram_wr_en;
-// logic [23:0]                    image_bram_wr_data;
-// logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
+// Output wires from image_loader to image_BRAM
+logic                           image_bram_wr_en;
+logic [23:0]                    image_bram_wr_data;
+logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_wr_addr;
 // logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
 // logic [23:0]                    image_bram_rd_data;
+logic load_finished;
 
 // Input wires to grayscale function
 logic [23:0]    grayscale_dout;
@@ -161,6 +166,29 @@ logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  hysteresis_bram_rd_addr;
 logic [7:0]                             hysteresis_bram_rd_data;
 logic                                   hough_start;
 
+//simple image loader module
+logic image_bram_wr_en_loader;
+logic [$clog2(IMAGE_SIZE)-1:0] image_bram_wr_addr_loader;
+logic [23:0] image_bram_wr_data_loader;
+
+//hough module
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  hough_mask_bram_rd_addr;
+
+//highlight module
+logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  highlight_mask_bram_rd_addr;
+logic bram_out_wr_en_highlight;
+logic [$clog2(IMAGE_SIZE)-1:0] bram_out_wr_addr_highlight;
+logic [23:0]  bram_out_wr_data_highlight;
+logic highlight_done_internal;
+logic highlight_done_registered;
+assign highlight_done = highlight_done_internal;
+
+assign image_bram_wr_en = load_finished ? bram_out_wr_en_highlight : image_bram_wr_en_loader;
+assign image_bram_wr_addr = load_finished ? bram_out_wr_addr_highlight : image_bram_wr_addr_loader;
+assign image_bram_wr_data = load_finished ? bram_out_wr_data_highlight : image_bram_wr_data_loader;
+assign mask_bram_rd_addr = hough_done_registered ? highlight_mask_bram_rd_addr : hough_mask_bram_rd_addr;
+
+
 fifo #(
     .FIFO_DATA_WIDTH(24),
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
@@ -197,17 +225,31 @@ image_loader #(
     // .bram_out_wr_data(image_bram_wr_data)
 );
 
-// bram #(
-//     .BRAM_DATA_WIDTH(24),
-//     .IMAGE_SIZE(IMAGE_SIZE)
-// ) image_bram_inst (
-//     .clock(clock),
-//     .rd_addr(image_bram_rd_addr),
-//     .wr_addr(image_bram_wr_addr),
-//     .wr_en(image_bram_wr_en),
-//     .wr_data(image_bram_wr_data),
-//     .rd_data(image_bram_rd_data)
-// );
+simple_image_loader #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) simple_image_loader_inst(
+    .clock(clock),
+    .reset(reset),
+    .in_empty(image_empty),
+    .in_dout(image_dout),
+    .bram_out_wr_en(image_bram_wr_en_loader),
+    .bram_out_wr_addr(image_bram_wr_addr_loader),
+    .bram_out_wr_data(image_bram_wr_data_loader),
+    .load_finished(load_finished)
+);
+
+bram #(
+    .BRAM_DATA_WIDTH(24),
+    .IMAGE_SIZE(IMAGE_SIZE)
+) image_bram_inst (
+    .clock(clock),
+    .rd_addr(image_bram_rd_addr),
+    .wr_addr(image_bram_wr_addr),
+    .wr_en(image_bram_wr_en),
+    .wr_data(image_bram_wr_data),
+    .rd_data(image_bram_rd_data)
+);
 
 fifo #(
     .FIFO_DATA_WIDTH(24),
@@ -461,7 +503,7 @@ hough #(
     .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
     .mask_bram_rd_data(mask_bram_rd_data),
-    .mask_bram_rd_addr(mask_bram_rd_addr),
+    .mask_bram_rd_addr(hough_mask_bram_rd_addr),
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done_internal),
     .output_data(output_data),
@@ -471,14 +513,40 @@ hough #(
     .right_theta_out(right_theta_out)
 );
 
+//bram wire should be modified
+//hough done should be combined with load finished
+highlight #(
+    .SIN_QUANTIZED(SIN_QUANTIZED),
+    .COS_QUANTIZED(COS_QUANTIZED)
+) highlight_inst (
+    .clock(clock),
+    .reset(reset),
+    .hough_done(hough_done_registered & load_finished),
+    .left_rho_in(left_rho_out),
+    .right_rho_in(right_rho_out),
+    .left_theta_in(left_theta_out),
+    .right_theta_in(right_theta_out),
+    .mask_bram_rd_data(mask_bram_rd_data),
+    .mask_bram_rd_addr(highlight_mask_bram_rd_addr),
+    .bram_out_wr_en(bram_out_wr_en_highlight),
+    .bram_out_wr_addr(bram_out_wr_addr_highlight),
+    .bram_out_wr_data(bram_out_wr_data_highlight),
+    .highlight_done(highlight_done_internal)
+);
+
 // Block to assign value to hough_done_registered
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         hough_done_registered <= 1'b0;
+        highlight_done_registered <= 1'b0;
     end else begin
         // We want hough_done_registered to be 1 when hough_done_internal is 1 and stay as 1 (hough_done_internal will go back to 0)
         if (hough_done_internal == 1'b1) begin
             hough_done_registered <= 1'b1;
+        end
+
+        if (highlight_done_internal == 1'b1) begin
+            highlight_done_registered <= 1'b1;
         end
     end
 end

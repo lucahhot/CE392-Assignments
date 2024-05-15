@@ -18,6 +18,9 @@ vlog -work work "../sv/hough.sv"
 vlog -work work "../sv/hough_top.sv"
 vlog -work work "../sv/hough_tb.sv"
 vlog -work work "../sv/image_loader.sv"
+vlog -work work "../sv/simple_image_loader.sv"
+vlog -work work "../sv/highlight.sv"
+
 
 
 # start basic simulation
