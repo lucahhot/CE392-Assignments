@@ -7,6 +7,7 @@ localparam string IMG_IN_NAME  = "../images/road_image_1280_720.bmp";
 localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 localparam string IMG_OUT_NAME = "../images/highlight_output.bmp";
 localparam string IMG_CMP_NAME = "../images/stage6_hough.bmp";
+localparam string IMG_OUT_NAME_2 = "../images/highlight_output_test.bmp";
 // localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 // localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
 localparam CLOCK_PERIOD = 10;
@@ -42,6 +43,8 @@ integer out_errors = '0;
 localparam BMP_HEADER_SIZE = 138; // According to canny_and_hough.c
 localparam BYTES_PER_PIXEL = 3; // According to canny_and_hough.c
 localparam BMP_DATA_SIZE = WIDTH*HEIGHT*BYTES_PER_PIXEL;
+
+localparam TEST_LINE_LENGTH = 1000;
 
 highlight_top highlight_top_inst (
     .clock(clock),
@@ -226,6 +229,28 @@ initial begin : img_write_process
     $fclose(cmp_file);
     $fclose(image_output_file);
     out_read_done = 1'b1;
+end
+
+initial begin : test_process
+    int test_file, test_status;
+    int iiii;
+    test_file = $fopen(IMG_OUT_NAME_2, "r+");
+
+    // wait(highlight_done);
+    @(negedge clock);
+    @(negedge clock);
+    $display("Writing to the test image");
+    test_status = $fseek(test_file, BMP_HEADER_SIZE+36000, 0);
+    iiii = 0;
+
+    while ( iiii < TEST_LINE_LENGTH) begin
+        @(negedge clock);
+        $fwrite(test_file, 24'b000000001111111100000000);
+        iiii += 1;
+    end
+
+
+
 end
 
 endmodule
