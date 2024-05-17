@@ -15,12 +15,13 @@ module hough #(
     parameter ENDING_Y = 256,
     parameter WIDTH = 1280,
     parameter HEIGHT = 720,
-    parameter THETAS = 180,
+    parameter START_THETA = 10, // Start theta instead of default 0
+    parameter THETAS = 170, // Reducing our theta range to save cycles and memory
     parameter RHOS = 1179,
     parameter RHO_RANGE = 2358,
     parameter THETA_UNROLL = 16,
     parameter THETA_DIVIDE_BITS = 4,
-    parameter THETA_FACTOR = 12,
+    parameter THETA_FACTOR = 10, 
     parameter ACCUM_BUFF_WIDTH = 8,
     parameter THETA_BITS = 9,
     parameter NUM_LANES = 100,
@@ -403,25 +404,30 @@ always_comb begin
         // Zero state that executes at the beginning after a reset to initialize all the accum_buff BRAMs to zero,
         // and is then called at the end to reset the BRAMs to zero after the selection of lanes is also done for the next iamge frame
         ZERO: begin
-            for (int j = 0; j < THETA_UNROLL; j++) begin
-                if ((j+theta) < THETAS) begin
-                    accum_buff_wr_en[j] = 1'b1;
-                    accum_buff_wr_addr[j] = ACCUM_BUFF_ADDR_WIDTH'((rho_index) * THETA_FACTOR + ((j+theta) >> THETA_DIVIDE_BITS));
-                    // accum_buff_wr_addr[j] = (rho_index) * THETAS/THETA_UNROLL + ((j+theta) / THETA_UNROLL);
-                    accum_buff_wr_data[j] = '0;
+            // If we are in the first cycle, theta has been initialized to 0 so change it to 10 before doing anything
+            if (theta == 0)
+                theta_c = 10;
+            else begin
+                for (int j = 0; j < THETA_UNROLL; j++) begin
+                    if ((j+theta) < THETAS) begin
+                        accum_buff_wr_en[j] = 1'b1;
+                        accum_buff_wr_addr[j] = ACCUM_BUFF_ADDR_WIDTH'((rho_index) * THETA_FACTOR + ((j+theta-START_THETA) >> THETA_DIVIDE_BITS));
+                        // accum_buff_wr_addr[j] = (rho_index) * THETAS/THETA_UNROLL + ((j+theta) / THETA_UNROLL);
+                        accum_buff_wr_data[j] = '0;
+                    end
                 end
-            end
-            // Increment theta by the unroll factor
-            theta_c = THETA_BITS'(theta + THETA_UNROLL);
-            // If we've reached the end of thetas, increment the rho index
-            if (theta_c >= THETAS) begin
-                theta_c = 0;
-                rho_index_c = RHO_INDEX_WIDTH'(rho_index + 1);
-                // If we've reached the end of rhos, we're done zeroing the BRAMs
-                if (rho_index_c == RHO_RANGE) begin
-                    next_state = IDLE;
-                    rho_index_c = 0;
-                    theta_c = 0;
+                // Increment theta by the unroll factor
+                theta_c = THETA_BITS'(theta + THETA_UNROLL);
+                // If we've reached the end of thetas, increment the rho index
+                if (theta_c >= THETAS) begin
+                    theta_c = START_THETA;
+                    rho_index_c = RHO_INDEX_WIDTH'(rho_index + 1);
+                    // If we've reached the end of rhos, we're done zeroing the BRAMs
+                    if (rho_index_c == RHO_RANGE) begin
+                        next_state = IDLE;
+                        rho_index_c = 0;
+                        theta_c = START_THETA;
+                    end
                 end
             end
         end
@@ -464,7 +470,7 @@ always_comb begin
                         next_state = SELECT_LOOP;
                         first_select_cycle_c = 1'b1;
                         rho_index_c = 0;
-                        theta_c = 0;
+                        theta_c = START_THETA;
                     end else begin
                         x_c = X_WIDTH'(STARTING_X + 5);
                         y_c = Y_WIDTH'(y + 1'b1);
@@ -510,14 +516,14 @@ always_comb begin
                 if ((j+theta) < THETAS) begin
                     rho_c[j] = ($signed(rho_unquantized_x[j]) + $signed(rho_unquantized_y[j]));
                     // Once we have calculated the rho value, we can set the addresses to read from the accum_buff BRAMs in the next cycle
-                    accum_buff_rd_addr_c[j] = ACCUM_BUFF_ADDR_WIDTH'(($signed(rho_c[j])+$signed(RHOS)) * $signed(THETA_FACTOR) + ($signed(j+theta) >> THETA_DIVIDE_BITS)); 
+                    accum_buff_rd_addr_c[j] = ACCUM_BUFF_ADDR_WIDTH'(($signed(rho_c[j])+$signed(RHOS)) * $signed(THETA_FACTOR) + ($signed(j+theta-START_THETA) >> THETA_DIVIDE_BITS)); 
                     // accum_buff_rd_addr[j] = ($signed(rho_c[j])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + ($signed(j+theta) / THETA_UNROLL); 
                 end
                 // Only accumulate if we are not in the first cycle since we have not read the first value from the BRAMs (happens in cycle 2)
                 if (first_theta_cycle == 1'b0) begin
                     accum_buff_wr_en[j] = 1'b1;
                     // The write address is using the previous value of rho (not the current cycle's one that is used in the new read address)
-                    accum_buff_wr_addr[j] = ACCUM_BUFF_ADDR_WIDTH'(($signed(rho[j])+$signed(RHOS)) * $signed(THETA_FACTOR) + (($signed(j+theta) - $signed(THETA_UNROLL)) >> THETA_DIVIDE_BITS)); 
+                    accum_buff_wr_addr[j] = ACCUM_BUFF_ADDR_WIDTH'(($signed(rho[j])+$signed(RHOS)) * $signed(THETA_FACTOR) + (($signed(j+theta-START_THETA) - $signed(THETA_UNROLL)) >> THETA_DIVIDE_BITS)); 
                     // accum_buff_wr_addr[j] = ($signed(rho[j])+$signed(RHOS)) * $signed(THETAS/THETA_UNROLL) + (($signed(j+theta) - $signed(THETA_UNROLL)) / THETA_UNROLL); 
 
                     // If we are going to go past 2^ACCUM_BUFF_WIDTH - 1, we will just saturate the value to 2^ACCUM_BUFF_WIDTH-1
@@ -537,7 +543,7 @@ always_comb begin
             // before switching back to the ACCUMULATE stage
             if (theta_c >= THETAS + THETA_UNROLL) begin
                 next_state = ACCUMULATE;
-                theta_c = 0;
+                theta_c = START_THETA;
                 // Increment the x and y values to move to the next pixel
                 if (x == ENDING_X - 5) begin
                     if (y == ENDING_Y - 5) begin
@@ -545,7 +551,7 @@ always_comb begin
                         next_state = SELECT_LOOP;
                         first_select_cycle_c = 1'b1;
                         rho_index_c = 0;
-                        theta_c = 0;
+                        theta_c = START_THETA;
                     end else begin
                         x_c = X_WIDTH'(STARTING_X + 5);
                         y_c = Y_WIDTH'(y + 1);
@@ -575,7 +581,7 @@ always_comb begin
             for (int j = 0; j < THETA_UNROLL; j++) begin
                 if ((j+theta) < THETAS)
                     // Set addresses to read from accum_buff BRAMs
-                    accum_buff_rd_addr_c[j] = ACCUM_BUFF_ADDR_WIDTH'((rho_index) * THETA_FACTOR + ((j+theta) >> THETA_DIVIDE_BITS));
+                    accum_buff_rd_addr_c[j] = ACCUM_BUFF_ADDR_WIDTH'((rho_index) * THETA_FACTOR + ((j+theta-START_THETA) >> THETA_DIVIDE_BITS));
                     // accum_buff_rd_addr[j] = (rho_index) * THETAS/THETA_UNROLL + ((j+theta) / THETA_UNROLL);
             end
             // Only check the values inside the accum_buff BRAMs after the first cycle
@@ -603,7 +609,7 @@ always_comb begin
             // If we've reached the end of thetas, do one more iteration to check the last value read (theta = 179)
             // before incrementing the rho_index
             if (theta_c >= THETAS + THETA_UNROLL) begin
-                theta_c = 0;
+                theta_c = START_THETA;
                 rho_index_c = RHO_INDEX_WIDTH'(rho_index + 1'b1);
                 // If we've reached the end of rhos, we can move on to the next stage
                 if (rho_index_c == RHO_RANGE) begin

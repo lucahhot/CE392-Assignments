@@ -13,7 +13,8 @@ localparam CLOCK_PERIOD = 10;
 
 localparam WIDTH = 1280;
 localparam HEIGHT = 720;
-localparam THETAS = 180;
+localparam START_THETA = 10;
+localparam THETAS = 170;
 localparam RHOS = 1179;
 localparam RHO_RANGE = 2*RHOS; // 2358
 localparam THETA_UNROLL = 16;
@@ -124,7 +125,7 @@ initial begin : img_read_process
 
     // Read data from image file
     i = 0;
-    while ( i < BMP_DATA_SIZE ) begin
+    while ( i < BMP_DATA_SIZE && hough_done == 0) begin
         @(negedge clock);
         image_wr_en = 1'b0;
         if (image_full == 1'b0) begin
@@ -193,9 +194,10 @@ initial begin : accum_buff_output_process
 
     // Write the accum_buff_out to a file
     for (int i = 0; i < RHO_RANGE; i++) begin
-        for (int j = 0; j < THETAS; j = j + THETA_UNROLL) begin
+        for (int j = START_THETA; j < THETAS; j = j + THETA_UNROLL) begin
             for (int k = 0; k < THETA_UNROLL; k++) begin
                 if (k+j < THETAS) begin
+                    // Remember to change the C code accum_buff_results.txt to have the same theta range as our RTL to compare
                     r = $fscanf(cmp_file, "%d", cmp_val);
                     $fwrite(out_file, "rho = %0d, theta = %0d, BRAM accum_buff = %0d, Actual accum_buff = %0d\n", i - RHOS, j+k, output_data[k], cmp_val);
                     if (output_data[k] != cmp_val) begin

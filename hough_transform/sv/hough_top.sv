@@ -1,6 +1,9 @@
 
 // Defining the parameters here because there are always problems with the parameters in the globals file
 
+// accum_buff elements with full 180 degrees of theta = 426240
+// accum_buff elements with reduced theta range = 377280 -11.4%
+
 module hough_top #(
     // Image dimensions
     parameter WIDTH = 1280,
@@ -20,14 +23,15 @@ module hough_top #(
     parameter REDUCED_HEIGHT = ENDING_Y - STARTING_Y + 1, // 256 - 31 + 1 = 226 (need to include the last point as part of the height)
     parameter REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT, // 233910 -74.6% reduction in size
 
-    parameter THETAS = 180,
+    parameter START_THETA = 10, // Start theta instead of default 0
+    parameter THETAS = 170, // Reducing our theta range to save cycles and memory
     parameter RHOS = 1179,
     parameter RHO_RANGE = 2*RHOS, // 2358
 
     // Unroll factor for the accumulation stage (the theta loop)
     parameter THETA_UNROLL = 16,
     parameter THETA_DIVIDE_BITS = 4, // So that we don't have to divide by a non-power of 2 number (this means THEAT_UNROLL must be a power of 2)
-    parameter THETA_FACTOR = 12, // ceil(THETAS/THETA_UNROLL) = 23, this is necessary if THETAS%THETA_UNROLL != 0
+    parameter THETA_FACTOR = 10, // ceil((THETAS-START_THETA)/16) = 10 (this is necessary if THETAS%THETA_UNROLL != 0), also reducing our theta range to 10 - 170 to save BRAM and cycles
 
     // Accum_buff BRAM width (was set to 16 in the original C code given but we can reduce to 8 bits)
     // It just has to be at least wide enough to go until HOUGH_TRANSFORM_THRESHOLD
@@ -438,6 +442,7 @@ hough #(
     .ENDING_Y(ENDING_Y),
     .WIDTH(WIDTH),
     .HEIGHT(HEIGHT),
+    .START_THETA(START_THETA),
     .THETAS(THETAS),
     .RHOS(RHOS),
     .RHO_RANGE(RHO_RANGE),
@@ -459,7 +464,7 @@ hough #(
     .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
     .mask_bram_rd_data(mask_bram_rd_data),
-    .mask_bram_rd_addr(mask_bram_rd_add_hough),
+    .mask_bram_rd_addr(mask_bram_rd_addr_hough),
     .accum_buff_done(accum_buff_done),
     .hough_done(hough_done_internal),
     .output_data(output_data),

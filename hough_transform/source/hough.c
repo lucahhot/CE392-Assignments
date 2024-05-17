@@ -119,8 +119,13 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	    printf("Error opening file!\n");
 	    return -1;
 	}
+
+	// Only write out the theta values from START_THETA to END_THETA so that we can compare with the RTL
+	int START_THETA = 10;
+	int END_THETA = 170;
+
 	for (int i = 0; i < rho_range; i++){
-		for (int j = 0; j < THETAS; j++){
+		for (int j = START_THETA; j < END_THETA; j++){
 			// If accum_buff[i][j] > 255 (max value for 8 bits), write in 255
 			// The rationale is that since our current HOUGH_TRANSFORM_THRESHOLD is 150, there's no point counting higher than that 
 			if (accum_buff[i][j] > 255)

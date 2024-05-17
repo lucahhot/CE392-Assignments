@@ -23,7 +23,7 @@ localparam RHO_RANGE = 2*RHOS; // 2358
 // Unroll factor for the accumulation stage (the theta loop)
 localparam THETA_UNROLL = 16;
 localparam THETA_DIVIDE_BITS = 4; // So that we don't have to divide by a non-power of 2 number (this means THEAT_UNROLL must be a power of 2)
-localparam THETA_FACTOR = 12; // ceil(THETAS/THETA_UNROLL) = 23, this is necessary if THETAS%THETA_UNROLL != 0
+localparam THETA_FACTOR = 12; // ceil(THETAS/THETA_UNROLL) = 12, this is necessary if THETAS%THETA_UNROLL != 0
 
 // Accum_buff BRAM width (was set to 16 in the original C code given but we can reduce to 8 bits)
 // It just has to be at least wide enough to go until HOUGH_TRANSFORM_THRESHOLD
