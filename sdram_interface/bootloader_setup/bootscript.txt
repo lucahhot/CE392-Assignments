@@ -1,0 +1,19 @@
+setenv loadaddr 0x01000000
+setenv fdtaddr 0x02000000
+setenv fdtimage socfpga_cyclone5_de0_nano_soc.dtb
+
+mw 0xFFC25080 0x0
+fatload mmc 0:1 0x2000000 output_files/sdram_tutorial.rbf
+echo "Loading sdram_tutorial.rbf into the FPGA at address 0x2000000 (at 512MB)"
+fpga load 0 0x2000000 $filesize
+mw 0xFFC2505C 0xA
+mw 0xFFC25080 0xFFFF
+echo "Loading in image kernel at address 0x01000000 (modified)
+echo "Loading in soc_system.dtb at address 0x02000000 (modified)"
+echo "Loading in both bootimage and FDT"
+run mmcload;
+echo "Modifying mmcboot to not overwrite our bootargs"
+setenv bootargs earlyprintk console=ttyS0,115200 root=${mmcroot} rw rootwait mem=512M
+setenv mmcboot 'bootz ${loadaddr} - ${fdtaddr}'
+run mmcboot;
+

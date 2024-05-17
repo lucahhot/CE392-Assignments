@@ -1,0 +1,39 @@
+1. Flash SD Card with either the DE10-Nano-Cloud-Native_18.04.img or the DE10-Nano-Cloud-Native_20.04.6_aziot1.4.33_RFS.img
+2. (Optional): Expand the root memory allocation to fill up the entire partition using ./expand_rootfs.sh
+   (Optional): Remove ssh password from the DE10-Nano by running "ssh-copy-id root@[de10nano's IP address] on your development machine (this is assuming you have already run "ssh-keygen -t rsa -b 4096 -C 'email@domain.com'")
+3. Once booted, go to /overlay/fpgaoverlay.sh and comment out the line writing the overlay to $overlay_dir/path
+4. Go to "/" (cd ../../ if you are in "root") and "mkdir fat"
+5. Mount the fat partition with "mount /dev/mmcblk0p1 fat"
+6. scp socfpga_cyclone5_de0_nano_soc.dtb , u-boot.scr , and sdram_tutorial.rbf to root@[de10nano's IP address]:/
+7. Run "cp socfpga_cyclone5_de0_nano_soc.dtb /fat/socfpga_cyclone5_de0_nano_soc.dtb". This is the DTB or FDT that is from the GitHub tutorial 
+   and has the fpga/hps bridges enabled.
+8. Run "cp u-boot.scr /fat/u-boot.scr". This is copying our custom boot loader into the fat partition to run upon booting automatically. 
+   Alternatively, you can enter the commands below manually after hitting any key when it says "Hit any key to stop autoboot".
+9. Run "cp sdram_tutorial.rbf /fat/output_files/sdram_tutorial.rbf". This is copying our FPGA design (in rbf file format) into the FAT partition.
+10. Run "umount fat" to unmount the partition (make sure you are back in the "/" directory when doing this)
+11. Reboot (if you loaded the u-boot.scr bootloader then no need to do anything, if not, hit a key when it says to stop autoboot and enter the commands manually)
+
+12. Install busybox: "sudo apt update" then "sudo apt install busybox"
+13. "mem 0x20000000 w 0xAA" to write an alternating LED pattern (0b10101010)
+14. "mem 0xC0000000 w 0x1" to trigger the sdram reader in the FPGA to read the value written at 0x20000000 and display it on the LEDs.
+    0xC0000000 is the starting address of the HPS-FPGA bridge and the trigger is the write signal so what we write is not important.
+
+BOOT STEPS:
+setenv loadaddr 0x01000000
+setenv fdtaddr 0x02000000
+setenv fdtimage socfpga_cyclone5_de0_nano_soc.dtb
+
+mw 0xFFC25080 0x0
+fatload mmc 0:1 0x2000000 output_files/sdram_tutorial.rbf
+echo "Loading sdram_tutorial.rbf into the FPGA at address 0x2000000 (at 512MB)"
+fpga load 0 0x2000000 $filesize
+mw 0xFFC2505C 0xA
+mw 0xFFC25080 0xFFFF
+echo "Loading in image kernel at address 0x01000000 (modified)
+echo "Loading in soc_system.dtb at address 0x02000000 (modified)"
+echo "Loading in both bootimage and FDT"
+run mmcload;
+echo "Modifying mmcboot to not overwrite our bootargs"
+setenv bootargs earlyprintk console=ttyS0,115200 root=${mmcroot} rw rootwait mem=512M
+setenv mmcboot 'bootz ${loadaddr} - ${fdtaddr}'
+run mmcboot;
