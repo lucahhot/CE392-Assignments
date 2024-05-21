@@ -22,7 +22,7 @@ module canny_algorithm_core
 		// interface to VIP control packet encoder via VIP flow control wrapper	
 		input		stall_out,		
 		output	write,
-		output [BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_out,
+		output 	[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_out,
 		output	end_of_video_out,		
 		
 		output	reg [15:0] width_out,
@@ -63,6 +63,69 @@ grayscale_top #(
 	.img_out_dout(gs_img_out_dout)
 );
 
+fifo #(
+	.FIFO_BUFFER_SIZE(),
+	.FIFO_DATA_WIDTH(),
+) width_fifo (
+	.reset(),
+	.wr_clk(),
+	.wr_en(),
+	.din(),
+	.full(),
+	.rd_clk(),
+	.rd_en(),
+	.dout(),
+	.empty()
+);
+
+fifo #(
+	.FIFO_BUFFER_SIZE(),
+	.FIFO_DATA_WIDTH(),
+) height_fifo (
+	.reset(),
+	.wr_clk(),
+	.wr_en(),
+	.din(),
+	.full(),
+	.rd_clk(),
+	.rd_en(),
+	.dout(),
+	.empty()
+);
+
+fifo #(
+	.FIFO_BUFFER_SIZE(),
+	.FIFO_DATA_WIDTH(),
+) interlaced_fifo (
+	.reset(),
+	.wr_clk(),
+	.wr_en(),
+	.din(),
+	.full(),
+	.rd_clk(),
+	.rd_en(),
+	.dout(),
+	.empty()
+);
+
+
+wire vip_ctrl_valid_dout;
+reg vip_ctrl_rd_en, vip_ctrl_wr_en;
+fifo #(
+	.FIFO_BUFFER_SIZE(32),
+	.FIFO_DATA_WIDTH(1),
+) vip_ctrl_fifo (
+	.reset(rst),
+	.wr_clk(clk),
+	.wr_en(vip_ctrl_wr_en),
+	.din(vip_ctrl_valid),
+	.full(),
+	.rd_clk(),
+	.rd_en(vip_ctrl_rd_en),
+	.dout(vip_ctrl_valid_dout),
+	.empty()
+);
+
 
 /******************************************************************************/
 /* End of user algorithm data processing                                      */
@@ -77,8 +140,16 @@ assign input_valid = (read & ~stall_in);
 always @(posedge clk or posedge rst)
 	if (rst) begin
 		gs_image_wr_en <= 1'b0;
+		vip_ctrl_wr_en <= 1'b0;
 	end else begin
 		gs_image_wr_en <= (read & input_valid) ? 1'b1: 1'b0;
+		
+		// Hopefully vip_ctrl_valid and input_valid are high at the same time?
+		if (read & vip_ctrl_valid) begin
+			vip_ctrl_wr_en = 1'b1;
+		end else begin
+			vip_ctrl_wr_en = 1'b0;
+		end
 	end
 
 // output control signals
@@ -87,17 +158,21 @@ always @(posedge clk or posedge rst)
 		gs_img_out_rd_en <= 1'b0;
 		output_valid <= 1'b0;
 		data_out <= 24'd0;
+		vip_ctrl_rd_en <= 1'b0;
 	end else begin
 		if (gs_img_out_empty) begin
 			gs_img_out_rd_en <= 1'b0;
 			output_valid <= 1'b0;
+			vip_ctrl_send <= 1'b0;
+			vip_ctrl_rd_en <= 1'b0;
 		end else begin
 			gs_img_out_rd_en <= 1'b1;
 			output_valid <= 1'b1;
 			data_out <= {gs_img_out_dout, gs_img_out_dout, gs_img_out_dout};
+			vip_ctrl_send <= vip_ctrl_valid_dout & ~vip_ctrl_busy;
+			vip_ctrl_rd_en = 1'b1;
 		end
 	end
-
 
 
 
