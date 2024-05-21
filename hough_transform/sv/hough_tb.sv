@@ -13,8 +13,8 @@ localparam CLOCK_PERIOD = 10;
 
 localparam WIDTH = 1280;
 localparam HEIGHT = 720;
-localparam START_THETA = 10;
-localparam THETAS = 170;
+localparam START_THETA = 20;
+localparam THETAS = 160;
 localparam RHOS = 1179;
 localparam RHO_RANGE = 2*RHOS; // 2358
 localparam THETA_UNROLL = 16;

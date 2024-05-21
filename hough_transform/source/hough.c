@@ -121,8 +121,8 @@ int hough_transform24(unsigned char *hysteresis_data, struct pixel24 * mask, int
 	}
 
 	// Only write out the theta values from START_THETA to END_THETA so that we can compare with the RTL
-	int START_THETA = 10;
-	int END_THETA = 170;
+	int START_THETA = 20;
+	int END_THETA = 160;
 
 	for (int i = 0; i < rho_range; i++){
 		for (int j = START_THETA; j < END_THETA; j++){

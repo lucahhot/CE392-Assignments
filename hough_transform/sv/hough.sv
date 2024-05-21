@@ -15,13 +15,13 @@ module hough #(
     parameter ENDING_Y = 256,
     parameter WIDTH = 1280,
     parameter HEIGHT = 720,
-    parameter START_THETA = 10, // Start theta instead of default 0
-    parameter THETAS = 170, // Reducing our theta range to save cycles and memory
+    parameter START_THETA = 20, // Start theta instead of default 0
+    parameter THETAS = 160, // Reducing our theta range to save cycles and memory
     parameter RHOS = 1179,
     parameter RHO_RANGE = 2358,
     parameter THETA_UNROLL = 16,
     parameter THETA_DIVIDE_BITS = 4,
-    parameter THETA_FACTOR = 10, 
+    parameter THETA_FACTOR = 9, 
     parameter ACCUM_BUFF_WIDTH = 8,
     parameter THETA_BITS = 9,
     parameter NUM_LANES = 100,

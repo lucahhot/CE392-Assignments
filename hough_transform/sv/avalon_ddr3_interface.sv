@@ -33,18 +33,21 @@ module avalon_ddr3_interface (
 typedef enum logic [2:0] {INIT,READ_START,READ_END,WRITE_START} state_types;
 state_types cur_state, next_state;
 
-logic [31:0] write_data; // Clocked version of write_data_input in case it changes mid-clock cycle or something
+// Clocked versions of inputs so the top-module doesn't have to constantly assert them
+logic [31:0] write_data_registered, write_data_registered_c;
+logic [31:0] sdram_address_registered, sdram_address_registered_c;
 
 always_ff @(posedge clk) begin
     if (reset) begin
         cur_state <= INIT;
         read_data <= 32'd0;
-        write_data <= 32'd0;
+        write_data_registered <= 32'd0;
+        sdram_address_registered <= 32'd0;
     end
     else begin
         cur_state <= next_state;
-        // Clock the write data input
-        write_data <= write_data_input;
+        write_data_registered <= write_data_registered_c;
+        sdram_address_registered <= sdram_address_registered_c;
 
         // Update the read data output on the clock edge instead of combinationally in always_comb
         case (cur_state)
@@ -78,9 +81,18 @@ always_comb begin
         // we'll just prioritize the write command. 
         INIT: begin
             // Priority the write command by checking wr_en first.
-            if (wr_en) next_state = WRITE_START;
+            if (wr_en) begin
+                next_state = WRITE_START;
+                // Register the write data and address to be used in the WRITE_START state.
+                write_data_registered_c = write_data_input;
+                sdram_address_registered_c = sdram_address;
+            end
             // If not write command, then check for read command.
-            else if (rd_en) next_state = READ_START;
+            else if (rd_en) begin
+                next_state = READ_START;
+                // Register the address to be used in the READ_START state.
+                sdram_address_registered_c = sdram_address;
+            end
             // If no command, then just stay in the INIT state.
             else next_state = INIT;
         end
@@ -90,9 +102,9 @@ always_comb begin
             // We need to set our write signals here and keep them until the waitrequest signal is de-asserted.
             if (avm_m0_waitrequest) begin
                 next_state = WRITE_START; // Wait here.
-                avm_m0_address = sdram_address; // Set avm address to the input address
+                avm_m0_address = sdram_address_registered; // Set avm address to the input address
                 avm_m0_write = 1'b1;
-                avm_m0_writedata = write_data; // Set the write data to the input data
+                avm_m0_writedata = write_data_registered; // Set the write data to the input data
                 avm_m0_byteenable = 32'h0000_000F; // Set the byte enable to 32 bits.
                 avm_m0_burstcount = 11'd1; // Set the burst count to 1.
             end 
@@ -109,7 +121,7 @@ always_comb begin
         READ_START: begin
             if (avm_m0_waitrequest) begin
                 next_state = READ_START; // Wait here.
-                avm_m0_address = sdram_address; // Set avm address to the input address
+                avm_m0_address = sdram_address_registered; // Set avm address to the input address
                 avm_m0_read = 1'b1;
                 avm_m0_byteenable = 32'h0000_000F; // Get 32 bits only.
                 avm_m0_burstcount = 11'd1; // Get only 1 address value.
