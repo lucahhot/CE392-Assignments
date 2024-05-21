@@ -10,7 +10,7 @@ module user_algorithm_core
 		
 		// interface to VIP control packet decoder via VIP flow control wrapper	
 		input		stall_in,
-		output	read,		
+		output		read,		
 		input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_in, 		
 		input		end_of_video,
 		
@@ -21,9 +21,9 @@ module user_algorithm_core
 		
 		// interface to VIP control packet encoder via VIP flow control wrapper	
 		input		stall_out,		
-		output	write,
+		output		write,
 		output [BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_out,
-		output	end_of_video_out,		
+		output		end_of_video_out,		
 		
 		output	reg [15:0] width_out,
 		output	reg [15:0] height_out,
