@@ -7,7 +7,7 @@ module simple_image_loader #(
 ) (
     input  logic            clock,
     input  logic            reset,
-    input  logic            in_empty,
+    input  logic            image_wr_en,
     input  logic [23:0]     in_dout,
     // OUTPUT to image BRAM
     output logic                            bram_out_wr_en,
@@ -33,6 +33,9 @@ always_ff @(posedge clock or posedge reset) begin
         state <= next_state;
         x <= x_c;
         y <= y_c;
+        // if (state==OUTPUT & next_state==IDLE) begin
+        //     load_finished <= 1'b1;
+        // end
     end
 end
 
@@ -47,7 +50,7 @@ always_comb begin
 
     case(state)
         IDLE: begin
-            if (in_empty == 1'b0) begin
+            if (image_wr_en == 1'b1) begin
                 next_state = OUTPUT;
                 x_c = 0; 
                 y_c = 0;
@@ -55,7 +58,7 @@ always_comb begin
         end
 
         OUTPUT: begin
-            if (in_empty == 1'b0) begin
+            if (image_wr_en == 1'b1) begin
                 bram_out_wr_en = 1'b1;
                 bram_out_wr_data = in_dout;
                 bram_out_wr_addr = (y * WIDTH) + x;

@@ -35,6 +35,7 @@ module highlight #(
     input  logic        clock,
     input  logic        reset,
     input  logic        hough_done, // Done signal from hough module 
+    // input  logic        load_finished,
     // INPUTS from hough
     input logic signed [15:0]       left_rho_in,
     input logic signed [15:0]       right_rho_in,
@@ -50,6 +51,12 @@ module highlight #(
     // Done signal
     output logic highlight_done
 );
+
+logic signed [15:0] left_rho_in_registered, right_rho_in_registered;
+logic signed [THETA_BITS-1:0] left_theta_in_registered, right_theta_in_registered;
+
+// logic hough_done_registered;
+// logic load_finished_registered;
 
 // DEQUANTIZE function
 function logic signed [15:0] DEQUANTIZE(logic signed [31:0] i);
@@ -107,6 +114,12 @@ always_ff @(posedge clock or posedge reset) begin
         cos_val <= 0;
         rho <= 0;
         left_done <= 0;
+        left_rho_in_registered <= 0;
+        right_rho_in_registered <= 0;
+        left_theta_in_registered <= 0;
+        right_theta_in_registered <= 0;
+        // hough_done_registered <= 0;
+        // load_finished_registered <= 0;
     end else begin
         state <= next_state;
         x <= x_c;
@@ -120,6 +133,22 @@ always_ff @(posedge clock or posedge reset) begin
         cos_val <= cos_val_c;
         rho <= rho_c;
         left_done <= left_done_c;
+        if(left_rho_in != 0) begin
+            left_rho_in_registered <= left_rho_in;
+            right_rho_in_registered <= right_rho_in;
+            left_theta_in_registered <= left_theta_in;
+            right_theta_in_registered <= right_theta_in;
+        end
+        // if(hough_done != 0) begin
+        //     hough_done_registered <= hough_done;
+        // end
+        // if(load_finished != 0) begin
+        //     load_finished_registered <= load_finished;
+        // end
+        // if(state==IDLE && next_state==LANE_SELECT) begin
+        //     hough_done_registered <= 0;
+        //     load_finished_registered <= 0;
+        // end
     end
 end
 
@@ -143,11 +172,20 @@ always_comb begin
     rho_c = rho;
     left_done_c = left_done;
 
+    // if(hough_done==1'b1) begin
+    //     hough_done_registered = 1'b1;
+    // end
+    // if(load_finished==1'b1) begin
+    //     load_finished_registered = 1'b1;
+    // end
+
     case (state)
         // Wait for hough_done to be asserted to move on to the next state
         IDLE: begin
             if (hough_done == 1'b1) begin
                 next_state = LANE_SELECT;
+                // hough_done_registered = 0;
+                // load_finished_registered = 0;
             end
         end
 
@@ -155,13 +193,13 @@ always_comb begin
         LANE_SELECT: begin
             // Set the internal variables to the left lane values
             if (left_done == 1'b0) begin
-                sin_val_c = SIN_QUANTIZED[left_theta_in];
-                cos_val_c = COS_QUANTIZED[left_theta_in];
-                rho_c = left_rho_in;
+                sin_val_c = SIN_QUANTIZED[left_theta_in_registered];
+                cos_val_c = COS_QUANTIZED[left_theta_in_registered];
+                rho_c = left_rho_in_registered;
             end else begin
-                sin_val_c = SIN_QUANTIZED[right_theta_in];
-                cos_val_c = COS_QUANTIZED[right_theta_in];
-                rho_c = right_rho_in;
+                sin_val_c = SIN_QUANTIZED[right_theta_in_registered];
+                cos_val_c = COS_QUANTIZED[right_theta_in_registered];
+                rho_c = right_rho_in_registered;
             end
             next_state = K_LOOP;
             // Initialize k value to K_START

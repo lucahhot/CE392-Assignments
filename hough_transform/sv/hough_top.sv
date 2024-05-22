@@ -170,6 +170,7 @@ logic                                   hough_start;
 logic image_bram_wr_en_loader;
 logic [$clog2(IMAGE_SIZE)-1:0] image_bram_wr_addr_loader;
 logic [23:0] image_bram_wr_data_loader;
+logic load_finished_registered;
 
 //hough module
 logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  hough_mask_bram_rd_addr;
@@ -181,13 +182,18 @@ logic [$clog2(IMAGE_SIZE)-1:0] bram_out_wr_addr_highlight;
 logic [23:0]  bram_out_wr_data_highlight;
 logic highlight_done_internal;
 logic highlight_done_registered;
-assign highlight_done = highlight_done_internal;
+assign highlight_done = highlight_done_registered;
+// assign highlight_done = load_finished;
 
-assign image_bram_wr_en = load_finished ? bram_out_wr_en_highlight : image_bram_wr_en_loader;
-assign image_bram_wr_addr = load_finished ? bram_out_wr_addr_highlight : image_bram_wr_addr_loader;
-assign image_bram_wr_data = load_finished ? bram_out_wr_data_highlight : image_bram_wr_data_loader;
+assign image_bram_wr_en = load_finished_registered ? bram_out_wr_en_highlight : image_bram_wr_en_loader;
+assign image_bram_wr_addr = load_finished_registered ? bram_out_wr_addr_highlight : image_bram_wr_addr_loader;
+assign image_bram_wr_data = load_finished_registered ? bram_out_wr_data_highlight : image_bram_wr_data_loader;
 assign mask_bram_rd_addr = hough_done_registered ? highlight_mask_bram_rd_addr : hough_mask_bram_rd_addr;
 
+// assign image_bram_wr_en = image_bram_wr_en_loader;
+// assign image_bram_wr_addr = image_bram_wr_addr_loader;
+// assign image_bram_wr_data = image_bram_wr_data_loader;
+// assign mask_bram_rd_addr = hough_mask_bram_rd_addr;
 
 fifo #(
     .FIFO_DATA_WIDTH(24),
@@ -231,7 +237,7 @@ simple_image_loader #(
 ) simple_image_loader_inst(
     .clock(clock),
     .reset(reset),
-    .in_empty(image_empty),
+    .image_wr_en(image_wr_en),
     .in_dout(image_dout),
     .bram_out_wr_en(image_bram_wr_en_loader),
     .bram_out_wr_addr(image_bram_wr_addr_loader),
@@ -308,7 +314,7 @@ grayscale_mask #(
     .in_rd_en(mask_rd_en),
     .in_empty(mask_empty),
     .in_dout(mask_dout),
-    .hough_done(hough_done_internal),
+    .hough_done(highlight_done_internal),
     .out_wr_en(mask_bram_wr_en),
     .out_wr_addr(mask_bram_wr_addr),
     .out_wr_data(mask_bram_wr_data)
@@ -521,7 +527,7 @@ highlight #(
 ) highlight_inst (
     .clock(clock),
     .reset(reset),
-    .hough_done(hough_done_registered & load_finished),
+    .hough_done(hough_done_registered & load_finished_registered),
     .left_rho_in(left_rho_out),
     .right_rho_in(right_rho_out),
     .left_theta_in(left_theta_out),
@@ -535,10 +541,11 @@ highlight #(
 );
 
 // Block to assign value to hough_done_registered
-always_ff @(posedge clock or posedge reset) begin
+always_ff @(negedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         hough_done_registered <= 1'b0;
         highlight_done_registered <= 1'b0;
+        load_finished_registered <= 1'b0;
     end else begin
         // We want hough_done_registered to be 1 when hough_done_internal is 1 and stay as 1 (hough_done_internal will go back to 0)
         if (hough_done_internal == 1'b1) begin
@@ -547,6 +554,10 @@ always_ff @(posedge clock or posedge reset) begin
 
         if (highlight_done_internal == 1'b1) begin
             highlight_done_registered <= 1'b1;
+        end
+
+        if (load_finished == 1'b1) begin
+            load_finished_registered <= 1'b1;
         end
     end
 end

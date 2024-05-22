@@ -8,8 +8,9 @@ localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 localparam string IMG_OUT_NAME = "../images/highlight_output.bmp";
 localparam string IMG_CMP_NAME = "../images/stage6_hough.bmp";
 localparam string IMG_OUT_NAME_2 = "../images/highlight_output_test.bmp";
-// localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
-// localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
+
+
+
 localparam CLOCK_PERIOD = 10;
 
 localparam WIDTH = 1280;

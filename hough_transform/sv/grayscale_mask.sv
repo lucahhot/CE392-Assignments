@@ -117,8 +117,8 @@ always_comb begin
             // Done state that this will remain until hough_done is asserted and it will go back into IDLE.
             // This is so that it doesn't override the mask BRAM with the wrong values since there will still
             // be more pixels coming in through the FIFO.
-            if (hough_done == 1'b1) 
-                next_state = IDLE;
+            // if (hough_done == 1'b1) 
+            //     next_state = IDLE;
         end
 
         default: begin
