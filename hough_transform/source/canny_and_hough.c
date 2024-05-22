@@ -313,6 +313,15 @@ int main(int argc, char *argv[]) {
     if (bits_per_pixel == 24) {
       read_entire_bmp24(f_mask, mask_header, mask_data24, offset, height, width);
       printf("Used 24-bit read_entire_bmp\n");
+
+      // Write out grayscaled mask image to a file (only write out the reduced image size mask values)
+      FILE * grayscale_mask = fopen("grayscale_mask_values.txt", "w");
+      for (int i = 31; i < 256; i++) {
+         for (int j = 123; j < 1157; j++) {
+            int grayscaled_value = (mask_data24[i*width + j].r + mask_data24[i*width + j].g + mask_data24[i*width + j].b)/3;
+            fprintf(grayscale_mask, "%d\n", grayscaled_value);
+         }
+      }
    }
    else  {
       read_entire_bmp32(f_mask, mask_header, mask_data32, offset, height, width);

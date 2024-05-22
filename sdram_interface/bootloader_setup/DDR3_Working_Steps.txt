@@ -13,7 +13,7 @@
 10. Run "umount fat" to unmount the partition (make sure you are back in the "/" directory when doing this)
 11. Reboot (if you loaded the u-boot.scr bootloader then no need to do anything, if not, hit a key when it says to stop autoboot and enter the commands manually)
 
-12. Install busybox: "sudo apt update" then "sudo apt install busybox"
+12. Install busybox: "sudo apt update" then "sudo apt install busybox" then "alias mem='busybox devmem'"
 13. "mem 0x20000000 w 0xAA" to write an alternating LED pattern (0b10101010)
 14. "mem 0xC0000000 w 0x1" to trigger the sdram reader in the FPGA to read the value written at 0x20000000 and display it on the LEDs.
     0xC0000000 is the starting address of the HPS-FPGA bridge and the trigger is the write signal so what we write is not important.
