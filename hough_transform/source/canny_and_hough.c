@@ -316,10 +316,14 @@ int main(int argc, char *argv[]) {
 
       // Write out grayscaled mask image to a file (only write out the reduced image size mask values)
       FILE * grayscale_mask = fopen("grayscale_mask_values.txt", "w");
+      FILE * grayscale_mask_labelled = fopen("grayscale_mask_values_labelled.txt", "w");
+      int count = 0;
       for (int i = 31; i < 256; i++) {
          for (int j = 123; j < 1157; j++) {
             int grayscaled_value = (mask_data24[i*width + j].r + mask_data24[i*width + j].g + mask_data24[i*width + j].b)/3;
             fprintf(grayscale_mask, "%d\n", grayscaled_value);
+            fprintf(grayscale_mask_labelled, "count = %d, grayscale value = %d\n", count, grayscaled_value);
+            count++;
          }
       }
    }
