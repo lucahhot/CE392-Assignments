@@ -54,10 +54,10 @@ wire image_wr_en;
 wire img_out_rd_en;
 wire [23:0] image_din;
 
-// Registers for outputs from grayscale_top
-reg image_full;
-reg img_out_empty;
-reg [7:0] img_out_dout;
+// Wires for outputs from grayscale_top
+wire image_full;
+wire img_out_empty;
+wire [7:0] img_out_dout;
 
 grayscale_top grayscale_top_inst (
     .clock(clk),
@@ -68,7 +68,7 @@ grayscale_top grayscale_top_inst (
     .img_out_empty(img_out_empty),
     .img_out_rd_en(img_out_rd_en),
     .img_out_dout(img_out_dout)
-)
+);
 
 // assign outputs
 reg [BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] output_data;  // algorithm output data
@@ -78,6 +78,8 @@ wire output_ready; // [lucahhot]: Using this new signal to indicate that the gra
 
 // [lucahhot]: Assign output_ready when the grayscale_top module is not empty
 assign output_ready = ~img_out_empty;
+// [lucahhot]: If output_ready == 1'b1, then we can read from the output FIFO so assert img_out_rd_en
+assign img_out_rd_en = output_ready;
 
 always @(posedge clk or posedge rst)
 	if (rst) begin
@@ -86,7 +88,7 @@ always @(posedge clk or posedge rst)
 	    output_end_of_video <= 1'b0;
 	end else begin
         // [lucahhot]: We set output data to the output of the grayscale_top output FIFO (img_out_dout) and only when output_ready is high 
-		output_data <= output_ready ? img_out_dout : output_data;
+		output_data <= output_ready ? {img_out_dout, img_out_dout, img_out_dout} : output_data;
         // [lucahhot]: We set output_valid to output_ready (need the 1 cycle delay since output_data needs 1 cycle to get assigned with unblocking assignment)
 		output_valid <= output_ready; 
         // [lucahhot]: This just passes the end_of_video signal through (there is no logic to modify it in this algorithm)
@@ -118,6 +120,10 @@ assign input_valid = (read & ~stall_in);
 // From Github Copilot: The reason for concatenating end_of_video with data_in could be to include the end_of_video signal along with the data 
 // for further processing. This way, the downstream logic can use the end_of_video signal to determine when the video data stream ends while processing data_in.
 assign data_int = (input_valid) ? {end_of_video, data_in} : data_int_reg;
+
+// [lucahhot]: Load in data_int into the grayscale_top module (input_valid already accounts for the input FIFO not being full)
+assign image_wr_en = input_valid;
+assign image_din = data_in;
 
 // hold data if not writing or output stalled, otherwise assign internal data 
 assign data_out = (output_valid | data_available) ? output_data : data_out_reg[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0];
