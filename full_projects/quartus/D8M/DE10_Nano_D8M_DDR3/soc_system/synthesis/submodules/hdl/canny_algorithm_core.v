@@ -74,16 +74,24 @@ grayscale_top grayscale_top_inst (
 reg [BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] output_data;  // algorithm output data
 reg output_valid;
 reg output_end_of_video;
+wire output_ready; // [lucahhot]: Using this new signal to indicate that the grayscale_top module is ready to output data
+
+// [lucahhot]: Assign output_ready when the grayscale_top module is not empty
+assign output_ready = ~img_out_empty;
 
 always @(posedge clk or posedge rst)
 	if (rst) begin
 		output_data <= {(BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1){1'b0}};
 		output_valid <= 1'b0;
-	  output_end_of_video <= 1'b0;
+	    output_end_of_video <= 1'b0;
 	end else begin
-		output_data <= input_valid ? {grey_result, grey_result, grey_result} : output_data;
-		output_valid <= input_valid; // one clock cycle latency in this algorithm
-	  output_end_of_video <= input_valid ? data_int[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT] : output_end_of_video;
+        // [lucahhot]: We set output data to the output of the grayscale_top output FIFO (img_out_dout) and only when output_ready is high 
+		output_data <= output_ready ? img_out_dout : output_data;
+        // [lucahhot]: We set output_valid to output_ready (need the 1 cycle delay since output_data needs 1 cycle to get assigned with unblocking assignment)
+		output_valid <= output_ready; 
+        // [lucahhot]: This just passes the end_of_video signal through (there is no logic to modify it in this algorithm)
+        // Only passes through when output_ready is working
+	    output_end_of_video <= output_ready ? data_int[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT] : output_end_of_video;
 	end	
 
 /******************************************************************************/
@@ -94,15 +102,24 @@ always @(posedge clk or posedge rst)
 /* Start of flow control processing                                           */
 /******************************************************************************/
 
-assign read = ~stall_out; 
+// [lucahhot]: To request new data, doesn't necessarily mean we will since stall_in might be high (input is stalled)
+// Only read in a new value if image_full == 1'b0 (meaning we have space to write new data into the grayscale_top module)
+assign read = (~stall_out & ~image_full);
 
+// [lucahhot]: To output data, we need to have valid data to output or have data available to output 
+// I don't know why we also look at data_available since its just the same as output_valid but one cycle after stall_out and output_valid are high?
+// Maybe this is in case there is a stall out in the previous cycle and we have yet to output data that has just been processed?
 assign write = ( output_valid | data_available); 
 	
+// [lucahhot]: Same as read but only if input is not stalled (only when this is high can we take in new input data)
 assign input_valid = (read & ~stall_in);
 
+// [lucahhot]: Take in new input if input_valid == 1'b1 otherwise keep the old data
+// From Github Copilot: The reason for concatenating end_of_video with data_in could be to include the end_of_video signal along with the data 
+// for further processing. This way, the downstream logic can use the end_of_video signal to determine when the video data stream ends while processing data_in.
 assign data_int = (input_valid) ? {end_of_video, data_in} : data_int_reg;
 
-// hold data if not writing or output stalled, otherwise assign internal data
+// hold data if not writing or output stalled, otherwise assign internal data 
 assign data_out = (output_valid | data_available) ? output_data : data_out_reg[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0];
 assign end_of_video_out = (output_valid | data_available) ? output_end_of_video : data_out_reg[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT];
 
