@@ -1,7 +1,4 @@
 
-// Same as user_algorithm_core but using our own grayscale modules instead of the RGB to grayscale conversion
-// that the original project used. This will allow us to input our entire canny pipeline here too
-
 module canny_algorithm_core
 
 	#(parameter BITS_PER_SYMBOL = 8,

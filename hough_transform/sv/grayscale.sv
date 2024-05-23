@@ -1,4 +1,3 @@
-// Comment this line out for synthesis but uncomment for simulations
 
 module grayscale (
     input  logic        clock,
