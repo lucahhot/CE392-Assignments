@@ -82,14 +82,12 @@ always_comb begin
     next_state = state;
     in_rd_en = 1'b0;
     out_wr_en = 1'b0;
-    out_wr_data = 8'h00;
-    out_wr_addr = 0;
+    out_din = 8'h00;
     counter_c = counter;
     col_c = col;
     row_c = row;
     shift_reg_c = shift_reg;
     hysteresis_c = hysteresis;
-    hough_start = 1'b0;
     pixel1_c = pixel1;
     pixel2_c = pixel2;
     pixel3_c = pixel3;
@@ -178,7 +176,6 @@ case(state)
                     col_c = '0;
                     counter_c = '0;
                     hysteresis_c = '0;
-                    hough_start = 1'b1;
                 end else begin
                     col_c = '0;
                     row_c = row + 1'b1;
@@ -192,14 +189,12 @@ case(state)
             next_state = PROLOGUE;
             in_rd_en = 1'b0;
             out_wr_en = 1'b0;
-            out_wr_data = '0;
-            out_wr_addr = '0;
+            out_din = '0;
             counter_c = 'X;
             col_c = 'X;
             row_c = 'X;
             shift_reg_c = '{default: '{default: '0}};
             hysteresis_c = 'X;
-            hough_start = 1'b0;
             pixel1_c = 'X;
             pixel2_c = 'X;
             pixel3_c = 'X;

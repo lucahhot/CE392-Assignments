@@ -138,7 +138,7 @@ always_comb begin
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
-        // Basically for the last 2*REDUCED_WIDTH+3 pixels, shift in 0s since there are no more image pixels
+        // Basically for the last 2*WIDTH+3 pixels, shift in 0s since there are no more image pixels
         end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3)) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
@@ -169,26 +169,26 @@ always_comb begin
                 pixel_values[2] = shift_reg[2];
                 pixel_values[3] = shift_reg[3];
                 pixel_values[4] = shift_reg[4];
-                pixel_values[5] = shift_reg[REDUCED_WIDTH];
-                pixel_values[6] = shift_reg[REDUCED_WIDTH+1];
-                pixel_values[7] = shift_reg[REDUCED_WIDTH+2];
-                pixel_values[8] = shift_reg[REDUCED_WIDTH+3];
-                pixel_values[9] = shift_reg[REDUCED_WIDTH+4];
-                pixel_values[10] = shift_reg[REDUCED_WIDTH*2];
-                pixel_values[11] = shift_reg[REDUCED_WIDTH*2+1];
-                pixel_values[12] = shift_reg[REDUCED_WIDTH*2+2];
-                pixel_values[13] = shift_reg[REDUCED_WIDTH*2+3];
-                pixel_values[14] = shift_reg[REDUCED_WIDTH*2+4];
-                pixel_values[15] = shift_reg[REDUCED_WIDTH*3];
-                pixel_values[16] = shift_reg[REDUCED_WIDTH*3+1];
-                pixel_values[17] = shift_reg[REDUCED_WIDTH*3+2];
-                pixel_values[18] = shift_reg[REDUCED_WIDTH*3+3];
-                pixel_values[19] = shift_reg[REDUCED_WIDTH*3+4];
-                pixel_values[20] = shift_reg[REDUCED_WIDTH*4];
-                pixel_values[21] = shift_reg[REDUCED_WIDTH*4+1];
-                pixel_values[22] = shift_reg[REDUCED_WIDTH*4+2];
-                pixel_values[23] = shift_reg[REDUCED_WIDTH*4+3];
-                pixel_values[24] = shift_reg[REDUCED_WIDTH*4+4];
+                pixel_values[5] = shift_reg[WIDTH];
+                pixel_values[6] = shift_reg[WIDTH+1];
+                pixel_values[7] = shift_reg[WIDTH+2];
+                pixel_values[8] = shift_reg[WIDTH+3];
+                pixel_values[9] = shift_reg[WIDTH+4];
+                pixel_values[10] = shift_reg[WIDTH*2];
+                pixel_values[11] = shift_reg[WIDTH*2+1];
+                pixel_values[12] = shift_reg[WIDTH*2+2];
+                pixel_values[13] = shift_reg[WIDTH*2+3];
+                pixel_values[14] = shift_reg[WIDTH*2+4];
+                pixel_values[15] = shift_reg[WIDTH*3];
+                pixel_values[16] = shift_reg[WIDTH*3+1];
+                pixel_values[17] = shift_reg[WIDTH*3+2];
+                pixel_values[18] = shift_reg[WIDTH*3+3];
+                pixel_values[19] = shift_reg[WIDTH*3+4];
+                pixel_values[20] = shift_reg[WIDTH*4];
+                pixel_values[21] = shift_reg[WIDTH*4+1];
+                pixel_values[22] = shift_reg[WIDTH*4+2];
+                pixel_values[23] = shift_reg[WIDTH*4+3];
+                pixel_values[24] = shift_reg[WIDTH*4+4];
 
                 pixel_counter_c = 0;
                 numerator_c = '{default: '{default: '0}};

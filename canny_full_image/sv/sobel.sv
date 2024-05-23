@@ -139,19 +139,19 @@ always_comb begin
 
             // Only calculate sobel value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in ie. 
             // if the previous stage is still running (gaussian blur), then don't do any sobel calculations)
-            if (in_empty == 1'b0 || ((row*REDUCED_WIDTH) + col > (PIXEL_COUNT-1) - (REDUCED_WIDTH+2) - 1)) begin
+            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2) - 1)) begin
                 // If we are on an edge pixel, the sobel value will be zero
                 if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                     // Grabbing correct pixel values from the shift register
                     pixel1_c = shift_reg[0];
                     pixel2_c = shift_reg[1];
                     pixel3_c = shift_reg[2];
-                    pixel4_c = shift_reg[REDUCED_WIDTH];
-                    // pixel5 = shift_reg[REDUCED_WIDTH+1];
-                    pixel6_c = shift_reg[REDUCED_WIDTH+2];
-                    pixel7_c = shift_reg[REDUCED_WIDTH*2];
-                    pixel8_c = shift_reg[REDUCED_WIDTH*2+1];
-                    pixel9_c = shift_reg[REDUCED_WIDTH*2+2];
+                    pixel4_c = shift_reg[WIDTH];
+                    // pixel5 = shift_reg[WIDTH+1];
+                    pixel6_c = shift_reg[WIDTH+2];
+                    pixel7_c = shift_reg[WIDTH*2];
+                    pixel8_c = shift_reg[WIDTH*2+1];
+                    pixel9_c = shift_reg[WIDTH*2+2];
                     cx_c = 16'($signed(pixel3_c + 2*pixel6_c + pixel9_c) - $signed(pixel1_c + 2*pixel4_c + pixel7_c));
                     cy_c = 16'($signed(pixel7_c + 2*pixel8_c + pixel9_c) - $signed(pixel1_c + 2*pixel2_c + pixel3_c));
                     // Using the absolute value
@@ -162,7 +162,7 @@ always_comb begin
                     cy_c = '0;
                 end
                 // Increment col and row trackers
-                if (col == REDUCED_WIDTH-1) begin
+                if (col == WIDTH-1) begin
                     col_c = 0;
                     row_c++;
                 end else
@@ -184,7 +184,7 @@ always_comb begin
                 out_wr_en = 1'b1;
                 next_state = FILTER;
                 // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                if (row == REDUCED_HEIGHT-1 && col == REDUCED_WIDTH-1) begin
+                if (row == HEIGHT-1 && col == WIDTH-1) begin
                     next_state = PROLOGUE;
                     row_c = 0;
                     col_c = 0;
