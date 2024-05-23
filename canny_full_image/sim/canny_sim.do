@@ -12,6 +12,7 @@ vlog -work work "../sv/non_maximum_suppressor.sv"
 vlog -work work "../sv/hysteresis.sv"
 vlog -work work "../sv/canny_top.sv"
 vlog -work work "../sv/canny_tb.sv"
+vlog -work work "../sv/div_unsigned.sv"
 
 
 # start basic simulation

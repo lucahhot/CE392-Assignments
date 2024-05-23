@@ -141,7 +141,7 @@ module div_unsigned #(
 
                 p_c = get_msb_pos(a) - get_msb_pos(b);
 
-                p_c = ((b << p) > a) ? DIVIDEND_WIDTH'(p_c - 1) : p_c;
+                p_c = ((b << p_c) > a) ? DIVIDEND_WIDTH'(p_c - 1) : p_c;
                 
                 q_c = DIVIDEND_WIDTH'(q + (1 << p_c));
 

@@ -56,7 +56,7 @@ wire image_full;
 wire img_out_empty;
 wire [7:0] img_out_dout;
 
-grayscale_top grayscale_top_inst (
+canny_top canny_top (
     .clock(clk),
     .reset(rst),
     .image_full(image_full),
