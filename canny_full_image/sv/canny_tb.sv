@@ -153,7 +153,7 @@ initial begin : img_write_process
 
             if (cmp_dout != {3{img_out_dout}}) begin
                 error_count += 1;
-                $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{img_out_dout}}, cmp_dout, i);
+                // $write("@ %0t: %s(%0d): ERROR: %x != %x at address 0x%x.\n", $time, IMG_OUT_NAME, i+1, {3{img_out_dout}}, cmp_dout, i);
             end
             img_out_rd_en = 1'b1;
             i += BYTES_PER_PIXEL;
