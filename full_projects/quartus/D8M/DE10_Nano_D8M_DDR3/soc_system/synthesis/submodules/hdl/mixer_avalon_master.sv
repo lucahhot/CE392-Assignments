@@ -175,8 +175,13 @@ always_comb begin
             end 
             // We don't need to wait for anything else after waitrequest is de-asserted so we can go to the next state
             else begin
-                next_state = ENABLE;
+                next_state = DONE;
             end
+        end
+
+        // When we are dont with the Mixer, we just sit here.
+        DONE: begin
+            next_state = DONE;
         end
 
         default: begin
