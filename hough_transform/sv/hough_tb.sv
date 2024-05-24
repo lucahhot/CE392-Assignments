@@ -6,6 +6,7 @@ module hough_tb;
 localparam string IMG_IN_NAME  = "../images/road_image_1280_720.bmp";
 localparam string MASK_IN_NAME = "../images/mask_1280_720.bmp";
 localparam string IMG_OUT_NAME = "../images/output.bmp";
+localparam string IMG_OUT_NAME_1 = "../images/output_1.bmp";
 localparam string IMG_CMP_NAME = "../images/stage4_hysteresis.bmp";
 localparam string FILE_OUT_NAME = "../source/accum_buff_rtl_output.txt";
 localparam string FILE_CMP_NAME = "../source/accum_buff_results.txt";
@@ -45,9 +46,10 @@ logic [$clog2(IMAGE_SIZE)-1:0]  image_bram_rd_addr;
 logic [23:0]                    image_bram_rd_data;
 
 logic   hold_clock = '0;
-logic   in_write_done = '0;
+logic   in_write_done_1 = '0;
 logic   mask_write_done = '0;
 logic   out_read_done = '0;
+logic   out_read_done_1 = '0;
 integer BRAM_out_errors = '0;
 
 
@@ -143,9 +145,37 @@ initial begin : img_read_process
     end
 
     @(negedge clock);
+    @(posedge clock);
+    @(negedge clock);
     image_wr_en = 1'b0;
     $fclose(in_file);
-    in_write_done = 1'b1;
+    in_write_done_1 = 1'b1;
+
+    wait(out_read_done_1)
+    @(negedge clock);
+    $display("@ %0t: Loading file %s...", $time, IMG_IN_NAME);
+    
+    in_file = $fopen(IMG_IN_NAME, "rb");
+    
+    image_wr_en = 1'b0;
+    
+    // Skip BMP header
+    r = $fread(bmp_header, in_file, 0, BMP_HEADER_SIZE);
+
+    // Read data from image file
+    i = 0;
+    while ( i < BMP_DATA_SIZE ) begin
+        @(negedge clock);
+        image_wr_en = 1'b0;
+        if (image_full == 1'b0) begin
+            r = $fread(image_din, in_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+            image_wr_en = 1'b1;
+            i += BYTES_PER_PIXEL;
+        end
+    end
+    @(negedge clock);
+    image_wr_en = 1'b0;
+    $fclose(in_file);
 end
 
 initial begin : mask_read_process
@@ -283,6 +313,37 @@ initial begin : img_write_process
     @(negedge clock);
     $fclose(out_file);
     $fclose(cmp_file);
+    out_read_done_1 = 1'b1;
+
+    @(negedge clock);
+
+    wait(highlight_done);
+
+    $display("@ %0t: Comparing file %s...", $time, IMG_OUT_NAME);
+    
+    out_file = $fopen(IMG_OUT_NAME_1, "wb");
+    cmp_file = $fopen(IMG_CMP_NAME, "rb");
+    
+    // Copy the BMP header
+    r = $fread(bmp_header, cmp_file, 0, BMP_HEADER_SIZE);
+    for (i = 0; i < BMP_HEADER_SIZE; i++) begin
+        $fwrite(out_file, "%c", bmp_header[i]);
+    end
+
+    image_bram_rd_addr = 0;
+    while (image_bram_rd_addr < IMAGE_SIZE) begin
+        @(negedge clock);
+            r = $fread(cmp_dout, cmp_file, BMP_HEADER_SIZE+i, BYTES_PER_PIXEL);
+            $fwrite(out_file, "%c%c%c", image_bram_rd_data[23:16], image_bram_rd_data[15:8], image_bram_rd_data[7:0]);
+
+            
+            image_bram_rd_addr ++;
+    end
+
+    @(negedge clock);
+    $fclose(out_file);
+    $fclose(cmp_file);
+
     out_read_done = 1'b1;
 end
 

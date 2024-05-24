@@ -25,7 +25,7 @@ module highlight #(
     parameter THETA_BITS = 9,
     parameter BITS = 8,
     parameter TRIG_DATA_SIZE = 12,
-    // These bottom 2 parameters control the line length of the lanes (need to tune)
+    // These bottom 2 parameters control the line length of the lanes (need to t une)
     parameter K_START = -1000,
     parameter K_END = 1000,
     parameter OFFSET = 8,
@@ -35,7 +35,7 @@ module highlight #(
     input  logic        clock,
     input  logic        reset,
     input  logic        hough_done, // Done signal from hough module 
-    // input  logic        load_finished,
+    input  logic        load_finished,
     // INPUTS from hough
     input logic signed [15:0]       left_rho_in,
     input logic signed [15:0]       right_rho_in,
@@ -55,8 +55,8 @@ module highlight #(
 logic signed [15:0] left_rho_in_registered, right_rho_in_registered;
 logic signed [THETA_BITS-1:0] left_theta_in_registered, right_theta_in_registered;
 
-// logic hough_done_registered;
-// logic load_finished_registered;
+logic hough_done_registered;
+logic load_finished_registered;
 
 // DEQUANTIZE function
 function logic signed [15:0] DEQUANTIZE(logic signed [31:0] i);
@@ -152,6 +152,24 @@ always_ff @(posedge clock or posedge reset) begin
     end
 end
 
+always_ff @(posedge hough_done or posedge clock) begin
+    if(hough_done != 0) begin
+        hough_done_registered <= hough_done;
+    end
+    if(state==IDLE && next_state==LANE_SELECT) begin
+        hough_done_registered <= 0;
+    end
+end
+
+always_ff @(posedge load_finished or posedge clock) begin
+    if(load_finished != 0) begin
+        load_finished_registered <= load_finished;
+    end
+    if(state==IDLE && next_state==LANE_SELECT) begin
+        load_finished_registered <= 0;
+    end
+end
+
 always_comb begin
     // Outputs
     bram_out_wr_en = 1'b0;
@@ -182,8 +200,11 @@ always_comb begin
     case (state)
         // Wait for hough_done to be asserted to move on to the next state
         IDLE: begin
-            if (hough_done == 1'b1) begin
+            if (hough_done_registered == 1'b1 && load_finished_registered == 1'b1) begin
                 next_state = LANE_SELECT;
+                x_c = 0;
+                y_c = 0;
+                left_done_c = 1'b0;
                 // hough_done_registered = 0;
                 // load_finished_registered = 0;
             end

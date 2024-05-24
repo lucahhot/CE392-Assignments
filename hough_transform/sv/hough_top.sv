@@ -180,9 +180,9 @@ logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  highlight_mask_bram_rd_addr;
 logic bram_out_wr_en_highlight;
 logic [$clog2(IMAGE_SIZE)-1:0] bram_out_wr_addr_highlight;
 logic [23:0]  bram_out_wr_data_highlight;
-logic highlight_done_internal;
-logic highlight_done_registered;
-assign highlight_done = highlight_done_registered;
+// logic highlight_done_internal;
+// logic highlight_done_registered;
+// assign highlight_done = highlight_done_registered;
 // assign highlight_done = load_finished;
 
 assign image_bram_wr_en = load_finished_registered ? bram_out_wr_en_highlight : image_bram_wr_en_loader;
@@ -314,7 +314,7 @@ grayscale_mask #(
     .in_rd_en(mask_rd_en),
     .in_empty(mask_empty),
     .in_dout(mask_dout),
-    .hough_done(highlight_done_internal),
+    .hough_done(highlight_done),
     .out_wr_en(mask_bram_wr_en),
     .out_wr_addr(mask_bram_wr_addr),
     .out_wr_data(mask_bram_wr_data)
@@ -527,7 +527,8 @@ highlight #(
 ) highlight_inst (
     .clock(clock),
     .reset(reset),
-    .hough_done(hough_done_registered & load_finished_registered),
+    .hough_done(hough_done),
+    .load_finished(load_finished),
     .left_rho_in(left_rho_out),
     .right_rho_in(right_rho_out),
     .left_theta_in(left_theta_out),
@@ -537,14 +538,14 @@ highlight #(
     .bram_out_wr_en(bram_out_wr_en_highlight),
     .bram_out_wr_addr(bram_out_wr_addr_highlight),
     .bram_out_wr_data(bram_out_wr_data_highlight),
-    .highlight_done(highlight_done_internal)
+    .highlight_done(highlight_done)
 );
 
 // Block to assign value to hough_done_registered
 always_ff @(negedge clock or posedge reset) begin
     if (reset == 1'b1) begin
         hough_done_registered <= 1'b0;
-        highlight_done_registered <= 1'b0;
+        // highlight_done_registered <= 1'b0;
         load_finished_registered <= 1'b0;
     end else begin
         // We want hough_done_registered to be 1 when hough_done_internal is 1 and stay as 1 (hough_done_internal will go back to 0)
@@ -552,8 +553,9 @@ always_ff @(negedge clock or posedge reset) begin
             hough_done_registered <= 1'b1;
         end
 
-        if (highlight_done_internal == 1'b1) begin
-            highlight_done_registered <= 1'b1;
+        if (highlight_done == 1'b1) begin
+            hough_done_registered <= 1'b0;
+            load_finished_registered <= 1'b0;
         end
 
         if (load_finished == 1'b1) begin
