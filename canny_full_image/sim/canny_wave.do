@@ -12,8 +12,8 @@ add wave -noupdate -group canny_tb/canny_top_inst/img_grayscale_inst -radix hexa
 add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst
 add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst -radix hexadecimal /canny_tb/canny_top_inst/gaussian_inst/*
 
-add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst/divider_inst
-add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst/divider_inst -radix hexadecimal /canny_tb/canny_top_inst/gaussian_inst/divider_inst/*
+# add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst/divider_inst
+# add wave -noupdate -group canny_tb/canny_top_inst/gaussian_inst/divider_inst -radix hexadecimal /canny_tb/canny_top_inst/gaussian_inst/divider_inst/*
 
 add wave -noupdate -group canny_tb/canny_top_inst/sobel_inst
 add wave -noupdate -group canny_tb/canny_top_inst/sobel_inst -radix hexadecimal /canny_tb/canny_top_inst/sobel_inst/*

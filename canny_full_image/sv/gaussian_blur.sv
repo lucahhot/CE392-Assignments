@@ -15,6 +15,9 @@ module gaussian_blur #(
 
 localparam DIVIDEND_WIDTH = 16;
 
+// If we hard code the denominator, we have 4123 errors, or 0.45% of total pixels but increases frequency by a worth it amount
+localparam DENOMINATOR = 159;
+
 // To unroll the MAC operation in the FILTER stage
 localparam UNROLL = 5;
 
@@ -61,24 +64,24 @@ logic [24:0][7:0] pixel_values;
 logic [4:0] pixel_counter, pixel_counter_c;
 
 // Divider signals
-logic start_div, div_valid_out;
-logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
-logic [7:0] divisor;
+// logic start_div, div_valid_out;
+// logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
+// logic [7:0] divisor;
 
-div_unsigned #(
-    .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
-    .DIVISOR_WIDTH(8)
-) divider_inst (
-    .clk(clock),
-    .reset(reset),
-    .valid_in(start_div),
-    .dividend(dividend),
-    .divisor(divisor),
-    .quotient(div_quotient_out),
-    // .remainder(div_remainder_out),
-    // .overflow(div_overflow_out),
-    .valid_out(div_valid_out)
-);
+// div_unsigned #(
+//     .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
+//     .DIVISOR_WIDTH(8)
+// ) divider_inst (
+//     .clk(clock),
+//     .reset(reset),
+//     .valid_in(start_div),
+//     .dividend(dividend),
+//     .divisor(divisor),
+//     .quotient(div_quotient_out),
+//     // .remainder(div_remainder_out),
+//     // .overflow(div_overflow_out),
+//     .valid_out(div_valid_out)
+// );
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -124,9 +127,9 @@ always_comb begin
     denominator_sum_c = denominator_sum;
     gaussian_blur_c = gaussian_blur;
 
-    start_div = 1'b0;
-    dividend = 0;
-    divisor = 0;
+    // start_div = 1'b0;
+    // dividend = 0;
+    // divisor = 0;
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // gaussian_blur function can go through every single pixel
@@ -192,7 +195,7 @@ always_comb begin
 
                 pixel_counter_c = 0;
                 numerator_c = '{default: '{default: '0}};
-                denominator_c = '{default: '{default: '0}};
+                // denominator_c = '{default: '{default: '0}};
 
                 // Calculate MAC for the numerator (might need to separate to speed up this cycle)
                 for (int i = -2; i <= 2; i++) begin
@@ -201,7 +204,7 @@ always_comb begin
                         if ((row+i) >= 0 && (row+i) < HEIGHT && (col+j) >= 0 && (col+j) < WIDTH) begin
                             // Calculate the numerator and denominator values for the gaussian blur in an unrolled fashion (5 MACs can be parallelized)
                             numerator_c[j+2] = numerator_c[j+2] + pixel_values[pixel_counter_c] * gaussian_filter[i+2][j+2];
-                            denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
+                            // denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
                         end
                         pixel_counter_c = pixel_counter_c + 1'b1;
                     end
@@ -214,15 +217,15 @@ always_comb begin
                 end else
                     col_c++;
 
-                start_div = 1'b1;
+                // start_div = 1'b1;
                 numerator_sum_c = 0;
-                denominator_sum_c = 0;
+                // denominator_sum_c = 0;
                 for (int i = 0; i < UNROLL; i++) begin
                     numerator_sum_c = numerator_sum_c + numerator_c[i];
-                    denominator_sum_c = denominator_sum_c + denominator_c[i];
+                    // denominator_sum_c = denominator_sum_c + denominator_c[i];
                 end
-                dividend = numerator_sum_c;
-                divisor = denominator_sum_c;
+                // dividend = numerator_sum_c;
+                // divisor = denominator_sum_c;
                 next_state = OUTPUT;
 
             end else begin
@@ -235,9 +238,9 @@ always_comb begin
                     col_c++;
 
                 // Start a dummy division to keep the pipeline going
-                start_div = 1'b1;
-                dividend = 0;
-                divisor = 1;
+                // start_div = 1'b1;
+                // dividend = 0;
+                // divisor = 1;
                 next_state = OUTPUT;
             end
         end
@@ -245,17 +248,18 @@ always_comb begin
         // Waiting for division and writing to FIFO
         OUTPUT: begin
             // Wait for division to complete
-            if (div_valid_out == 1'b1) begin
+            // if (div_valid_out == 1'b1) begin
                 if (out_full == 1'b0) begin
                     // numerator_sum_c = 0;
                     // denominator_sum_c = 0;
                     // Sum up the numerator and denominator values
                     // for (int i = 0; i < UNROLL; i++) begin
                     //     numerator_sum_c = numerator_sum_c + numerator[i];
-                    //     denominator_sum_c = denominator_sum_c + denominator[i];
+                    //     // denominator_sum_c = denominator_sum_c + denominator[i];
                     // end
-                    gaussian_blur_c = div_quotient_out;
+                    // gaussian_blur_c = div_quotient_out;
                     // gaussian_blur_c = numerator_sum_c / denominator_sum_c;
+                    gaussian_blur_c = numerator_sum / DENOMINATOR;
                     // Accounting for saturation
                     gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
                     out_din = 8'(gaussian_blur_c);
@@ -272,11 +276,11 @@ always_comb begin
                         // shift_reg_c = '{default: '{default: '0}};
                     end
                 end
-            end else begin
-                // Cycle through this state
-                next_state = OUTPUT;
-                out_wr_en = 1'b0;
-            end
+            // end else begin
+            //     // Cycle through this state
+            //     next_state = OUTPUT;
+            //     out_wr_en = 1'b0;
+            // end
         end
 
         default: begin
