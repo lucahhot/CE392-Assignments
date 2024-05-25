@@ -49,7 +49,7 @@ always_comb begin
         S0: begin
             if (in_empty == 1'b0) begin
                 // gs_c = 8'(($unsigned({2'b0, in_dout[23:16]}) + $unsigned({2'b0, in_dout[15:8]}) + $unsigned({2'b0, in_dout[7:0]})) / $unsigned(10'd3));
-                gs_c = 8'(in_dout + 50);
+                gs_c = in_dout;
                 in_rd_en = 1'b1;
                 next_state = COUNT;
             end
