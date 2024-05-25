@@ -18,7 +18,7 @@ module sobel #(
 typedef enum logic [1:0] {S0, S1, COUNT} state_types;
 state_types state, next_state;
 
-localparam COUNT_DELAY = 1000;
+localparam COUNT_DELAY = 5000;
 
 logic [7:0] gs, gs_c;
 
