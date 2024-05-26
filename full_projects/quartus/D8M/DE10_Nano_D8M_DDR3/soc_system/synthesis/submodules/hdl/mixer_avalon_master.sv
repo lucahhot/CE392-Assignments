@@ -19,7 +19,7 @@ module mixer_avalon_master (
 );
 
 typedef enum logic [3:0] {INIT,STOP,WRITE_X_OFFSET_0,WRITE_Y_OFFSET_0,WRITE_CONTROL_0,
-                          WRITE_X_OFFSET_1, WRITE_Y_OFFSET_1, WRITE_CONTROL_1, ENABLE} state_types;
+                          WRITE_X_OFFSET_1, WRITE_Y_OFFSET_1, WRITE_CONTROL_1, ENABLE, DONE} state_types;
 state_types cur_state, next_state;
 
 
@@ -63,7 +63,7 @@ always_comb begin
             end 
             // We don't need to wait for anything else after waitrequest is de-asserted so we can go to the next state
             else begin
-                next_state = WRITE_X_OFFSET;
+                next_state = WRITE_X_OFFSET_0;
             end
         end
 
