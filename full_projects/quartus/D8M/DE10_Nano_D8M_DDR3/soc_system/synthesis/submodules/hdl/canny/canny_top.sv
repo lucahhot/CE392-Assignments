@@ -136,45 +136,45 @@ fifo #(
     .din(sobel_din),
     .full(sobel_full),
     .rd_clk(clock),
-    .rd_en(sobel_rd_en),
-    .dout(sobel_dout),
-    .empty(sobel_empty)
-    // .rd_en(img_out_rd_en),
-    // .dout(img_out_dout),
-    // .empty(img_out_empty)
-);
-
-sobel #(
-    .WIDTH(WIDTH),
-    .HEIGHT(HEIGHT)
-) sobel_inst(
-    .clock(clock),
-    .reset(reset),
-    .in_rd_en(sobel_rd_en),
-    .in_empty(sobel_empty),
-    .in_dout(sobel_dout),
-    .out_wr_en(nms_wr_en),
-    .out_full(nms_full),
-    .out_din(nms_din)
-);
-
-fifo #(
-    .FIFO_DATA_WIDTH(8),
-    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
-) fifo_nms_inst (
-    .reset(reset),
-    .wr_clk(clock),
-    .wr_en(nms_wr_en),
-    .din(nms_din),
-    .full(nms_full),
-    .rd_clk(clock),
-    // .rd_en(nms_rd_en),
-    // .dout(nms_dout),
-    // .empty(nms_empty)
+    // .rd_en(sobel_rd_en),
+    // .dout(sobel_dout),
+    // .empty(sobel_empty)
     .rd_en(img_out_rd_en),
     .dout(img_out_dout),
     .empty(img_out_empty)
 );
+
+// sobel #(
+//     .WIDTH(WIDTH),
+//     .HEIGHT(HEIGHT)
+// ) sobel_inst(
+//     .clock(clock),
+//     .reset(reset),
+//     .in_rd_en(sobel_rd_en),
+//     .in_empty(sobel_empty),
+//     .in_dout(sobel_dout),
+//     .out_wr_en(nms_wr_en),
+//     .out_full(nms_full),
+//     .out_din(nms_din)
+// );
+
+// fifo #(
+//     .FIFO_DATA_WIDTH(8),
+//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
+// ) fifo_nms_inst (
+//     .reset(reset),
+//     .wr_clk(clock),
+//     .wr_en(nms_wr_en),
+//     .din(nms_din),
+//     .full(nms_full),
+//     .rd_clk(clock),
+//     // .rd_en(nms_rd_en),
+//     // .dout(nms_dout),
+//     // .empty(nms_empty)
+//     .rd_en(img_out_rd_en),
+//     .dout(img_out_dout),
+//     .empty(img_out_empty)
+// );
 
 // non_maximum_suppressor #(
 //     .WIDTH(WIDTH),
