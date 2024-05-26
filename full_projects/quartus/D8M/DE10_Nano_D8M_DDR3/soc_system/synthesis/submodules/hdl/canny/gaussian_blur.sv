@@ -254,42 +254,44 @@ always_comb begin
             start_div = 1'b1;
             dividend = numerator_sum_c;
             divisor = denominator_sum_c;
-            next_state = WAIT;
+            next_state = OUTPUT;;
             // quotient_c = numerator_sum_c / denominator_sum_c;
             // next_state = OUTPUT;
         end
 
-        // Waiting for division 
-        WAIT: begin
-            // Wait for division to complete
-            if (div_valid_out == 1'b1) begin
-                // Clock the quotient value into register since it's only asserted for one clock cycle out of div_unsigned
-                quotient_c = div_quotient_out;
-                next_state = OUTPUT;
-            end else begin
-                // Cycle through this state
-                next_state = WAIT;
-            end
-        end
+        // // Waiting for division 
+        // WAIT: begin
+        //     // Wait for division to complete
+        //     if (div_valid_out == 1'b1) begin
+        //         // Clock the quotient value into register since it's only asserted for one clock cycle out of div_unsigned
+        //         quotient_c = div_quotient_out;
+        //         next_state = OUTPUT;
+        //     end else begin
+        //         // Cycle through this state
+        //         next_state = WAIT;
+        //     end
+        // end
 
         // Write quotient result to output FIFO
         OUTPUT: begin
-            if (out_full == 1'b0) begin
-                gaussian_blur_c = quotient; // Value from register
-                // Accounting for saturation
-                gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
-                out_din = 8'(gaussian_blur_c);
-                out_wr_en = 1'b1;
-                next_state = FILTER;
-                // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                if (row == HEIGHT-1 && col == WIDTH-1) begin
-                    next_state = PROLOGUE;
-                    row_c = 0;
-                    col_c = 0;
-                    counter_c = 0;
-                    numerator_c = 0;
-                    denominator_c = 0;
-                    // shift_reg_c = '{default: '{default: '0}};
+            if (div_valid_out == 1'b1) begin
+                if (out_full == 1'b0) begin
+                    gaussian_blur_c = div_quotient_out; 
+                    // Accounting for saturation
+                    gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
+                    out_din = 8'(gaussian_blur_c);
+                    out_wr_en = 1'b1;
+                    next_state = FILTER;
+                    // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
+                    if (row == HEIGHT-1 && col == WIDTH-1) begin
+                        next_state = PROLOGUE;
+                        row_c = 0;
+                        col_c = 0;
+                        counter_c = 0;
+                        numerator_c = 0;
+                        denominator_c = 0;
+                        // shift_reg_c = '{default: '{default: '0}};
+                    end
                 end
             end else begin
                 // Keep looping in OUTPUT till out_full == 1'b0
