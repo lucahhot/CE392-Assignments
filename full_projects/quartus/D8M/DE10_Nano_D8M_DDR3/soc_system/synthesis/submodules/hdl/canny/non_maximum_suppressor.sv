@@ -1,4 +1,6 @@
 
+// Modified NMS to try and work with the Intel VIP Suite IP cores.
+
 module non_maximum_suppressor #(
     parameter WIDTH = 1280,
     parameter HEIGHT = 720
@@ -15,6 +17,7 @@ module non_maximum_suppressor #(
 
 localparam SHIFT_REG_LEN = 2*WIDTH+3;
 localparam PIXEL_COUNT = WIDTH*HEIGHT;
+localparam STOP_SHIFTING_PIXEL_COUNT = (PIXEL_COUNT-1) - (WIDTH+2) - 1;
 
 typedef enum logic [1:0] {PROLOGUE, SUPPRESSION, OUTPUT} state_types;
 state_types state, next_state;
@@ -111,18 +114,20 @@ always_comb begin
     north_west_c = north_west;
     north_east_c = north_east;
 
+    // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
+
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // sobel function can go through every single pixel
     // Only shift a new value in if state is not in OUTPUT (writing NMS value to FIFO)
     if (state != OUTPUT) begin
-        if (in_empty == 1'b0) begin
+        if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding (Had to add a -1 here or else it would stall;
         // maybe it's because of the new dimensions of the reduced image
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2) - 1) begin
+        end else if ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -142,7 +147,9 @@ always_comb begin
         // non_maximum suppressor
         SUPPRESSION: begin
 
-            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2) - 1)) begin
+            // Modified to accomodate for new above shifting logic
+
+            if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT)) begin
                 // If we are on an edge pixel, the NMS value will be zero
                 if (row != 0 && row != (HEIGHT - 1) && col != 0 && col != (WIDTH - 1)) begin
                     

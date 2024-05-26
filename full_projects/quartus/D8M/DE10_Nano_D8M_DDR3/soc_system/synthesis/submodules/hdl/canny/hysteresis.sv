@@ -21,6 +21,7 @@ state_types state, next_state;
 
 localparam SHIFT_REG_LEN = 2*WIDTH+3;
 localparam PIXEL_COUNT = WIDTH*HEIGHT;
+localparam STOP_SHIFTING_PIXEL_COUNT = (PIXEL_COUNT-1) - (WIDTH+2) - 1;
 
 // Shift register
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
@@ -98,15 +99,17 @@ always_comb begin
     pixel8_c = pixel8;
     pixel9_c = pixel9;
 
+    // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
+
     if (state != OUTPUT) begin
-        if (in_empty == 1'b0) begin
+        if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding (Had to add a -1 here or else it would stall;
         // maybe it's because of the new dimensions of the reduced image
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2) - 1) begin
+        end else if ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -126,8 +129,10 @@ case(state)
         // HYSTERESIS
         HYSTERESIS: begin
 
+            // Modified to accomodate for new above shifting logic
+
             // Only calculate hysteresis value if there is input from the input FIFO 
-            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (WIDTH+2) - 1)) begin
+            if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT)) begin
                 
                 // If we are on an edge pixel, the hysteresis value will be zero 
                 // NOTE: we have to check the adjusted row and col (taking into account STARTING_X and STARTING_Y)
