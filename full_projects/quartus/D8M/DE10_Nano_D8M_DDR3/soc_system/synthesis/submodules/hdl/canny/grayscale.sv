@@ -54,7 +54,7 @@ always_comb begin
             out_wr_en = 1'b0;
             out_din = 8'b0;
             next_state = S0;
-            gs_c = 8'X;
+            gs_c = 8'h0;
         end
 
     endcase
