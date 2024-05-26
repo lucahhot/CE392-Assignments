@@ -171,7 +171,7 @@ always_comb begin
             // Modified to accomodate for new above shifting logic
 
             // Only calculate gaussian blur value if we know there is input from the input FIFO (to prevent calculations even if there is no input being shifted in)
-            if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3))) begin
+            if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT)) begin
 
                 // Grabbing correct pixel values from the shift register
                 pixel_values[0] = shift_reg[0];
