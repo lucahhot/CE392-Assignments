@@ -1,4 +1,6 @@
 
+// Modified Gaussian Blur to try and work with the Intel VIP Suite IP cores.
+
 module gaussian_blur #(
     parameter WIDTH = 1280,
     parameter HEIGHT = 720
@@ -32,6 +34,7 @@ typedef enum logic [1:0] {PROLOGUE,FILTER,OUTPUT} state_types;
 state_types state, next_state;
 localparam SHIFT_REG_LEN = 4*WIDTH+5;
 localparam PIXEL_COUNT = WIDTH*HEIGHT;
+localparam STOP_SHIFTING_PIXEL_COUNT = (PIXEL_COUNT-1) - (2*WIDTH+3);
 
 // Shift register
 logic [0:SHIFT_REG_LEN-1][7:0] shift_reg;
@@ -131,18 +134,20 @@ always_comb begin
     // dividend = 0;
     // divisor = 0;
 
+    // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
+
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // gaussian_blur function can go through every single pixel
     // Only shift a new value in if state is not in S2 (writing gaussian blur value to FIFO)
     if (state != OUTPUT) begin
-        if (in_empty == 1'b0) begin
+        if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
             in_rd_en = 1'b1;
         // If we have reached the end of the pixels from the FIFO, shift in zeros for padding
         // Basically for the last 2*WIDTH+3 pixels, shift in 0s since there are no more image pixels
-        end else if ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3)) begin
+        end else if ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT) begin
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = 8'h00;
         end
@@ -163,8 +168,10 @@ always_comb begin
         // Gaussian blurring
         FILTER: begin
 
-            // Only calculate gaussian blur value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in 
-            if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3))) begin
+            // Modified to accomodate for new above shifting logic
+
+            // Only calculate gaussian blur value if we know there is input from the input FIFO (to prevent calculations even if there is no input being shifted in)
+            if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3))) begin
 
                 // Grabbing correct pixel values from the shift register
                 pixel_values[0] = shift_reg[0];

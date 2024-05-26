@@ -1,5 +1,5 @@
 
-// Modified sobel filter to try and work with the Intel VIP Suite IP cores.
+// Modified Sobel filter to try and work with the Intel VIP Suite IP cores.
 
 module sobel #(
     parameter WIDTH = 1280,
