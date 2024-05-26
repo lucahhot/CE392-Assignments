@@ -66,28 +66,28 @@ logic [24:0][7:0] pixel_values;
 // Pixel counter
 logic [4:0] pixel_counter, pixel_counter_c;
 
-// Divider signals
-logic start_div, div_valid_out;
-logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
-logic [7:0] divisor;
+// // Divider signals
+// logic start_div, div_valid_out;
+// logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
+// logic [7:0] divisor;
 
 // To hold the quotient in case the output FIFO is full
 logic [DIVIDEND_WIDTH-1:0] quotient, quotient_c;
 
-div_unsigned #(
-    .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
-    .DIVISOR_WIDTH(8)
-) divider_inst (
-    .clk(clock),
-    .reset(reset),
-    .valid_in(start_div),
-    .dividend(dividend),
-    .divisor(divisor),
-    .quotient(div_quotient_out),
-    // .remainder(div_remainder_out),
-    // .overflow(div_overflow_out),
-    .valid_out(div_valid_out)
-);
+// div_unsigned #(
+//     .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
+//     .DIVISOR_WIDTH(8)
+// ) divider_inst (
+//     .clk(clock),
+//     .reset(reset),
+//     .valid_in(start_div),
+//     .dividend(dividend),
+//     .divisor(divisor),
+//     .quotient(div_quotient_out),
+//     // .remainder(div_remainder_out),
+//     // .overflow(div_overflow_out),
+//     .valid_out(div_valid_out)
+// );
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -136,9 +136,9 @@ always_comb begin
     gaussian_blur_c = gaussian_blur;
     quotient_c = quotient;
 
-    start_div = 1'b0;
-    dividend = 0;
-    divisor = 0;
+    // start_div = 1'b0;
+    // dividend = 0;
+    // divisor = 0;
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
@@ -251,9 +251,9 @@ always_comb begin
                 denominator_sum_c = denominator_sum_c + denominator[i];
             end
             // Start division HERE and cycle through OUTPUT state while waiting for division to complete
-            start_div = 1'b1;
-            dividend = numerator_sum_c;
-            divisor = denominator_sum_c;
+            // start_div = 1'b1;
+            // dividend = numerator_sum_c;
+            // divisor = denominator_sum_c;
             next_state = OUTPUT;;
             // quotient_c = numerator_sum_c / denominator_sum_c;
             // next_state = OUTPUT;
@@ -311,9 +311,9 @@ always_comb begin
             row_c = 'X;
             numerator_c = '{default: '{default: '0}};;
             denominator_c = '{default: '{default: '0}};;
-            start_div = 1'b0;
-            dividend = 'X;
-            divisor = 'X;
+            // start_div = 1'b0;
+            // dividend = 'X;
+            // divisor = 'X;
             pixel_counter_c = 'X;
             numerator_sum_c = 'X;
             denominator_sum_c = 'X;
