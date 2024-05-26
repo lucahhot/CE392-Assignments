@@ -274,9 +274,10 @@ always_comb begin
 
         // Write quotient result to output FIFO
         OUTPUT: begin
-            if (div_valid_out == 1'b1) begin
+            // if (div_valid_out == 1'b1) begin
                 if (out_full == 1'b0) begin
-                    gaussian_blur_c = div_quotient_out; 
+                    // gaussian_blur_c = div_quotient_out; 
+                    gaussian_blur_c = numerator_sum_c / DENOMINATOR;
                     // Accounting for saturation
                     gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
                     out_din = 8'(gaussian_blur_c);
@@ -293,10 +294,10 @@ always_comb begin
                         // shift_reg_c = '{default: '{default: '0}};
                     end
                 end
-            end else begin
-                // Keep looping in OUTPUT till out_full == 1'b0
-                next_state = OUTPUT;
-            end
+            // end else begin
+            //     // Keep looping in OUTPUT till out_full == 1'b0
+            //     next_state = OUTPUT;
+            // end
         end
 
         default: begin
