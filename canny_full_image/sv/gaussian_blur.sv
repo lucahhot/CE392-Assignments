@@ -163,7 +163,7 @@ always_comb begin
         // Gaussian blurring
         FILTER: begin
 
-            // Only calculate gaussian blur value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in 
+            // Only calculate gaussian blur value if we there is input from the input FIFO (to prevent calculations even if there is no input being shifted in)
             if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3))) begin
 
                 // Grabbing correct pixel values from the shift register
@@ -230,18 +230,9 @@ always_comb begin
 
             end else begin
 
-                // Increment col and row trackers
-                if (col == WIDTH-1) begin
-                    col_c = 0;
-                    row_c++;
-                end else
-                    col_c++;
-
-                // Start a dummy division to keep the pipeline going
-                // start_div = 1'b1;
-                // dividend = 0;
-                // divisor = 1;
-                next_state = OUTPUT;
+                // Don't do anything in this state since nothing is getting shifted into our shift register
+                next_state = FILTER;
+                
             end
         end
 

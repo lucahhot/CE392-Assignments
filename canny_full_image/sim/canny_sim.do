@@ -18,7 +18,7 @@ vlog -work work "../sv/div_unsigned.sv"
 # start basic simulation
 vsim -classdebug -voptargs=+acc +notimingchecks -L work work.canny_tb -wlf canny.wlf
 
-# do canny_wave.do
+ do canny_wave.do
 
 run -all
 #quit;

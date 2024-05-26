@@ -30,7 +30,7 @@ localparam logic [3:0] gaussian_filter[5][5] = '{'{2,4,5,4,2},
                                                 '{4,9,12,9,4},
                                                 '{2,4,5,4,2}};
 
-typedef enum logic [1:0] {PROLOGUE,FILTER,OUTPUT} state_types;
+typedef enum logic [2:0] {PROLOGUE, FILTER, ACCUMULATE, WAIT, OUTPUT} state_types;
 state_types state, next_state;
 localparam SHIFT_REG_LEN = 4*WIDTH+5;
 localparam PIXEL_COUNT = WIDTH*HEIGHT;
@@ -67,24 +67,27 @@ logic [24:0][7:0] pixel_values;
 logic [4:0] pixel_counter, pixel_counter_c;
 
 // Divider signals
-// logic start_div, div_valid_out;
-// logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
-// logic [7:0] divisor;
+logic start_div, div_valid_out;
+logic [DIVIDEND_WIDTH-1:0] dividend, div_quotient_out;
+logic [7:0] divisor;
 
-// div_unsigned #(
-//     .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
-//     .DIVISOR_WIDTH(8)
-// ) divider_inst (
-//     .clk(clock),
-//     .reset(reset),
-//     .valid_in(start_div),
-//     .dividend(dividend),
-//     .divisor(divisor),
-//     .quotient(div_quotient_out),
-//     // .remainder(div_remainder_out),
-//     // .overflow(div_overflow_out),
-//     .valid_out(div_valid_out)
-// );
+// To hold the quotient in case the output FIFO is full
+logic [DIVIDEND_WIDTH-1:0] quotient, quotient_c;
+
+div_unsigned #(
+    .DIVIDEND_WIDTH(DIVIDEND_WIDTH),
+    .DIVISOR_WIDTH(8)
+) divider_inst (
+    .clk(clock),
+    .reset(reset),
+    .valid_in(start_div),
+    .dividend(dividend),
+    .divisor(divisor),
+    .quotient(div_quotient_out),
+    // .remainder(div_remainder_out),
+    // .overflow(div_overflow_out),
+    .valid_out(div_valid_out)
+);
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -99,6 +102,7 @@ always_ff @(posedge clock or posedge reset) begin
         numerator_sum <= '0;
         denominator_sum <= '0;
         gaussian_blur <= '0;
+        quotient <= '0;
     end else begin
         state <= next_state;
         shift_reg <= shift_reg_c;
@@ -111,6 +115,7 @@ always_ff @(posedge clock or posedge reset) begin
         numerator_sum <= numerator_sum_c;
         denominator_sum <= denominator_sum_c;
         gaussian_blur <= gaussian_blur_c;
+        quotient <= quotient_c;
     end
 end
 
@@ -129,18 +134,20 @@ always_comb begin
     numerator_sum_c = numerator_sum;
     denominator_sum_c = denominator_sum;
     gaussian_blur_c = gaussian_blur;
+    quotient_c = quotient;
 
-    // start_div = 1'b0;
-    // dividend = 0;
-    // divisor = 0;
+    start_div = 1'b0;
+    dividend = 0;
+    divisor = 0;
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
     // Keep shifting in values into the shift register until we reach the end of the image where we shift in zeros so that the
     // gaussian_blur function can go through every single pixel
-    // Only shift a new value in if state is not in S2 (writing gaussian blur value to FIFO)
-    if (state != OUTPUT) begin
+    // Only shift when we are not in ACCUMULATE, WAIT, or OUTPUT states
+    if (state != OUTPUT && state != WAIT && state != ACCUMULATE) begin
         if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
+        // if (in_empty == 1'b0) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
             shift_reg_c[SHIFT_REG_LEN-1] = in_dout;
@@ -172,6 +179,7 @@ always_comb begin
 
             // Only calculate gaussian blur value if we know there is input from the input FIFO (to prevent calculations even if there is no input being shifted in)
             if (((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) || ((row*WIDTH) + col > STOP_SHIFTING_PIXEL_COUNT)) begin
+            // if (in_empty == 1'b0 || ((row*WIDTH) + col > (PIXEL_COUNT-1) - (2*WIDTH+3))) begin
 
                 // Grabbing correct pixel values from the shift register
                 pixel_values[0] = shift_reg[0];
@@ -202,7 +210,7 @@ always_comb begin
 
                 pixel_counter_c = 0;
                 numerator_c = '{default: '{default: '0}};
-                // denominator_c = '{default: '{default: '0}};
+                denominator_c = '{default: '{default: '0}};
 
                 // Calculate MAC for the numerator (might need to separate to speed up this cycle)
                 for (int i = -2; i <= 2; i++) begin
@@ -211,7 +219,7 @@ always_comb begin
                         if ((row+i) >= 0 && (row+i) < HEIGHT && (col+j) >= 0 && (col+j) < WIDTH) begin
                             // Calculate the numerator and denominator values for the gaussian blur in an unrolled fashion (5 MACs can be parallelized)
                             numerator_c[j+2] = numerator_c[j+2] + pixel_values[pixel_counter_c] * gaussian_filter[i+2][j+2];
-                            // denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
+                            denominator_c[j+2] = denominator_c[j+2] + gaussian_filter[i+2][j+2];
                         end
                         pixel_counter_c = pixel_counter_c + 1'b1;
                     end
@@ -224,71 +232,69 @@ always_comb begin
                 end else
                     col_c++;
 
-                // start_div = 1'b1;
-                numerator_sum_c = 0;
-                // denominator_sum_c = 0;
-                for (int i = 0; i < UNROLL; i++) begin
-                    numerator_sum_c = numerator_sum_c + numerator_c[i];
-                    // denominator_sum_c = denominator_sum_c + denominator_c[i];
-                end
-                // dividend = numerator_sum_c;
-                // divisor = denominator_sum_c;
-                next_state = OUTPUT;
+                next_state = ACCUMULATE;
 
             end else begin
 
-                // Increment col and row trackers
-                if (col == WIDTH-1) begin
-                    col_c = 0;
-                    row_c++;
-                end else
-                    col_c++;
-
-                // Start a dummy division to keep the pipeline going
-                // start_div = 1'b1;
-                // dividend = 0;
-                // divisor = 1;
-                next_state = OUTPUT;
+                // Don't do anything in this state since nothing is getting shifted into our shift register
+                next_state = FILTER;
+                
             end
         end
 
-        // Waiting for division and writing to FIFO
-        OUTPUT: begin
+        // Accumulating the numerator and denominator values (separate state for frequency purposes)
+        ACCUMULATE: begin
+            numerator_sum_c = 0;
+            denominator_sum_c = 0;
+            for (int i = 0; i < UNROLL; i++) begin
+                numerator_sum_c = numerator_sum_c + numerator[i];
+                denominator_sum_c = denominator_sum_c + denominator[i];
+            end
+            // Start division HERE and cycle through OUTPUT state while waiting for division to complete
+            start_div = 1'b1;
+            dividend = numerator_sum_c;
+            divisor = denominator_sum_c;
+            next_state = WAIT;
+            // quotient_c = numerator_sum_c / denominator_sum_c;
+            // next_state = OUTPUT;
+        end
+
+        // Waiting for division 
+        WAIT: begin
             // Wait for division to complete
-            // if (div_valid_out == 1'b1) begin
-                if (out_full == 1'b0) begin
-                    // numerator_sum_c = 0;
-                    // denominator_sum_c = 0;
-                    // Sum up the numerator and denominator values
-                    // for (int i = 0; i < UNROLL; i++) begin
-                    //     numerator_sum_c = numerator_sum_c + numerator[i];
-                    //     // denominator_sum_c = denominator_sum_c + denominator[i];
-                    // end
-                    // gaussian_blur_c = div_quotient_out;
-                    // gaussian_blur_c = numerator_sum_c / denominator_sum_c;
-                    gaussian_blur_c = DIVIDEND_WIDTH'(numerator_sum / DENOMINATOR);
-                    // gaussian_blur_c = numerator_sum_c;
-                    // Accounting for saturation
-                    gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
-                    out_din = 8'(gaussian_blur_c);
-                    out_wr_en = 1'b1;
-                    next_state = FILTER;
-                    // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
-                    if (row == HEIGHT-1 && col == WIDTH-1) begin
-                        next_state = PROLOGUE;
-                        row_c = 0;
-                        col_c = 0;
-                        counter_c = 0;
-                        numerator_c = 0;
-                        denominator_c = 0;
-                        // shift_reg_c = '{default: '{default: '0}};
-                    end
+            if (div_valid_out == 1'b1) begin
+                // Clock the quotient value into register since it's only asserted for one clock cycle out of div_unsigned
+                quotient_c = div_quotient_out;
+                next_state = OUTPUT;
+            end else begin
+                // Cycle through this state
+                next_state = WAIT;
+            end
+        end
+
+        // Write quotient result to output FIFO
+        OUTPUT: begin
+            if (out_full == 1'b0) begin
+                gaussian_blur_c = quotient; // Value from register
+                // Accounting for saturation
+                gaussian_blur_c = (gaussian_blur_c > 8'hff) ? 8'hff : gaussian_blur_c;
+                out_din = 8'(gaussian_blur_c);
+                out_wr_en = 1'b1;
+                next_state = FILTER;
+                // If we have reached the last pixel of the entire image, go back to PROLOGUE and reset everything
+                if (row == HEIGHT-1 && col == WIDTH-1) begin
+                    next_state = PROLOGUE;
+                    row_c = 0;
+                    col_c = 0;
+                    counter_c = 0;
+                    numerator_c = 0;
+                    denominator_c = 0;
+                    // shift_reg_c = '{default: '{default: '0}};
                 end
-            // end else begin
-            //     // Cycle through this state
-            //     next_state = OUTPUT;
-            //     out_wr_en = 1'b0;
-            // end
+            end else begin
+                // Keep looping in OUTPUT till out_full == 1'b0
+                next_state = OUTPUT;
+            end
         end
 
         default: begin
@@ -302,13 +308,14 @@ always_comb begin
             row_c = 'X;
             numerator_c = '{default: '{default: '0}};;
             denominator_c = '{default: '{default: '0}};;
-            // start_div = 1'b0;
-            // dividend = 'X;
-            // divisor = 'X;
+            start_div = 1'b0;
+            dividend = 'X;
+            divisor = 'X;
             pixel_counter_c = 'X;
             numerator_sum_c = 'X;
             denominator_sum_c = 'X;
             gaussian_blur_c = 'X;
+            quotient_c = 'X;
         end
 
     endcase

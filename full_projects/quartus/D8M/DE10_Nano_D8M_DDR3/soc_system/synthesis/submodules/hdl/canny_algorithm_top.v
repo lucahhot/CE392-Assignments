@@ -1,5 +1,5 @@
 // top-level module of user algorithm and wrappers which is instantiated in SOPC Builder
-module user_algorithm_top
+module canny_algorithm_top
 
 	#(parameter BITS_PER_SYMBOL = 8,
 		parameter SYMBOLS_PER_BEAT = 3) 
