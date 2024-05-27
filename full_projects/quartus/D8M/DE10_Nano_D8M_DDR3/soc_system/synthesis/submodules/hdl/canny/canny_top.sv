@@ -168,7 +168,7 @@ fifo #(
     // .rd_en(nms_rd_en),
     // .dout(nms_dout),
     // .empty(nms_empty),
-    .rd_en(img_out_ed_en),
+    .rd_en(img_out_rd_en),
     .dout(img_out_dout),
     .empty(img_out_empty)
 );
