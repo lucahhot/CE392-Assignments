@@ -137,7 +137,9 @@ always_comb begin
                 // Assert read_complete signal to tell the top-level that we have finished reading.
                 read_complete = 1'b1;
                 // Assign read_data
-                read_data = avm_m0_readdata;
+                // read_data = avm_m0_readdata;
+                // Hardcoding this to see if at least this logic is working 
+                read_data = 128'd255;
             end
         end
 
