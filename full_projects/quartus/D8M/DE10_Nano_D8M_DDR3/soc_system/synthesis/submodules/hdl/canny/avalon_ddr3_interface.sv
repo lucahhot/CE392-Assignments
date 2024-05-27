@@ -7,8 +7,8 @@ module avalon_ddr3_interface (
     input   logic         main_clk,
     input   logic         main_reset,
     // mem clock and reset
-    input   logic         mem_clk,
-    input   logic         mem_reset,
+    // input   logic         mem_clk,
+    // input   logic         mem_reset,
     // Bidirectional ports i.e. read and write.
     output  logic         avm_m0_read,
     output  logic         avm_m0_write,
