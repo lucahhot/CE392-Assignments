@@ -25,7 +25,7 @@ state_types state, next_state;
 
 logic [7:0] gs, gs_c, hysteresis_ddr3, hysteresis_ddr3_c;
 
-localparam BASE_ADDRESS = 32'h01000000;
+localparam BASE_ADDRESS = 32'h04000000;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
