@@ -25,7 +25,7 @@ state_types state, next_state;
 
 logic [7:0] gs, gs_c, hysteresis_ddr3, hysteresis_ddr3_c;
 
-localparam BASE_ADDRESS = 32'h01000000;
+localparam BASE_ADDRESS = 32'h00000000;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -58,48 +58,48 @@ always_comb begin
             if (in_empty == 1'b0) begin
                 gs_c = 8'(($unsigned({2'b0, in_dout[23:16]}) + $unsigned({2'b0, in_dout[15:8]}) + $unsigned({2'b0, in_dout[7:0]})) / $unsigned(10'd3));
                 in_rd_en = 1'b1;
-                next_state = DDR3_WRITE;
+                next_state = OUTPUT;
             end
         end
 
-        // Testing DDR3 memory access by writing and reading value into DDR3
-        DDR3_WRITE: begin
-            write_data_input = gs;
-            sdram_address = BASE_ADDRESS;
-            wr_en = 1'b1;
-            next_state = WRITE_WAIT;
-        end
+        // // Testing DDR3 memory access by writing and reading value into DDR3
+        // DDR3_WRITE: begin
+        //     write_data_input = gs;
+        //     sdram_address = BASE_ADDRESS;
+        //     wr_en = 1'b1;
+        //     next_state = WRITE_WAIT;
+        // end
 
-        // Wait for write_complete to be asserted before moving on to DDR3_READ
-        WRITE_WAIT: begin
-            if (write_complete == 1'b1) begin
-                next_state = DDR3_READ;
-            end
-        end
+        // // Wait for write_complete to be asserted before moving on to DDR3_READ
+        // WRITE_WAIT: begin
+        //     if (write_complete == 1'b1) begin
+        //         next_state = DDR3_READ;
+        //     end
+        // end
 
-        // Read the value from DDR3
-        DDR3_READ: begin
-            sdram_address = BASE_ADDRESS;
-            rd_en = 1'b1;
-            next_state = READ_WAIT;
-        end
+        // // Read the value from DDR3
+        // DDR3_READ: begin
+        //     sdram_address = BASE_ADDRESS;
+        //     rd_en = 1'b1;
+        //     next_state = READ_WAIT;
+        // end
 
-        // Wait for read_complete to be asserted before moving on to OUTPUT
-        READ_WAIT: begin
-            if (read_complete == 1'b1) begin
-                next_state = READ_CAPTURE;
-            end
-        end
+        // // Wait for read_complete to be asserted before moving on to OUTPUT
+        // READ_WAIT: begin
+        //     if (read_complete == 1'b1) begin
+        //         next_state = READ_CAPTURE;
+        //     end
+        // end
 
-        READ_CAPTURE: begin
-            hysteresis_ddr3_c = read_data;
-            next_state = OUTPUT;
-        end
+        // READ_CAPTURE: begin
+        //     hysteresis_ddr3_c = read_data;
+        //     next_state = OUTPUT;
+        // end
 
         OUTPUT: begin
             if (out_full == 1'b0) begin
-                // out_din = gs;
-                out_din = hysteresis_ddr3;
+                out_din = gs;
+                // out_din = hysteresis_ddr3;
                 out_wr_en = 1'b1;
                 next_state = S0;
             end
