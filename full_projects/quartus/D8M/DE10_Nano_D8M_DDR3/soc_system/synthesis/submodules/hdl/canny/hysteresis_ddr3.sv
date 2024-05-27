@@ -190,7 +190,6 @@ case(state)
             end
         end
 
-
         // Testing DDR3 memory access by writing and reading value into DDR3
         DDR3_WRITE: begin
             write_data_input = hysteresis;
