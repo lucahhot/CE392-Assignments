@@ -4,11 +4,11 @@
 
 module avalon_ddr3_interface (
     // clk and reset are always required.
-    input   logic         clk,
-    input   logic         reset,
+    input   logic         main_clk,
+    input   logic         main_reset,
     // mem clock and reset
-    // input   logic         mem_clk,
-    // input   logic         mem_reset,
+    input   logic         mem_clk,
+    input   logic         mem_reset,
     // Bidirectional ports i.e. read and write.
     output  logic         avm_m0_read,
     output  logic         avm_m0_write,
@@ -40,8 +40,8 @@ state_types cur_state, next_state;
 logic [127:0] write_data_registered, write_data_registered_c;
 logic [31:0] sdram_address_registered, sdram_address_registered_c;
 
-always_ff @(posedge clk) begin
-    if (reset) begin
+always_ff @(posedge main_clk) begin
+    if (main_reset) begin
         cur_state <= INIT;
         write_data_registered <= 128'd0;
         sdram_address_registered <= 32'd0;
@@ -139,9 +139,9 @@ always_comb begin
                 // Assert read_complete signal to tell the top-level that we have finished reading.
                 read_complete = 1'b1;
                 // Assign read_data
-                // read_data = avm_m0_readdata;
+                read_data = avm_m0_readdata;
                 // Hardcoding this to see if at least this logic is working 
-                read_data = 128'd255;
+                // read_data = 128'd255;
             end
         end
 

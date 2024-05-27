@@ -73,7 +73,7 @@ always_comb begin
         // Wait for write_complete to be asserted before moving on to DDR3_READ
         WRITE_WAIT: begin
             if (write_complete == 1'b1) begin
-                next_state = OUTPUT;
+                next_state = DDR3_READ;
             end
         end
 
@@ -95,8 +95,8 @@ always_comb begin
 
         OUTPUT: begin
             if (out_full == 1'b0) begin
-                out_din = gs;
-                // out_din = hysteresis_ddr3;
+                // out_din = gs;
+                out_din = hysteresis_ddr3;
                 out_wr_en = 1'b1;
                 next_state = S0;
             end
