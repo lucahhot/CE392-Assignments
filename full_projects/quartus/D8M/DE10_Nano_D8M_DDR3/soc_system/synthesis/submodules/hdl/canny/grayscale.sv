@@ -25,7 +25,7 @@ state_types state, next_state;
 
 logic [7:0] gs, gs_c, hysteresis_ddr3, hysteresis_ddr3_c;
 
-localparam BASE_ADDRESS = 32'h04000000;
+localparam BASE_ADDRESS = 32'h01000000;
 
 always_ff @(posedge clock or posedge reset) begin
     if (reset == 1'b1) begin
@@ -87,7 +87,8 @@ always_comb begin
         // Wait for read_complete to be asserted before moving on to OUTPUT
         READ_WAIT: begin
             if (read_complete == 1'b1) begin
-                hysteresis_ddr3_c = read_data[7:0];
+                // hysteresis_ddr3_c = read_data;
+                hysteresis_ddr3_c = gs;
                 next_state = OUTPUT;
             end
         end

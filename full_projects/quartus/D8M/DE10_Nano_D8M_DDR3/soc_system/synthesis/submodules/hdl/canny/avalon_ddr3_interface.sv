@@ -121,7 +121,6 @@ always_comb begin
         READ_START: begin
             avm_m0_address = sdram_address_registered; // Set avm address to the input address
             avm_m0_read = 1'b1;
-            avm_m0_byteenable = 32'h0000_FFFF; // Set the byte enable to 32 bits.
             avm_m0_burstcount = 7'd1; // Get only 1 address value.
             if (avm_m0_waitrequest) begin
                 next_state = READ_START; // Wait here.
