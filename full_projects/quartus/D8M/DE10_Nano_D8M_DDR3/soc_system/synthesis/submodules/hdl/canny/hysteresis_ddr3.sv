@@ -11,14 +11,14 @@ module hysteresis #(
     input  logic        in_empty,
     input  logic [7:0]  in_dout,
 
-    // DDR3 Ports
-    output logic [31:0]     sdram_address,
-    output logic            rd_en,
-    output logic            wr_en,
-    output logic [127:0]    write_data_input,
-    input  logic [127:0]    read_data,
-    input  logic            write_complete,
-    input  logic            read_complete,
+    // // DDR3 Ports
+    // output logic [31:0]     sdram_address,
+    // output logic            rd_en,
+    // output logic            wr_en,
+    // output logic [127:0]    write_data_input,
+    // input  logic [127:0]    read_data,
+    // input  logic            write_complete,
+    // input  logic            read_complete,
 
     // Output FIFO
     output logic        out_wr_en,
@@ -115,11 +115,11 @@ always_comb begin
     pixel8_c = pixel8;
     pixel9_c = pixel9;
 
-    // Default DDR3 signal assignments
-    sdram_address = '0;
-    rd_en = 1'b0;
-    wr_en = 1'b0;
-    write_data_input = '0;
+    // // Default DDR3 signal assignments
+    // sdram_address = '0;
+    // rd_en = 1'b0;
+    // wr_en = 1'b0;
+    // write_data_input = '0;
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
@@ -186,43 +186,43 @@ case(state)
                     hysteresis_c = '0;
                 end
 
-                next_state = DDR3_WRITE;
-            end
-        end
-
-        // Testing DDR3 memory access by writing and reading value into DDR3
-        DDR3_WRITE: begin
-            write_data_input = hysteresis;
-            sdram_address = row*WIDTH + col;
-            wr_en = 1'b1;
-            next_state = WRITE_WAIT;
-        end
-
-        // Wait for write_complete to be asserted before moving on to DDR3_READ
-        WRITE_WAIT: begin
-            if (write_complete == 1'b1) begin
-                next_state = DDR3_READ;
-            end
-        end
-
-        // Read the value from DDR3
-        DDR3_READ: begin
-            sdram_address = row*WIDTH + col;
-            rd_en = 1'b1;
-            next_state = READ_WAIT;
-        end
-
-        // Wait for read_complete to be asserted before moving on to OUTPUT
-        READ_WAIT: begin
-            if (read_complete == 1'b1) begin
-                hysteresis_ddr3_c = read_data[7:0];
                 next_state = OUTPUT;
             end
         end
 
+        // // Testing DDR3 memory access by writing and reading value into DDR3
+        // DDR3_WRITE: begin
+        //     write_data_input = hysteresis;
+        //     sdram_address = row*WIDTH + col;
+        //     wr_en = 1'b1;
+        //     next_state = WRITE_WAIT;
+        // end
+
+        // // Wait for write_complete to be asserted before moving on to DDR3_READ
+        // WRITE_WAIT: begin
+        //     if (write_complete == 1'b1) begin
+        //         next_state = DDR3_READ;
+        //     end
+        // end
+
+        // // Read the value from DDR3
+        // DDR3_READ: begin
+        //     sdram_address = row*WIDTH + col;
+        //     rd_en = 1'b1;
+        //     next_state = READ_WAIT;
+        // end
+
+        // // Wait for read_complete to be asserted before moving on to OUTPUT
+        // READ_WAIT: begin
+        //     if (read_complete == 1'b1) begin
+        //         hysteresis_ddr3_c = read_data[7:0];
+        //         next_state = OUTPUT;
+        //     end
+        // end
+
         OUTPUT: begin
-            // out_din = hysteresis;
-            out_din = hysteresis_ddr3;
+            out_din = hysteresis;
+            // out_din = hysteresis_ddr3;
             out_wr_en = 1'b1;
             next_state = HYSTERESIS;
             // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
