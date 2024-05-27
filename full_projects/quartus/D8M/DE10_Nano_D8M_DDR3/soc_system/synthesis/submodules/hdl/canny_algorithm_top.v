@@ -10,13 +10,13 @@ module canny_algorithm_top #(
 
 	// Avalon-ST sink interface
 	output	din_ready,
-	input		din_valid,
-	input		din_sop,
-	input		din_eop,
-	input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] din_data, 
+	input	din_valid,
+	input	din_sop,
+	input	din_eop,
+	input	[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] din_data, 
 	
 	// Avalon-ST source interface
-	input		dout_ready,
+	input	dout_ready,
 	output	dout_valid,
 	output	dout_sop,
 	output	dout_eop,

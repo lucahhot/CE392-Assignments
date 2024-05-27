@@ -12,13 +12,13 @@ module hysteresis #(
     input  logic [7:0]  in_dout,
 
     // DDR3 Ports
-    output logic [31:0] sdram_address,
-    output logic        rd_en,
-    output logic        wr_en,
-    output logic [31:0] write_data_input,
-    input  logic [31:0] read_data,
-    input  logic        write_complete,
-    input  logic        read_complete,
+    output logic [31:0]     sdram_address,
+    output logic            rd_en,
+    output logic            wr_en,
+    output logic [127:0]    write_data_input,
+    input  logic [127:0]    read_data,
+    input  logic            write_complete,
+    input  logic            read_complete,
 
     // Output FIFO
     output logic        out_wr_en,
@@ -216,7 +216,7 @@ case(state)
         // Wait for read_complete to be asserted before moving on to OUTPUT
         READ_WAIT: begin
             if (read_complete == 1'b1) begin
-                hysteresis_ddr3_c = read_data;
+                hysteresis_ddr3_c = read_data[7:0];
                 next_state = OUTPUT;
             end
         end

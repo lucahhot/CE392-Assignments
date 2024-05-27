@@ -15,8 +15,8 @@ module canny_algorithm_core #(
     output [31:0]	sdram_address,
     output        	rd_en,
     output        	wr_en,
-    output [31:0] 	write_data_input,
-    input  [31:0] 	read_data,
+    output [127:0] 	write_data_input,
+    input  [127:0] 	read_data,
     input         	write_complete,
     input         	read_complete,
 	

@@ -17,8 +17,8 @@ module canny_top #(
     output logic [31:0]     sdram_address,
     output logic            rd_en,
     output logic            wr_en,
-    output logic [31:0]     write_data_input,
-    input  logic [31:0]     read_data,
+    output logic [127:0]    write_data_input,
+    input  logic [127:0]    read_data,
     input  logic            write_complete,
     input  logic            read_complete,
 
