@@ -20,7 +20,7 @@ module grayscale (
     output logic [7:0]  out_din
 );
 
-typedef enum logic [2:0] {S0, DDR3_WRITE, WRITE_WAIT, DDR3_READ, READ_WAIT, OUTPUT} state_types;
+typedef enum logic [2:0] {S0, DDR3_WRITE, WRITE_WAIT, DDR3_READ, READ_WAIT, READ_CAPTURE, OUTPUT} state_types;
 state_types state, next_state;
 
 logic [7:0] gs, gs_c, hysteresis_ddr3, hysteresis_ddr3_c;
@@ -87,10 +87,13 @@ always_comb begin
         // Wait for read_complete to be asserted before moving on to OUTPUT
         READ_WAIT: begin
             if (read_complete == 1'b1) begin
-                hysteresis_ddr3_c = read_data;
-                // hysteresis_ddr3_c = gs;
-                next_state = OUTPUT;
+                next_state = READ_CAPTURE;
             end
+        end
+
+        READ_CAPTURE: begin
+            hysteresis_ddr3_c = read_data;
+            next_state = OUTPUT;
         end
 
         OUTPUT: begin

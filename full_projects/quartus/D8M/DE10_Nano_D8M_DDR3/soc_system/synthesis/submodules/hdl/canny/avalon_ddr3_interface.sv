@@ -45,6 +45,7 @@ always_ff @(posedge main_clk) begin
         cur_state <= INIT;
         write_data_registered <= 128'd0;
         sdram_address_registered <= 32'd0;
+        read_data <= '0;
     end
     else begin
         cur_state <= next_state;
@@ -52,12 +53,12 @@ always_ff @(posedge main_clk) begin
         sdram_address_registered <= sdram_address_registered_c;
 
         // // Update the read data output on the clock edge instead of combinationally in always_comb
-        // case (cur_state)
-        //     READ_END: begin
-        //         if (avm_m0_readdatavalid) 
-        //         read_data <= avm_m0_readdata;
-        //     end
-        // endcase
+        case (cur_state)
+            READ_END: begin
+                if (avm_m0_readdatavalid) 
+                read_data <= avm_m0_readdata;
+            end
+        endcase
 
     end
 end
@@ -67,7 +68,6 @@ always_comb begin
     next_state = cur_state;
     write_complete = 1'b0;
     read_complete = 1'b0;
-    read_data = 128'd255; // Default white (idk)
 
     // Default avalon signal assignments
     avm_m0_writedata = 128'd0;
@@ -138,10 +138,6 @@ always_comb begin
                 next_state = INIT;
                 // Assert read_complete signal to tell the top-level that we have finished reading.
                 read_complete = 1'b1;
-                // Assign read_data
-                read_data = avm_m0_readdata;
-                // Hardcoding this to see if at least this logic is working 
-                // read_data = 128'd255;
             end
         end
 
