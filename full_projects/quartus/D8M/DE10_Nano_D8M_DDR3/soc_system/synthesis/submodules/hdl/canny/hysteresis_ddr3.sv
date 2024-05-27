@@ -196,7 +196,7 @@ case(state)
             write_data_input = hysteresis;
             sdram_address = row*WIDTH + col;
             wr_en = 1'b1;
-            next_state = DDR3_READ;
+            next_state = WRITE_WAIT;
         end
 
         // Wait for write_complete to be asserted before moving on to DDR3_READ
