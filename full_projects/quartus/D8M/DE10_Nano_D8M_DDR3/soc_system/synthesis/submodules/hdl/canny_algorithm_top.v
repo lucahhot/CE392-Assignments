@@ -1,25 +1,27 @@
 // top-level module of user algorithm and wrappers which is instantiated in SOPC Builder
-module canny_algorithm_top
+module canny_algorithm_top #(
+	parameter BITS_PER_SYMBOL = 8,
+	parameter SYMBOLS_PER_BEAT = 3,
+	parameter WIDTH = 1280,
+	parameter HEIGHT = 720
+) (	
+	input		clk,
+	input		rst,
 
-	#(parameter BITS_PER_SYMBOL = 8,
-		parameter SYMBOLS_PER_BEAT = 3) 
-		
-	(	input		clk,
-		input		rst,
+	// Avalon-ST sink interface
+	output	din_ready,
+	input		din_valid,
+	input		din_sop,
+	input		din_eop,
+	input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] din_data, 
 	
-		// Avalon-ST sink interface
-		output	din_ready,
-		input		din_valid,
-		input		din_sop,
-		input		din_eop,
-		input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] din_data, 
-		
-		// Avalon-ST source interface
-		input		dout_ready,
-		output	dout_valid,
-		output	dout_sop,
-		output	dout_eop,
-		output	[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] dout_data);
+	// Avalon-ST source interface
+	input		dout_ready,
+	output	dout_valid,
+	output	dout_sop,
+	output	dout_eop,
+	output	[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] dout_data
+);
 		
 // Avalon Stream Input internal signals
 		wire		input_ready;
@@ -220,31 +222,33 @@ alt_vip_common_stream_output
 // algorithm core instantiation - to be replaced by the user
 canny_algorithm_core
 	#(.BITS_PER_SYMBOL (BITS_PER_SYMBOL),
-		.SYMBOLS_PER_BEAT (SYMBOLS_PER_BEAT))
-	algorithm	
-	(	.clk (clk),
-		.rst (rst),	
-		// flow control signals
-		.stall_in (stall_in),
-		.stall_out (stall_out),
-		.read (read),
-		.write (write),
-		// algorithm interface to VIP control packet decoder via VIP flow control wrapper
-		.data_in (data_in),
-		.width_in (width_in),
-		.height_in (height_in),
-		.interlaced_in (interlaced_in),		
-		.end_of_video (end_of_video),		
-		.vip_ctrl_valid (vip_ctrl_valid),		
-		// algorithm interface to VIP control packet encoder via VIP flow control wrapper
-		.data_out (data_out),
-		.width_out (width_out),
-		.height_out (height_out),
-		.interlaced_out (interlaced_out),		
-		.end_of_video_out (end_of_video_out),
-		.vip_ctrl_busy (vip_ctrl_busy),		
-		.vip_ctrl_send (vip_ctrl_send)
-		);
+	.SYMBOLS_PER_BEAT (SYMBOLS_PER_BEAT),
+	.WIDTH (WIDTH),
+	.HEIGHT (HEIGHT)
+) algorithm	(	
+	.clk (clk),
+	.rst (rst),	
+	// flow control signals
+	.stall_in (stall_in),
+	.stall_out (stall_out),
+	.read (read),
+	.write (write),
+	// algorithm interface to VIP control packet decoder via VIP flow control wrapper
+	.data_in (data_in),
+	.width_in (width_in),
+	.height_in (height_in),
+	.interlaced_in (interlaced_in),		
+	.end_of_video (end_of_video),		
+	.vip_ctrl_valid (vip_ctrl_valid),		
+	// algorithm interface to VIP control packet encoder via VIP flow control wrapper
+	.data_out (data_out),
+	.width_out (width_out),
+	.height_out (height_out),
+	.interlaced_out (interlaced_out),		
+	.end_of_video_out (end_of_video_out),
+	.vip_ctrl_busy (vip_ctrl_busy),		
+	.vip_ctrl_send (vip_ctrl_send)
+);
 
 endmodule
 		

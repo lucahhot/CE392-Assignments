@@ -2,36 +2,38 @@
 // Same as user_algorithm_core but using our own grayscale modules instead of the RGB to grayscale conversion
 // that the original project used. This will allow us to input our entire canny pipeline here too
 
-module canny_algorithm_core
-
-	#(parameter BITS_PER_SYMBOL = 8,
-		parameter SYMBOLS_PER_BEAT = 3) // only 1 symbol used as black/white
-		
-	(	input		clk,
-		input		rst,
-		
-		// interface to VIP control packet decoder via VIP flow control wrapper	
-		input		stall_in,
-		output		read,		
-		input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_in, 		
-		input		end_of_video,
-		
-		input		[15:0] width_in,
-		input		[15:0] height_in,
-		input		[3:0] interlaced_in,
-		input		vip_ctrl_valid,
-		
-		// interface to VIP control packet encoder via VIP flow control wrapper	
-		input		stall_out,		
-		output		write,
-		output 		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_out,
-		output		end_of_video_out,		
-		
-		output	reg [15:0] width_out,
-		output	reg [15:0] height_out,
-		output	reg [3:0] interlaced_out,		
-		input		vip_ctrl_busy,
-		output	reg vip_ctrl_send);
+module canny_algorithm_core #(
+	parameter BITS_PER_SYMBOL = 8,
+	parameter SYMBOLS_PER_BEAT = 3,
+	parameter WIDTH = 1280,
+	parameter HEIGHT = 720
+) (	
+	input		clk,
+	input		rst,
+	
+	// interface to VIP control packet decoder via VIP flow control wrapper	
+	input		stall_in,
+	output		read,		
+	input		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_in, 		
+	input		end_of_video,
+	
+	input		[15:0] width_in,
+	input		[15:0] height_in,
+	input		[3:0] interlaced_in,
+	input		vip_ctrl_valid,
+	
+	// interface to VIP control packet encoder via VIP flow control wrapper	
+	input		stall_out,		
+	output		write,
+	output 		[BITS_PER_SYMBOL * SYMBOLS_PER_BEAT - 1:0] data_out,
+	output		end_of_video_out,		
+	
+	output	reg [15:0] width_out,
+	output	reg [15:0] height_out,
+	output	reg [3:0] interlaced_out,		
+	input		vip_ctrl_busy,
+	output	reg vip_ctrl_send
+);
 		
 // internal flow controlled signals				
 wire [BITS_PER_SYMBOL * SYMBOLS_PER_BEAT : 0] data_int;
