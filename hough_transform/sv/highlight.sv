@@ -27,7 +27,7 @@ module highlight #(
     parameter TRIG_DATA_SIZE = 12,
     // These bottom 2 parameters control the line length of the lanes (need to tune)
     parameter K_START = -1000,
-    parameter K_END = 1000,
+    parameter K_END = 0,
     parameter OFFSET = 8,
     parameter logic signed [0:179] [TRIG_DATA_SIZE-1:0] SIN_QUANTIZED = '{default: '{default: '0}},
     parameter logic signed [0:179] [TRIG_DATA_SIZE-1:0] COS_QUANTIZED = '{default: '{default: '0}}
