@@ -123,6 +123,41 @@ fifo #(
     .din(gaussian_din),
     .full(gaussian_full),
     .rd_clk(clock),
+    // .rd_en(sobel_rd_en),
+    // .dout(sobel_dout),
+    // .empty(sobel_empty)
+    // .rd_en(img_out_rd_en),
+    // .dout(img_out_dout),
+    // .empty(img_out_empty)
+    .rd_en(gaussian_rd_en),
+    .dout(gaussian_dout),
+    .empty(gaussian_empty)
+);
+
+gaussian_blur #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) gaussian_inst(
+    .clock(clock),
+    .reset(reset),
+    .in_rd_en(gaussian_rd_en),
+    .in_empty(gaussian_empty),
+    .in_dout(gaussian_dout),
+    .out_wr_en(sobel_wr_en),
+    .out_full(sobel_full),
+    .out_din(sobel_din)
+);
+
+fifo #(
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
+) fifo_sobel_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(sobel_wr_en),
+    .din(sobel_din),
+    .full(sobel_full),
+    .rd_clk(clock),
     .rd_en(sobel_rd_en),
     .dout(sobel_dout),
     .empty(sobel_empty)
@@ -130,38 +165,6 @@ fifo #(
     // .dout(img_out_dout),
     // .empty(img_out_empty)
 );
-
-// gaussian_blur #(
-//     .WIDTH(WIDTH),
-//     .HEIGHT(HEIGHT)
-// ) gaussian_inst(
-//     .clock(clock),
-//     .reset(reset),
-//     .in_rd_en(gaussian_rd_en),
-//     .in_empty(gaussian_empty),
-//     .in_dout(gaussian_dout),
-//     .out_wr_en(sobel_wr_en),
-//     .out_full(sobel_full),
-//     .out_din(sobel_din)
-// );
-
-// fifo #(
-//     .FIFO_DATA_WIDTH(8),
-//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
-// ) fifo_sobel_inst (
-//     .reset(reset),
-//     .wr_clk(clock),
-//     .wr_en(sobel_wr_en),
-//     .din(sobel_din),
-//     .full(sobel_full),
-//     .rd_clk(clock),
-//     .rd_en(sobel_rd_en),
-//     .dout(sobel_dout),
-//     .empty(sobel_empty)
-//     // .rd_en(img_out_rd_en),
-//     // .dout(img_out_dout),
-//     // .empty(img_out_empty)
-// );
 
 sobel #(
     .WIDTH(WIDTH),
