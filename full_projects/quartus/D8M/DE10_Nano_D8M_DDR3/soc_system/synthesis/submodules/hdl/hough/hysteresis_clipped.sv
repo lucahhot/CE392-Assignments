@@ -23,7 +23,7 @@ module hysteresis #(
     output logic        highlight_wr_en,
     input  logic        highlight_full,
 
-    input  logic         hysteresis_read_done
+    input  logic        hysteresis_read_done
 );
 
 localparam HIGH_THRESHOLD = 48;
@@ -236,7 +236,8 @@ case(state)
         READ: begin
             if (highlight_full == 1'b0) begin
                 next_state = HYSTERESIS;
-                highlight_din = hysteresis;
+                // highlight_din = hysteresis;
+                highlight_din = hysteresis_bram_rd_data;
                 highlight_wr_en = 1'b1;
                 // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
                 if (col == WIDTH-1) begin
