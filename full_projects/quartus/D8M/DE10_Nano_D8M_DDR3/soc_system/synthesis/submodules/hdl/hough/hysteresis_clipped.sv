@@ -29,7 +29,7 @@ module hysteresis #(
 localparam HIGH_THRESHOLD = 48;
 localparam LOW_THRESHOLD = 12;  
 
-typedef enum logic [2:0] {IDLE, PROLOGUE, HYSTERESIS, OUTPUT, SELECT_ADDR, READ} state_types;
+typedef enum logic [2:0] {IDLE, PROLOGUE, HYSTERESIS, OUTPUT, WAIT, SELECT_ADDR, READ} state_types;
 state_types state, next_state;
 
 localparam SHIFT_REG_LEN = 2*WIDTH+3;
@@ -123,7 +123,7 @@ always_comb begin
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
-    if (state != OUTPUT && state != IDLE && state != SELECT_ADDR && state != READ) begin
+    if (state != OUTPUT && state != IDLE && state != SELECT_ADDR && state != READ && state != WAIT) begin
         if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
@@ -199,10 +199,10 @@ case(state)
         end
 
         OUTPUT: begin
-            next_state = SELECT_ADDR;
+            next_state = WAIT;
             bram_out_wr_en = 1'b1;
             bram_out_wr_data = hysteresis;
-            bram_out_wr_addr = row * WIDTH + col;
+            bram_out_wr_addr = 1;
 
         //     if (highlight_full == 1'b0) begin
         //         next_state = HYSTERESIS;
@@ -228,8 +228,12 @@ case(state)
         //     end
         end
 
+        WAIT: begin
+            next_state = SELECT_ADDR;
+        end
+
         SELECT_ADDR: begin
-            hysteresis_bram_rd_addr = row * WIDTH + col;
+            hysteresis_bram_rd_addr = 1;
             next_state = READ;
         end
 
