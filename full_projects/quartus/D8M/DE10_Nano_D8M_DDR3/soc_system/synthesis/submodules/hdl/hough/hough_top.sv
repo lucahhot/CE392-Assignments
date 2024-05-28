@@ -252,86 +252,89 @@ fifo #(
     .din(hysteresis_din),
     .full(hysteresis_full),
     .rd_clk(clock),
-    // .rd_en(hysteresis_rd_en),
-    // .dout(hysteresis_dout),
-    // .empty(hysteresis_empty)
-    .rd_en(img_out_rd_en),
-    .dout(img_out_dout),
-    .empty(img_out_empty)
+    .rd_en(hysteresis_rd_en),
+    .dout(hysteresis_dout),
+    .empty(hysteresis_empty)
+    // .rd_en(img_out_rd_en),
+    // .dout(img_out_dout),
+    // .empty(img_out_empty)
 );
 
-// hysteresis #(
-//     .WIDTH(WIDTH),
-//     .HEIGHT(HEIGHT)
-// ) hysteresis_inst (
-//     .clock(clock),
-//     .reset(reset),
-//     .in_rd_en(hysteresis_rd_en),
-//     .in_empty(hysteresis_empty),
-//     .in_dout(hysteresis_dout),
-//     .bram_out_wr_en(hysteresis_bram_wr_en),
-//     .bram_out_wr_addr(hysteresis_bram_wr_addr),
-//     .bram_out_wr_data(hysteresis_bram_wr_data),
-//     .hough_start(hough_start)
-// );
+hysteresis #(
+    .WIDTH(WIDTH),
+    .HEIGHT(HEIGHT)
+) hysteresis_inst (
+    .clock(clock),
+    .reset(reset),
+    .in_rd_en(hysteresis_rd_en),
+    .in_empty(hysteresis_empty),
+    .in_dout(hysteresis_dout),
+    .bram_out_wr_en(hysteresis_bram_wr_en),
+    .bram_out_wr_addr(hysteresis_bram_wr_addr),
+    .bram_out_wr_data(hysteresis_bram_wr_data),
+    .hough_start(hough_start)
+);
 
-// bram #(
-//     .BRAM_DATA_WIDTH(8),
-//     .IMAGE_SIZE(IMAGE_SIZE)
-// ) hysteresis_bram_inst (
-//     .clock(clock),
-//     .rd_addr(hysteresis_bram_rd_addr),
-//     .wr_addr(hysteresis_bram_wr_addr),
-//     .wr_en(hysteresis_bram_wr_en),
-//     .wr_data(hysteresis_bram_wr_data),
-//     .rd_data(hysteresis_bram_rd_data)
-// );
+bram #(
+    .BRAM_DATA_WIDTH(8),
+    .IMAGE_SIZE(IMAGE_SIZE)
+) hysteresis_bram_inst (
+    .clock(clock),
+    .rd_addr(hysteresis_bram_rd_addr),
+    .wr_addr(hysteresis_bram_wr_addr),
+    .wr_en(hysteresis_bram_wr_en),
+    .wr_data(hysteresis_bram_wr_data),
+    .rd_data(hysteresis_bram_rd_data)
+);
 
-// bram #(
-//     .BRAM_DATA_WIDTH(8),
-//     .IMAGE_SIZE(IMAGE_SIZE)
-// ) image_bram_inst (
-//     .clock(clock),
-//     .rd_addr(image_bram_rd_addr),
-//     .wr_addr(image_bram_wr_addr),
-//     .wr_en(image_bram_wr_en),
-//     .wr_data(image_bram_wr_data),
-//     .rd_data(image_bram_rd_data)
-// );
+bram #(
+    .BRAM_DATA_WIDTH(8),
+    .IMAGE_SIZE(IMAGE_SIZE)
+) image_bram_inst (
+    .clock(clock),
+    .rd_addr(image_bram_rd_addr),
+    .wr_addr(image_bram_wr_addr),
+    .wr_en(image_bram_wr_en),
+    .wr_data(image_bram_wr_data),
+    .rd_data(image_bram_rd_data)
+);
 
-// hough #(
-//     .STARTING_X(STARTING_X),
-//     .STARTING_Y(STARTING_Y),
-//     .ENDING_X(ENDING_X),
-//     .ENDING_Y(ENDING_Y),
-//     .REDUCED_WIDTH(WIDTH),
-//     .REDUCED_HEIGHT(HEIGHT),
-//     .START_THETA(START_THETA),
-//     .THETAS(THETAS),
-//     .RHOS(RHOS),
-//     .RHO_RANGE(RHO_RANGE),
-//     .THETA_UNROLL(THETA_UNROLL),
-//     .THETA_DIVIDE_BITS(THETA_DIVIDE_BITS),
-//     .THETA_FACTOR(THETA_FACTOR),
-//     .ACCUM_BUFF_WIDTH(ACCUM_BUFF_WIDTH),
-//     .THETA_BITS(THETA_BITS),
-//     .NUM_LANES(NUM_LANES),
-//     .HOUGH_TRANSFORM_THRESHOLD(HOUGH_TRANSFORM_THRESHOLD),
-//     .TRIG_DATA_SIZE(TRIG_DATA_SIZE),
-//     .SIN_QUANTIZED(SIN_QUANTIZED),
-//     .COS_QUANTIZED(COS_QUANTIZED)
-// ) hough_inst (
-//     .clock(clock),
-//     .reset(reset),
-//     .start(hough_start),
-//     .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
-//     .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
-//     .hough_done(hough_done_internal),
-//     .left_rho_out(left_rho_out_internal),
-//     .right_rho_out(right_rho_out_internal),
-//     .left_theta_out(left_theta_out_internal),
-//     .right_theta_out(right_theta_out_internal)
-// );
+hough #(
+    .STARTING_X(STARTING_X),
+    .STARTING_Y(STARTING_Y),
+    .ENDING_X(ENDING_X),
+    .ENDING_Y(ENDING_Y),
+    .REDUCED_WIDTH(WIDTH),
+    .REDUCED_HEIGHT(HEIGHT),
+    .START_THETA(START_THETA),
+    .THETAS(THETAS),
+    .RHOS(RHOS),
+    .RHO_RANGE(RHO_RANGE),
+    .THETA_UNROLL(THETA_UNROLL),
+    .THETA_DIVIDE_BITS(THETA_DIVIDE_BITS),
+    .THETA_FACTOR(THETA_FACTOR),
+    .ACCUM_BUFF_WIDTH(ACCUM_BUFF_WIDTH),
+    .THETA_BITS(THETA_BITS),
+    .NUM_LANES(NUM_LANES),
+    .HOUGH_TRANSFORM_THRESHOLD(HOUGH_TRANSFORM_THRESHOLD),
+    .TRIG_DATA_SIZE(TRIG_DATA_SIZE),
+    .SIN_QUANTIZED(SIN_QUANTIZED),
+    .COS_QUANTIZED(COS_QUANTIZED)
+) hough_inst (
+    .clock(clock),
+    .reset(reset),
+    .start(hough_start),
+    .hysteresis_bram_rd_data(hysteresis_bram_rd_data),
+    .hysteresis_bram_rd_addr(hysteresis_bram_rd_addr),
+    .highlight_din(highlight_din),
+    .highlight_wr_en(highlight_wr_en),
+    .highlight_full(highlight_full),
+    .hough_done(hough_done_internal),
+    .left_rho_out(left_rho_out_internal),
+    .right_rho_out(right_rho_out_internal),
+    .left_theta_out(left_theta_out_internal),
+    .right_theta_out(right_theta_out_internal)
+);
 
 // highlight #(
 //     .STARTING_X(STARTING_X),
@@ -366,20 +369,20 @@ fifo #(
 //     .highlight_full(highlight_full)
 // );
 
-// fifo #(
-//     .FIFO_DATA_WIDTH(8),
-//     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
-// ) fifo_highlight_inst (
-//     .reset(reset),
-//     .wr_clk(clock),
-//     .wr_en(highlight_wr_en),
-//     .din(highlight_din),
-//     .full(highlight_full),
-//     .rd_clk(clock),
-//     .rd_en(img_out_rd_en),
-//     .dout(img_out_dout),
-//     .empty(img_out_empty)
-// );
+fifo #(
+    .FIFO_DATA_WIDTH(8),
+    .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
+) fifo_highlight_inst (
+    .reset(reset),
+    .wr_clk(clock),
+    .wr_en(highlight_wr_en),
+    .din(highlight_din),
+    .full(highlight_full),
+    .rd_clk(clock),
+    .rd_en(img_out_rd_en),
+    .dout(img_out_dout),
+    .empty(img_out_empty)
+);
 
 
 

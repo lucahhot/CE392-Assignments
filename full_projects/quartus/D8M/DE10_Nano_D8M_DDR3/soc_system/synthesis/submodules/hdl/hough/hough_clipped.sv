@@ -33,6 +33,12 @@ module hough #(
     // HYSTERESIS INPUTS from bram_2d
     input  logic [7:0]                                      hysteresis_bram_rd_data,
     output logic [$clog2(REDUCED_WIDTH*REDUCED_HEIGHT)-1:0] hysteresis_bram_rd_addr,
+
+    // Highlight output FIFO signals
+    output logic [7:0]  highlight_din,
+    output logic        highlight_wr_en,
+    input  logic        highlight_full,
+
     // DONE signals
     output logic hough_done,
     // LANE OUTPUTS
@@ -126,6 +132,8 @@ logic [$clog2(NUM_LANES)-1:0] total_left_index_sum, total_left_index_sum_c, tota
 logic [LANE_INDEX_LENGTH-1:0] left_sum_counter, left_sum_counter_c, right_sum_counter, right_sum_counter_c;
 localparam THETA_UNROLL_WIDTH = $clog2(THETA_UNROLL);
 logic [THETA_UNROLL_WIDTH-1:0] theta_unroll_counter, theta_unroll_counter_c;
+
+logic [$clog2(REDUCED_IMAGE_SIZE):0] counter, counter_c;
 
 // Accumulator buffer BRAM instantiation in generate loop
 genvar i;
@@ -259,6 +267,7 @@ always_ff @(posedge clock or posedge reset) begin
         div_done_right_rho <= 1'b0;
         div_done_left_theta <= 1'b0;
         div_done_right_theta <= 1'b0;
+        counter <= '0;
     end else begin
         state <= next_state;
         x <= x_c;
@@ -304,6 +313,7 @@ always_ff @(posedge clock or posedge reset) begin
         div_done_right_rho <= div_done_right_rho_c;
         div_done_left_theta <= div_done_left_theta_c;
         div_done_right_theta <= div_done_right_theta_c;
+        counter <= counter_c;
     end
 end
 
@@ -386,6 +396,11 @@ always_comb begin
 
     // Done signals to the testbench
     hough_done = 1'b0;
+
+    // FIFO outputs
+    highlight_din = '0;
+    highlight_wr_en = 1'b0;
+    counter_c = counter;
 
     case(state)
         // Zero state that executes at the beginning after a reset to initialize all the accum_buff BRAMs to zero,
@@ -700,7 +715,17 @@ always_comb begin
             left_theta_out = THETA_BITS'(left_theta_quotient);
             right_theta_out = THETA_BITS'(right_theta_quotient);
             hough_done = 1'b1;
-            next_state = ZERO;
+            // next_state = ZERO;
+            // DEBUG BY OUTPUTTING 512 x 288 values here into output FIFO
+            highlight_din = 8'hFF;
+            highlight_wr_en = 1'b1;
+            counter_c = counter + 1'b1;
+            if (counter == REDUCED_IMAGE_SIZE-1) begin
+                // Reset everything and go back to ZERO state
+                next_state = ZERO;
+                theta_c = 0;
+                rho_index_c = 0;
+            end
         end
 
         default: begin
