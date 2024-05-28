@@ -297,14 +297,14 @@ bram_quartus hysteresis_bram_inst (
 	.q ( hysteresis_bram_rd_data )
 );
 
-bram_quartus image_bram_inst (
-	.clock ( clock ),
-	.data ( image_bram_wr_data ),
-	.rdaddress ( image_bram_rd_addr ),
-	.wraddress ( image_bram_wr_addr ),
-	.wren ( image_bram_wr_en ),
-	.q ( image_bram_rd_data )
-);
+// bram_quartus image_bram_inst (
+// 	.clock ( clock ),
+// 	.data ( image_bram_wr_data ),
+// 	.rdaddress ( image_bram_rd_addr ),
+// 	.wraddress ( image_bram_wr_addr ),
+// 	.wren ( image_bram_wr_en ),
+// 	.q ( image_bram_rd_data )
+// );
 
 
 // bram #(
