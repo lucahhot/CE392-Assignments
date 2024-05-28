@@ -286,7 +286,7 @@ hysteresis #(
     .hysteresis_read_done(hysteresis_read_done)
 );
 
-bram_quartusv hysteresis_bram_inst (
+bram_quartus hysteresis_bram_inst (
 	.clock ( clock ),
 	.data ( hysteresis_bram_wr_data ),
 	.rdaddress ( hysteresis_bram_rd_addr ),
@@ -295,7 +295,7 @@ bram_quartusv hysteresis_bram_inst (
 	.q ( hysteresis_bram_rd_data )
 );
 
-bram_quartusv image_bram_inst (
+bram_quartus image_bram_inst (
 	.clock ( clock ),
 	.data ( image_bram_wr_data ),
 	.rdaddress ( image_bram_rd_addr ),

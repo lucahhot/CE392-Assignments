@@ -197,7 +197,7 @@ case(state)
             next_state = HYSTERESIS;
             bram_out_wr_en = 1'b1;
             bram_out_wr_data = hysteresis;
-            bram_out_wr_addr = (row * WIDTH) + col;
+            bram_out_wr_addr = row * WIDTH + col;
 
             // if (highlight_full == 1'b0) begin
             //     highlight_din = hysteresis;
