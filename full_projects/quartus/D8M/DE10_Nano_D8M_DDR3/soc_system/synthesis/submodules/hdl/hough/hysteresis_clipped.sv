@@ -123,7 +123,7 @@ always_comb begin
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
-    if (state == PROLOGUE && state == HYSTERESIS) begin
+    if (state != OUTPUT && state != IDLE) begin
         if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
@@ -199,12 +199,12 @@ case(state)
         end
 
         OUTPUT: begin
-            next_state = HYSTERESIS;
-            bram_out_wr_en = 1'b1;
-            bram_out_wr_data = hysteresis;
-            bram_out_wr_addr = row * WIDTH + col;
+            // bram_out_wr_en = 1'b1;
+            // bram_out_wr_data = hysteresis;
+            // bram_out_wr_addr = row * WIDTH + col;
 
             if (highlight_full == 1'b0) begin
+                next_state = HYSTERESIS;
                 highlight_din = hysteresis;
                 highlight_wr_en = 1'b1;
                 // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
