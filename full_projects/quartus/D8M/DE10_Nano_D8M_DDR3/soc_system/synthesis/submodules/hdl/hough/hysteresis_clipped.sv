@@ -15,9 +15,9 @@ module hysteresis #(
     output logic                                    hough_start,
 
     // Highlight output FIFO signals
-    output logic [7:0]  highlight_din,
-    output logic        highlight_wr_en,
-    input  logic        highlight_full,
+    // output logic [7:0]  highlight_din,
+    // output logic        highlight_wr_en,
+    // input  logic        highlight_full,
 
     input  logic         hysteresis_read_done
 );
@@ -113,8 +113,8 @@ always_comb begin
 
     in_rd_en = 1'b0;
 
-    highlight_din = '0;
-    highlight_wr_en = 1'b0;
+    // highlight_din = '0;
+    // highlight_wr_en = 1'b0;
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
@@ -136,7 +136,7 @@ case(state)
 
         // Idle 
         IDLE: begin
-            // if (hysteresis_read_done == 1'b1)
+            if (hysteresis_read_done == 1'b1)
                 next_state = PROLOGUE;
         end
 
@@ -199,9 +199,9 @@ case(state)
             bram_out_wr_data = hysteresis;
             bram_out_wr_addr = (row * WIDTH) + col;
 
-            if (highlight_full == 1'b0) begin
-                highlight_din = hysteresis;
-                highlight_wr_en = 1'b1;
+            // if (highlight_full == 1'b0) begin
+            //     highlight_din = hysteresis;
+            //     highlight_wr_en = 1'b1;
                 // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
                 if (col == WIDTH-1) begin
                     if (row == HEIGHT-1) begin
@@ -219,7 +219,7 @@ case(state)
                 end else begin
                     col_c = col + 1'b1;
                 end
-            end
+            // end
         end
         
         default: begin
