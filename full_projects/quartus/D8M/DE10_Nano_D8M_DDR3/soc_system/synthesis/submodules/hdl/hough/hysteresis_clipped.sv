@@ -123,7 +123,7 @@ always_comb begin
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
-    if (state != OUTPUT && state != IDLE) begin
+    if (state != OUTPUT && state != IDLE && state != SELECT_ADDR && state != READ) begin
         if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
@@ -199,10 +199,41 @@ case(state)
         end
 
         OUTPUT: begin
-            // bram_out_wr_en = 1'b1;
-            // bram_out_wr_data = hysteresis;
-            // bram_out_wr_addr = row * WIDTH + col;
+            next_state = SELECT_ADDR;
+            bram_out_wr_en = 1'b1;
+            bram_out_wr_data = hysteresis;
+            bram_out_wr_addr = row * WIDTH + col;
 
+        //     if (highlight_full == 1'b0) begin
+        //         next_state = HYSTERESIS;
+        //         highlight_din = hysteresis;
+        //         highlight_wr_en = 1'b1;
+        //         // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
+        //         if (col == WIDTH-1) begin
+        //             if (row == HEIGHT-1) begin
+        //                 // Signal that we're done
+        //                 hough_start = 1'b1;
+        //                 next_state = IDLE; 
+        //                 row_c = '0;
+        //                 col_c = '0;
+        //                 counter_c = '0;
+        //                 hysteresis_c = '0;
+        //             end else begin
+        //                 col_c = '0;
+        //                 row_c = row + 1'b1;
+        //             end                
+        //         end else begin
+        //             col_c = col + 1'b1;
+        //         end
+        //     end
+        end
+
+        SELECT_ADDR: begin
+            hysteresis_bram_rd_addr = row * WIDTH + col;
+            next_state = READ;
+        end
+
+        READ: begin
             if (highlight_full == 1'b0) begin
                 next_state = HYSTERESIS;
                 highlight_din = hysteresis;
@@ -226,36 +257,6 @@ case(state)
                 end
             end
         end
-
-        // SELECT_ADDR: begin
-        //     hysteresis_bram_rd_addr = row * WIDTH + col;
-        //     next_state = READ;
-        // end
-
-        // READ: begin
-        //     if (highlight_full == 1'b0) begin
-        //         next_state = HYSTERESIS;
-        //         highlight_din = hysteresis;
-        //         highlight_wr_en = 1'b1;
-        //         // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
-        //         if (col == WIDTH-1) begin
-        //             if (row == HEIGHT-1) begin
-        //                 // Signal that we're done
-        //                 hough_start = 1'b1;
-        //                 next_state = IDLE; 
-        //                 row_c = '0;
-        //                 col_c = '0;
-        //                 counter_c = '0;
-        //                 hysteresis_c = '0;
-        //             end else begin
-        //                 col_c = '0;
-        //                 row_c = row + 1'b1;
-        //             end                
-        //         end else begin
-        //             col_c = col + 1'b1;
-        //         end
-        //     end
-        // end
         
         default: begin
             next_state = PROLOGUE;
