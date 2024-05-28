@@ -717,14 +717,17 @@ always_comb begin
             hough_done = 1'b1;
             // next_state = ZERO;
             // DEBUG BY OUTPUTTING 512 x 288 values here into output FIFO
-            highlight_din = 8'hFF;
-            highlight_wr_en = 1'b1;
-            counter_c = counter + 1'b1;
-            if (counter == REDUCED_IMAGE_SIZE-1) begin
-                // Reset everything and go back to ZERO state
-                next_state = ZERO;
-                theta_c = 0;
-                rho_index_c = 0;
+            if (highlight_full == 1'b0) begin
+                highlight_din = 8'hFF;
+                highlight_wr_en = 1'b1;
+                counter_c = counter + 1'b1;
+                if (counter == REDUCED_IMAGE_SIZE-1) begin
+                    // Reset everything and go back to ZERO state
+                    next_state = ZERO;
+                    theta_c = 0;
+                    rho_index_c = 0;
+                    counter_c = 0;
+                end
             end
         end
 

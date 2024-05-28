@@ -123,6 +123,11 @@ logic [7:0] highlight_din;
 logic highlight_full;
 logic highlight_wr_en;
 
+logic signed [15:0]     left_rho_out_internal;
+logic signed [15:0]     right_rho_out_internal;
+logic [THETA_BITS-1:0]  left_theta_out_internal;
+logic [THETA_BITS-1:0]  right_theta_out_internal;
+
 fifo #(
     .FIFO_DATA_WIDTH(24),
     .FIFO_BUFFER_SIZE(FIFO_BUFFER_SIZE)
