@@ -12,13 +12,14 @@ module hysteresis #(
     output logic                                    bram_out_wr_en,
     output  logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  bram_out_wr_addr,
     output logic [7:0]                              bram_out_wr_data,
-    output logic                                    hough_start
+    output logic                                    hough_start,
+    input  logic         hysteresis_read_done
 );
 
 localparam HIGH_THRESHOLD = 48;
 localparam LOW_THRESHOLD = 12;  
 
-typedef enum logic [1:0] {PROLOGUE, HYSTERESIS, OUTPUT} state_types;
+typedef enum logic [2:0] {IDLE, PROLOGUE, HYSTERESIS, OUTPUT} state_types;
 state_types state, next_state;
 
 localparam SHIFT_REG_LEN = 2*WIDTH+3;
@@ -108,7 +109,7 @@ always_comb begin
 
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
-    if (state != OUTPUT) begin
+    if (state != OUTPUT && state != IDLE) begin
         if ((in_empty == 1'b0) && ((row*WIDTH) + col <= STOP_SHIFTING_PIXEL_COUNT)) begin
             // Implementing a shift right register
             shift_reg_c[0:SHIFT_REG_LEN-2] = shift_reg[1:SHIFT_REG_LEN-1];
@@ -123,6 +124,13 @@ always_comb begin
     end
 
 case(state) 
+
+        // Idle 
+        IDLE: begin
+            if (hysteresis_read_done == 1'b1)
+                next_state = PROLOGUE;
+        end
+
         // Prologue
         PROLOGUE: begin
             // Waiting for shift register to fill up enough to start hysteresis
@@ -186,7 +194,7 @@ case(state)
                 if (row == HEIGHT-1) begin
                     // Signal that we're done
                     hough_start = 1'b1;
-                    next_state = PROLOGUE; 
+                    next_state = IDLE; 
                     row_c = '0;
                     col_c = '0;
                     counter_c = '0;

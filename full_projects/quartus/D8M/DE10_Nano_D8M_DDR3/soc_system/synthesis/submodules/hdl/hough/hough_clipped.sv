@@ -33,6 +33,7 @@ module hough #(
     // HYSTERESIS INPUTS from bram_2d
     input  logic [7:0]                                      hysteresis_bram_rd_data,
     output logic [$clog2(REDUCED_WIDTH*REDUCED_HEIGHT)-1:0] hysteresis_bram_rd_addr,
+    output logic hysteresis_read_done,
 
     // Highlight output FIFO signals
     output logic [7:0]  highlight_din,
@@ -402,6 +403,8 @@ always_comb begin
     highlight_wr_en = 1'b0;
     counter_c = counter;
 
+    hysteresis_read_done = 1'b0;
+
     case(state)
         // Zero state that executes at the beginning after a reset to initialize all the accum_buff BRAMs to zero,
         // and is then called at the end to reset the BRAMs to zero after the selection of lanes is also done for the next iamge frame
@@ -570,6 +573,8 @@ always_comb begin
         // SELECT_LOOP stage that goes through the accum_buff BRAMs and select lines that pass a certain threshold and 
         // add them to arrays to keep before averaging them later
         SELECT_LOOP: begin
+            // Indicate that we are done reading from hsyteresis BRAM
+            hysteresis_read_done = 1'b1;
             first_select_cycle_c = 1'b0; // Reset this flag to 0 as soon as we enter this loop 
             for (int j = 0; j < THETA_UNROLL; j++) begin
                 if ((j+theta) < THETAS)
