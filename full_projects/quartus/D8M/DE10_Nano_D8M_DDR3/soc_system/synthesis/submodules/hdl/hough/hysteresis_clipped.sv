@@ -13,6 +13,12 @@ module hysteresis #(
     output  logic [$clog2(REDUCED_IMAGE_SIZE)-1:0]  bram_out_wr_addr,
     output logic [7:0]                              bram_out_wr_data,
     output logic                                    hough_start,
+
+    // Highlight output FIFO signals
+    output logic [7:0]  highlight_din,
+    output logic        highlight_wr_en,
+    input  logic        highlight_full,
+
     input  logic         hysteresis_read_done
 );
 
@@ -107,6 +113,9 @@ always_comb begin
 
     in_rd_en = 1'b0;
 
+    highlight_din = '0;
+    highlight_wr_en = 1'b0;
+
     // Modifying below to not only rely on in_empty == 1'b0 to shift in new values (doesn't work with continuous input)
 
     if (state != OUTPUT && state != IDLE) begin
@@ -127,7 +136,7 @@ case(state)
 
         // Idle 
         IDLE: begin
-            if (hysteresis_read_done == 1'b1)
+            // if (hysteresis_read_done == 1'b1)
                 next_state = PROLOGUE;
         end
 
@@ -189,22 +198,27 @@ case(state)
             bram_out_wr_en = 1'b1;
             bram_out_wr_data = hysteresis;
             bram_out_wr_addr = (row * WIDTH) + col;
-            // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
-            if (col == WIDTH-1) begin
-                if (row == HEIGHT-1) begin
-                    // Signal that we're done
-                    hough_start = 1'b1;
-                    next_state = IDLE; 
-                    row_c = '0;
-                    col_c = '0;
-                    counter_c = '0;
-                    hysteresis_c = '0;
+
+            if (highlight_full == 1'b0) begin
+                highlight_din = hysteresis;
+                highlight_wr_en = 1'b1;
+                // Calculate the next address to write to (if we are at the end, reset everything and go back to PROLOGUE)
+                if (col == WIDTH-1) begin
+                    if (row == HEIGHT-1) begin
+                        // Signal that we're done
+                        hough_start = 1'b1;
+                        next_state = IDLE; 
+                        row_c = '0;
+                        col_c = '0;
+                        counter_c = '0;
+                        hysteresis_c = '0;
+                    end else begin
+                        col_c = '0;
+                        row_c = row + 1'b1;
+                    end                
                 end else begin
-                    col_c = '0;
-                    row_c = row + 1'b1;
-                end                
-            end else begin
-                col_c = col + 1'b1;
+                    col_c = col + 1'b1;
+                end
             end
         end
         
