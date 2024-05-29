@@ -199,7 +199,7 @@ case(state)
         end
 
         OUTPUT: begin
-            next_state = HYSTERESIS;
+            // next_state = HYSTERESIS;
             // bram_out_wr_en = 1'b1;
             // bram_out_wr_data = hysteresis;
             // bram_out_wr_addr = row * WIDTH + col;
