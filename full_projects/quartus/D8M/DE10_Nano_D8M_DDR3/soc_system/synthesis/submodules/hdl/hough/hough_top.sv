@@ -2,8 +2,8 @@
 
 module hough_top #(
     // Image dimensions
-    parameter WIDTH = 512,
-    parameter HEIGHT = 288,
+    parameter WIDTH = 568,
+    parameter HEIGHT = 320,
     parameter FIFO_BUFFER_SIZE = 8
 )(
     input   logic           clock,
@@ -27,7 +27,7 @@ localparam ENDING_Y = HEIGHT;
 
 localparam START_THETA = 20;
 localparam THETAS = 160;
-localparam RHOS = 588;
+localparam RHOS = 652;
 localparam RHO_RANGE = RHOS * 2;
 
 localparam THETA_UNROLL = 16;
@@ -306,19 +306,6 @@ bram_quartus image_bram_inst (
 	.q ( image_bram_rd_data )
 );
 
-
-// bram #(
-//     .BRAM_DATA_WIDTH(8),
-//     .IMAGE_SIZE(IMAGE_SIZE)
-// ) hysteresis_bram_inst (
-//     .clock(clock),
-//     .rd_addr(hysteresis_bram_rd_addr),
-//     .wr_addr(hysteresis_bram_wr_addr),
-//     .wr_en(hysteresis_bram_wr_en),
-//     .wr_data(hysteresis_bram_wr_data),
-//     .rd_data(hysteresis_bram_rd_data)
-// );
-
 // bram_to_fifo #(
 //     .REDUCED_WIDTH(WIDTH),
 //     .REDUCED_HEIGHT(HEIGHT)
@@ -332,18 +319,6 @@ bram_quartus image_bram_inst (
 //     .highlight_din(highlight_din),
 //     .highlight_wr_en(highlight_wr_en),
 //     .highlight_full(highlight_full)
-// );
-
-// bram #(
-//     .BRAM_DATA_WIDTH(8),
-//     .IMAGE_SIZE(IMAGE_SIZE)
-// ) image_bram_inst (
-//     .clock(clock),
-//     .rd_addr(image_bram_rd_addr),
-//     .wr_addr(image_bram_wr_addr),
-//     .wr_en(image_bram_wr_en),
-//     .wr_data(image_bram_wr_data),
-//     .rd_data(image_bram_rd_data)
 // );
 
 // hough #(

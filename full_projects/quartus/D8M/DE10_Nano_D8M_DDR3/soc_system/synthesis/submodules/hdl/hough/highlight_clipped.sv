@@ -8,8 +8,8 @@
 module highlight #(
     parameter STARTING_X = 0,
     parameter STARTING_Y = 0,
-    parameter ENDING_X = 640,
-    parameter ENDING_Y = 360,
+    parameter ENDING_X = 568,
+    parameter ENDING_Y = 320,
     parameter REDUCED_WIDTH = ENDING_X - STARTING_X,
     parameter REDUCED_HEIGHT = ENDING_Y - STARTING_Y,
     parameter REDUCED_IMAGE_SIZE = REDUCED_WIDTH * REDUCED_HEIGHT,

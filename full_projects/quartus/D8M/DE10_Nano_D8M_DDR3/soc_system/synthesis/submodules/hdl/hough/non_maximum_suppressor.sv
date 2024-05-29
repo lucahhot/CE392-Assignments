@@ -2,8 +2,8 @@
 // Modified NMS to try and work with the Intel VIP Suite IP cores.
 
 module non_maximum_suppressor #(
-    parameter WIDTH = 1280,
-    parameter HEIGHT = 720
+    parameter WIDTH = 568,
+    parameter HEIGHT = 320
 ) (
     input  logic        clock,
     input  logic        reset,

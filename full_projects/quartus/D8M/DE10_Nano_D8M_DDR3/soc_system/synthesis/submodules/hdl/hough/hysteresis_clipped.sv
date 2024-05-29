@@ -1,7 +1,7 @@
 
 module hysteresis #(
-    parameter WIDTH = 1280,
-    parameter HEIGHT = 720,
+    parameter WIDTH = 568,
+    parameter HEIGHT = 320,
     parameter REDUCED_IMAGE_SIZE = WIDTH * HEIGHT
 ) (
     input  logic        clock,
@@ -199,10 +199,11 @@ case(state)
         end
 
         OUTPUT: begin
-            next_state = WAIT;
+            // next_state = WAIT;
+            next_state = SELECT_ADDR;
             bram_out_wr_en = 1'b1;
             bram_out_wr_data = hysteresis;
-            bram_out_wr_addr = 1;
+            bram_out_wr_addr = row * WIDTH + col;
 
         //     if (highlight_full == 1'b0) begin
         //         next_state = HYSTERESIS;
@@ -229,13 +230,13 @@ case(state)
         end
 
         // Wait for the output to be written to the BRAM (I think the write inputs are all registered?)
-        WAIT: begin
-            next_state = SELECT_ADDR;
-        end
+        // WAIT: begin
+        //     next_state = SELECT_ADDR;
+        // end
 
         // Read address is registered so wait another cycle
         SELECT_ADDR: begin
-            hysteresis_bram_rd_addr = 1;
+            hysteresis_bram_rd_addr = row * WIDTH + col;
             next_state = READ;
         end
 

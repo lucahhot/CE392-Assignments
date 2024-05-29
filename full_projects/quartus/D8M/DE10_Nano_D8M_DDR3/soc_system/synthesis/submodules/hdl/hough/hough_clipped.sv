@@ -6,13 +6,13 @@ module hough #(
     // IMAGE DIMENSION PARAMETERS
     parameter STARTING_X = 0,
     parameter STARTING_Y = 0,
-    parameter ENDING_X = 640,
-    parameter ENDING_Y = 360,
+    parameter ENDING_X = 568,
+    parameter ENDING_Y = 320,
     parameter REDUCED_WIDTH = ENDING_X - STARTING_X,
     parameter REDUCED_HEIGHT = ENDING_Y - STARTING_Y,
     parameter START_THETA = 20, // Start theta instead of default 0
     parameter THETAS = 160, // Reducing our theta range to save cycles and memory
-    parameter RHOS = 735, // Need to calculate manually based on the image size
+    parameter RHOS = 652, // Need to calculate manually based on the image size
     parameter RHO_RANGE = RHOS * 2,
     // THETA LOOP PARAMETERS
     parameter THETA_UNROLL = 16,
@@ -140,16 +140,15 @@ logic [$clog2(REDUCED_IMAGE_SIZE):0] counter, counter_c;
 genvar i;
 generate
     for (i = 0; i < THETA_UNROLL; i++) begin : generate_accum_buff_name
-        bram #(
-            .BRAM_DATA_WIDTH(ACCUM_BUFF_WIDTH),
-            .IMAGE_SIZE(RHO_RANGE*THETA_FACTOR)
-        ) accum_buff_bram (
+        // BRAM_DATA_WIDTH = ACCUM_BUFF_WIDTH
+        // BRAM_DEPTH = RHO_RANGE*THETA_FACTOR = 11736
+        bram_accum accum_buff_bram (
             .clock(clock),
-            .rd_addr(accum_buff_rd_addr_c[i]),
-            .wr_addr(accum_buff_wr_addr[i]),
-            .wr_en(accum_buff_wr_en[i]),
-            .wr_data(accum_buff_wr_data[i]),
-            .rd_data(accum_buff_rd_data[i])
+            .data(accum_buff_wr_data[i]),
+            .rdaddress(accum_buff_rd_addr_c[i]),
+            .wraddress(accum_buff_wr_addr[i]),
+            .wren(accum_buff_wr_en[i]),
+            .q(accum_buff_rd_data[i])
         );
     end
 endgenerate
