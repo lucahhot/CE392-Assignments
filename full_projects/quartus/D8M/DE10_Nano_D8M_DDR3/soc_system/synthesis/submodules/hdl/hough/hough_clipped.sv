@@ -35,10 +35,10 @@ module hough #(
     output logic [$clog2(REDUCED_WIDTH*REDUCED_HEIGHT)-1:0] hysteresis_bram_rd_addr,
     output logic hysteresis_read_done,
 
-    // Highlight output FIFO signals
-    output logic [7:0]  highlight_din,
-    output logic        highlight_wr_en,
-    input  logic        highlight_full,
+    // // Highlight output FIFO signals
+    // output logic [7:0]  highlight_din,
+    // output logic        highlight_wr_en,
+    // input  logic        highlight_full,
 
     // DONE signals
     output logic hough_done,
@@ -397,9 +397,9 @@ always_comb begin
     // Done signals to the testbench
     hough_done = 1'b0;
 
-    // FIFO outputs
-    highlight_din = '0;
-    highlight_wr_en = 1'b0;
+    // // FIFO outputs
+    // highlight_din = '0;
+    // highlight_wr_en = 1'b0;
     counter_c = counter;
 
     hysteresis_read_done = 1'b0;
@@ -719,20 +719,23 @@ always_comb begin
             left_theta_out = THETA_BITS'(left_theta_quotient);
             right_theta_out = THETA_BITS'(right_theta_quotient);
             hough_done = 1'b1;
-            // next_state = ZERO;
+            next_state = ZERO;
+            theta_c = START_THETA;
+            rho_index_c = 0;
+            counter_c = 0;
             // DEBUG BY OUTPUTTING 512 x 288 values here into output FIFO
-            if (highlight_full == 1'b0) begin
-                highlight_din = 8'hFF;
-                highlight_wr_en = 1'b1;
-                counter_c = counter + 1'b1;
-                if (counter == REDUCED_IMAGE_SIZE-1) begin
-                    // Reset everything and go back to ZERO state
-                    next_state = ZERO;
-                    theta_c = 0;
-                    rho_index_c = 0;
-                    counter_c = 0;
-                end
-            end
+            // if (highlight_full == 1'b0) begin
+            //     highlight_din = 8'hFF;
+            //     highlight_wr_en = 1'b1;
+            //     counter_c = counter + 1'b1;
+            //     if (counter == REDUCED_IMAGE_SIZE-1) begin
+            //         // Reset everything and go back to ZERO state
+            //         next_state = ZERO;
+            //         theta_c = 0;
+            //         rho_index_c = 0;
+            //         counter_c = 0;
+            //     end
+            // end
         end
 
         default: begin
