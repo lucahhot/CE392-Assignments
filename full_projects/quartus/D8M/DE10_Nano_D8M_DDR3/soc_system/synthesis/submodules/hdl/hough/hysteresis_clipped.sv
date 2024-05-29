@@ -141,7 +141,7 @@ case(state)
 
         // Idle 
         IDLE: begin
-            if (hysteresis_read_done == 1'b1)
+            // if (hysteresis_read_done == 1'b1)
                 next_state = PROLOGUE;
         end
 
