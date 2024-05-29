@@ -228,10 +228,12 @@ case(state)
         //     end
         end
 
+        // Wait for the output to be written to the BRAM (I think the write inputs are all registered?)
         WAIT: begin
             next_state = SELECT_ADDR;
         end
 
+        // Read address is registered so wait another cycle
         SELECT_ADDR: begin
             hysteresis_bram_rd_addr = 1;
             next_state = READ;
